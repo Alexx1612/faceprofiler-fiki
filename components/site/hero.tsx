@@ -11,7 +11,6 @@ import {
   HeroDitheringVisual,
 } from "@/components/ui/hero-dithering";
 import { NeumorphEyebrow } from "@/components/ui/neumorph-eyebrow";
-import { TextAnimate } from "@/components/ui/text-animate";
 import { asset, project } from "@/lib/content";
 
 const shader = { colorBack: "#00000000", colorFront: "#38bdf8", shape: "sphere", type: "4x4", size: 2, speed: 0.6, scale: 0.75 } as const;
@@ -35,11 +34,9 @@ export function Hero() {
       <HeroDitheringContainer className="mx-auto max-w-6xl px-4 pb-6 sm:px-6 sm:pb-8 lg:pb-8">
         <HeroDitheringContent className="sm:px-0 md:px-0 lg:pl-0 xl:pl-0">
           <NeumorphEyebrow intent="night">{project.eyebrow}</NeumorphEyebrow>
-          <TextAnimate
-            text={project.name}
-            type="calmInUp"
-            className="-my-2 py-2 text-5xl leading-[1.1] font-semibold tracking-[-0.04em] text-white sm:text-7xl"
-          />
+          <p aria-hidden="true" className="animate-in fade-in slide-in-from-bottom-4 text-6xl leading-none font-semibold tracking-[-0.04em] text-white duration-700 sm:text-7xl">
+            {project.name}
+          </p>
           <p className="max-w-xl text-xl leading-snug font-medium text-sky-100 sm:text-2xl">{project.tagline}</p>
           <p className="text-muted-foreground max-w-xl text-base leading-relaxed">{project.description}</p>
           <div className="flex flex-wrap items-center gap-3 pt-2">

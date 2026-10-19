@@ -23,7 +23,7 @@ export function Team() {
               imageSrc={asset(m.photo)}
               title={m.name}
               subtitle={m.role}
-              className="h-60 w-full"
+              className="h-48 w-full sm:h-60"
               content={
                 <div className="flex flex-col gap-6">
                   <p>{m.bio}</p>

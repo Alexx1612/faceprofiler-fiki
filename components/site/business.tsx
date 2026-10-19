@@ -16,17 +16,17 @@ export function Problem() {
       title="Hours of video that nobody watches"
       lead="Sites record around the clock, yet the footage is used only after something has gone wrong."
     >
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         {problems.map((p, i) => {
           const Icon = problemIcons[i];
           return (
             <TextureCardStyled key={p.title} className="h-full">
-              <div className="p-4">
+              <div className="p-3 sm:p-4">
                 <span className="flex size-8 items-center justify-center rounded-lg border border-red-400/20 bg-red-400/10 text-red-300">
                   <Icon className="size-4" />
                 </span>
-                <h3 className="mt-3 font-semibold text-white">{p.title}</h3>
-                <p className="mt-1 text-sm leading-snug text-neutral-400">{p.text}</p>
+                <h3 className="mt-2 text-sm leading-snug font-semibold text-white sm:mt-3 sm:text-base">{p.title}</h3>
+                <p className="mt-1 text-xs leading-snug text-neutral-400 sm:text-sm">{p.text}</p>
               </div>
             </TextureCardStyled>
           );
@@ -99,15 +99,15 @@ export function Competition() {
       lead="The leaders sell to large enterprises or ask customers to replace their cameras; small and mid-size sites are left with cheap hardware they may not trust."
     >
       <div className="overflow-x-auto rounded-2xl border border-white/10">
-        <table className="w-full min-w-[680px] text-sm">
+        <table className="w-full min-w-[600px] text-xs sm:min-w-[680px] sm:text-sm">
           <thead>
             <tr className="border-b border-white/10 bg-white/[0.03]">
-              <th className="p-3 text-left font-medium text-neutral-400">What a small site needs</th>
+              <th className="sticky left-0 z-10 bg-[#11151d] p-3 text-left font-medium text-neutral-400 sm:bg-transparent">What a small site needs</th>
               {matrix.columns.map((col, i) => (
                 <th key={col} className={cn("p-3 text-center font-medium", i === 0 ? "text-sky-300" : "text-neutral-200")}>
                   {col}
                   {i > 0 && (
-                    <span className="block text-[10px] font-normal text-neutral-500">{competitors[i - 1].kind}</span>
+                    <span className="hidden text-[10px] font-normal text-neutral-500 sm:block">{competitors[i - 1].kind}</span>
                   )}
                 </th>
               ))}
@@ -116,7 +116,7 @@ export function Competition() {
           <tbody>
             {matrix.rows.map((row) => (
               <tr key={row.label} className="border-b border-white/[0.06] last:border-0">
-                <td className="px-3 py-2 text-neutral-300">{row.label}</td>
+                <td className="sticky left-0 z-10 w-36 bg-[#0d1118] px-3 py-2 text-neutral-300 sm:w-auto sm:bg-transparent">{row.label}</td>
                 {row.values.map((v, i) => {
                   const { Icon, cls, label } = cell[v];
                   return (
@@ -132,7 +132,7 @@ export function Competition() {
           </tbody>
         </table>
       </div>
-      <p className="text-muted-foreground mt-2 text-xs">Our assessment from each vendor&apos;s public product pages, October 2026.</p>
+      <p className="text-muted-foreground mt-2 text-xs"><span className="sm:hidden">Swipe the table sideways. </span>Our assessment from each vendor&apos;s public product pages, October 2026.</p>
 
       <div className="mt-5 grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
         {advantages.map((a, i) => {

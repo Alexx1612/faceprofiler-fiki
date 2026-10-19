@@ -58,7 +58,7 @@ export function Nav() {
           <Logo className="size-6 text-sky-400" />
           {project.name}
         </a>
-        <nav className="-mr-4 ml-auto flex min-w-0 overflow-x-auto pr-4 [scrollbar-width:none] sm:mr-0 sm:pr-0">
+        <nav className="-mr-4 ml-auto flex min-w-0 overflow-x-auto pr-8 [mask-image:linear-gradient(to_right,black_80%,transparent)] [scrollbar-width:none] sm:mr-0 sm:pr-0 sm:[mask-image:none]">
           {nav.map((n) => (
             <a
               key={n.id}

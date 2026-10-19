@@ -12,19 +12,19 @@ export function Segments() {
     id: i,
     label: s.label,
     content: (
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         {[
           { Icon: Users, title: "Who", text: s.who },
           { Icon: Frown, title: "Their pain", text: s.pain },
           { Icon: Gift, title: "What they get", text: s.gets },
           { Icon: Briefcase, title: "Who signs", text: s.buyer },
         ].map(({ Icon, title, text }) => (
-          <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-left">
+          <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 text-left sm:p-4">
             <div className="flex items-center gap-2 text-sky-300">
               <Icon className="size-4" />
-              <span className="jet text-xs tracking-widest uppercase">{title}</span>
+              <span className="jet text-[10px] tracking-widest uppercase sm:text-xs">{title}</span>
             </div>
-            <p className="mt-1.5 text-sm leading-snug text-neutral-200">{text}</p>
+            <p className="mt-1.5 text-xs leading-snug text-neutral-200 sm:text-sm">{text}</p>
           </div>
         ))}
       </div>
