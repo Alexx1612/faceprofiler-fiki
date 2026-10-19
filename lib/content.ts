@@ -8,10 +8,10 @@
 export const asset = (path: string) => `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}${path}`;
 
 export const project = {
-  name: "FaceProfiler",
+  name: "Nau-ino",
   tagline: "Security and access control for any site, on the CCTV cameras it already has.",
   description:
-    "From kindergartens and offices to data centres and military bases: FaceProfiler checks who enters with face recognition on existing cameras, confirms the face is real by its pulse, and checks visitors in and out with keycards or single-use passes. Each organisation's data stays in its own isolated container, and a local LLM turns events and notes into reports anyone can read.",
+    "From kindergartens and offices to data centres and military bases: Nau-ino checks who enters with face recognition on existing cameras, confirms the face is real by its pulse, and checks visitors in and out with keycards or single-use passes. Each organisation's data stays in its own isolated container, and a local LLM turns events and notes into reports anyone can read.",
   eyebrow: "Computer vision · Access control · Security",
 };
 
@@ -167,7 +167,7 @@ export const competitors = [
 
 /** Comparison matrix: our assessment from the vendors' public product pages. */
 export const matrix = {
-  columns: ["FaceProfiler", "Verkada", "Avigilon", "Hikvision", "BriefCam"],
+  columns: ["Nau-ino", "Verkada", "Avigilon", "Hikvision", "BriefCam"],
   rows: [
     { label: "No camera replacement", values: ["yes", "no", "partial", "no", "yes"] },
     { label: "Works fully offline, faces stay on site", values: ["yes", "partial", "yes", "yes", "yes"] },

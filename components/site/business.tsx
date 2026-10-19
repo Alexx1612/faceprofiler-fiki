@@ -48,7 +48,7 @@ export function Solution() {
       id="solution"
       eyebrow="Solution & value proposition"
       title="A security layer on existing cameras"
-      lead="FaceProfiler recognises enrolled people, keeps strangers anonymous and alerts staff only when a human is needed. Every event is saved with evidence and turned into a readable report."
+      lead="Nau-ino recognises enrolled people, keeps strangers anonymous and alerts staff only when a human is needed. Every event is saved with evidence and turned into a readable report."
     >
       <p className="mb-4 rounded-2xl border border-sky-300/15 bg-gradient-to-br from-sky-400/10 via-transparent to-transparent p-4 text-base leading-snug font-medium text-white sm:text-lg">
         <span className="jet mb-1 block text-xs tracking-widest text-sky-300 uppercase">Value proposition</span>
@@ -78,7 +78,7 @@ export function Solution() {
       </div>
       <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
         EU: face checks need consent or another legal basis (GDPR); the AI Act bans emotion recognition in workplaces and
-        schools and face databases scraped from the internet, so FaceProfiler only knows people a customer enrols.
+        schools and face databases scraped from the internet, so Nau-ino only knows people a customer enrols.
       </p>
     </Section>
   );

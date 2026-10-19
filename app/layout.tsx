@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FaceProfiler",
+  title: "Nau-ino",
   description:
     "Security cameras that recognise, alert and report, on the hardware a site already has. Project overview: problem, solution, customers, competition, metrics, costs, revenue and team.",
 };

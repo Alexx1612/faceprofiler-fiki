@@ -13,7 +13,7 @@ export function Team() {
     <Section
       id="team"
       eyebrow="Team & roles"
-      title="The people behind FaceProfiler"
+      title="The people behind Nau-ino"
       lead="Three roles cover the AI, the platform and the business. Click a card to see what each person owns."
     >
       <div className="grid gap-4 sm:grid-cols-3">

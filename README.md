@@ -1,4 +1,4 @@
-# FaceProfiler — project fiki
+# Nau-ino — project fiki
 
 One-page project overview: title, team and roles, problem, solution and value proposition,
 customer segments, competition, advantage, key metrics, cost structure and revenue streams.
