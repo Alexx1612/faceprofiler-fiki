@@ -66,7 +66,7 @@ export function Footer() {
           <Logo className="size-5 text-sky-400" /> {project.name}
         </div>
         <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
-          Demo footage: Mixkit free stock video, fictional names. UI built with Cult UI and Watermelon UI components.
+          Demo footage: Mixkit free stock video, fictional names. Team photos are placeholder cats (Wikimedia Commons, public domain / CC0). UI built with Cult UI and Watermelon UI components.
           Figures marked as estimates or targets are assumptions, not results.
         </p>
       </div>
