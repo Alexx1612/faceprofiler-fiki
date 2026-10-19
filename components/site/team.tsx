@@ -16,14 +16,14 @@ export function Team() {
       title="The people behind FaceProfiler"
       lead="Three roles cover the AI, the platform and the business. Click a card to see what each person owns."
     >
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         {team.map((m) => (
           <div key={m.email} className="flex flex-col gap-3">
             <ExpandableProfileCard
               imageSrc={asset(m.photo)}
               title={m.name}
               subtitle={m.role}
-              className="aspect-[4/5] w-full"
+              className="h-60 w-full"
               content={
                 <div className="flex flex-col gap-6">
                   <p>{m.bio}</p>

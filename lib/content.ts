@@ -21,8 +21,7 @@ export const nav = [
   { id: "customers", label: "Customers" },
   { id: "competition", label: "Competition" },
   { id: "metrics", label: "Metrics" },
-  { id: "costs", label: "Costs" },
-  { id: "revenue", label: "Revenue" },
+  { id: "money", label: "Costs & revenue" },
   { id: "team", label: "Team" },
 ];
 
@@ -53,7 +52,7 @@ export const team = [
   {
     name: "Damian Monea",
     role: "Platform & Security Engineer",
-    email: "damian.monea@stud.acs.up.ro",
+    email: "damian.monea@stud.acs.upb.ro",
     photo: "/team/member-3.jpg",
     bio: "Builds the platform around the models: keycard and visitor-pass check-in, one isolated container per organisation, and the local LLM that writes the reports.",
     owns: ["Access control & visitor passes", "Isolated deployments (Docker)", "Local LLM reports"],

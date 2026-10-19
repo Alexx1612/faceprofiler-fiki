@@ -1,8 +1,7 @@
-import { Advantage, Competition, Problem, Solution } from "@/components/site/business";
-import { DemoClips } from "@/components/site/demo-clips";
+import { Competition, Problem, Solution } from "@/components/site/business";
 import { Hero } from "@/components/site/hero";
 import { Metrics } from "@/components/site/metrics";
-import { Costs, Revenue } from "@/components/site/money";
+import { Money } from "@/components/site/money";
 import { Nav } from "@/components/site/nav";
 import { Segments } from "@/components/site/segments";
 import { Footer, Team } from "@/components/site/team";
@@ -14,15 +13,12 @@ export default function Home() {
       <Nav />
       <main>
         <Hero />
-        <DemoClips />
         <Problem />
         <Solution />
         <Segments />
         <Competition />
-        <Advantage />
         <Metrics />
-        <Costs />
-        <Revenue />
+        <Money />
         <Team />
       </main>
       <Footer />

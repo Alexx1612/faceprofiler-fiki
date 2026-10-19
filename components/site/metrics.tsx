@@ -27,8 +27,8 @@ export function Metrics() {
     <Section
       id="metrics"
       eyebrow="Key metrics"
-      title="What we measure today, and what we will track"
-      lead="Product numbers come from the demo edition's own tests. Business metrics start with the first paying pilot; the targets are our assumptions."
+      title="Measured today, tracked tomorrow"
+      lead="Product numbers come from the demo's own tests; business targets are our assumptions."
     >
       <div className="w-fit max-w-full">
       <ContinuousTabs
@@ -40,7 +40,7 @@ export function Metrics() {
         onChange={setTab}
       />
       </div>
-      <div className="mt-8">
+      <div className="mt-5">
         <AnimatePresence mode="wait">
           {tab === "measured" ? (
             <motion.div
@@ -50,18 +50,18 @@ export function Metrics() {
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.25 }}
             >
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 {measured.map((m) => (
-                  <div key={m.label} className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent p-6">
-                    <div className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                  <div key={m.label} className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent p-4">
+                    <div className="text-3xl font-semibold tracking-tight text-white">
                       <AnimatedValue value={m.value} precision={m.precision} suffix={m.suffix} />
                     </div>
-                    <p className="mt-3 font-medium text-neutral-200">{m.label}</p>
-                    <p className="text-muted-foreground mt-0.5 text-sm">{m.note}</p>
+                    <p className="mt-2 text-sm leading-snug font-medium text-neutral-200">{m.label}</p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">{m.note}</p>
                   </div>
                 ))}
               </div>
-              <p className="text-muted-foreground mt-4 text-xs">
+              <p className="text-muted-foreground mt-3 text-xs">
                 405-photo test and 3 video clips, Intel Core i7-13650HX laptop, no graphics card, 16 Oct 2026.
               </p>
             </motion.div>
@@ -77,7 +77,7 @@ export function Metrics() {
               {tracked.map((t) => (
                 <div
                   key={t.label}
-                  className="grid gap-1 border-b border-white/[0.06] p-5 last:border-0 sm:grid-cols-[1.3fr_0.7fr_1.4fr] sm:items-center sm:gap-6"
+                  className="grid gap-1 border-b border-white/[0.06] px-4 py-3 last:border-0 sm:grid-cols-[1.3fr_0.7fr_1.4fr] sm:items-center sm:gap-6"
                 >
                   <span className="font-medium text-white">{t.label}</span>
                   <span className="jet flex items-center gap-1.5 text-sm text-sky-300">
