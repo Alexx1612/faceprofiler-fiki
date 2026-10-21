@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { HBars, MultiLine } from "./charts";
 import { TrackedTargets } from "./metrics";
 import { Section } from "./section";
+import { TabHint } from "./tab-hint";
 
 const eur = (n: number) => `€${n.toLocaleString("en-US")}`;
 const box = "rounded-2xl border border-white/10 bg-white/[0.02] p-4";
@@ -293,7 +294,7 @@ export function Fundamentals() {
       id="business"
       eyebrow="Business fundamentals"
       title="Who buys, why, and how it pays"
-      lead="Seven questions every startup must answer, each in one tab."
+      lead={<TabHint text="7 tabs: click or swipe to open the next one" />}
     >
       <DirectionAwareTabs
         tabs={TABS.map((t, i) => ({ id: i, label: t.label, content: <div className="mt-4 text-left">{t.el}</div> }))}

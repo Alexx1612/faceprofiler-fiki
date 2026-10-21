@@ -151,3 +151,15 @@ body {
 .jet {
   font-family: var(--font-geist-mono), ui-monospace, monospace;
 }
+
+/* Arrow that nudges sideways: tells the reader there are more tabs to open. */
+@keyframes nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(6px); }
+}
+.animate-nudge {
+  animation: nudge 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-nudge { animation: none; }
+}

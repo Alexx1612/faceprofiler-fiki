@@ -9,10 +9,10 @@ export const asset = (path: string) => `${process.env.NEXT_PUBLIC_BASE_PATH ?? "
 
 export const project = {
   name: "Nau-ino",
-  tagline: "Security and access control for any site, on the CCTV cameras it already has.",
+  tagline: "Security, access control and analytics for any site, on the CCTV cameras it already has, at a low energy cost.",
   description:
-    "From kindergartens and offices to data centres and military bases: Nau-ino checks who enters with face recognition on existing cameras, confirms the face is real by its pulse, and checks visitors in and out with keycards or single-use passes. Each organisation's data stays in its own isolated container, and a local LLM turns events and notes into reports anyone can read.",
-  eyebrow: "Computer vision · Access control · Security",
+    "From kindergartens and offices to data centres and military bases: Nau-ino checks who enters with face recognition on existing cameras, confirms the face is real by its pulse, and checks visitors in and out with keycards or single-use passes. Each organisation's data stays in its own isolated container, and a local LLM turns events and notes into reports anyone can read. The same cameras give footfall analytics and forecasts, and neuromorphic models keep the energy cost low.",
+  eyebrow: "Computer vision · Access control · Analytics · Low energy",
 };
 
 export const nav = [

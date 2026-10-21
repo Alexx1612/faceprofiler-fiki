@@ -9,6 +9,7 @@ import { components, forecast, lifetimes, mallReport, mallStatus, neuro, neuroWh
 import { cn } from "@/lib/utils";
 import { Columns, ForecastChart, HBars, Ranges } from "./charts";
 import { Section } from "./section";
+import { TabHint } from "./tab-hint";
 
 const box = "rounded-2xl border border-white/10 bg-white/[0.02] p-4";
 const h4 = "mb-2 text-sm font-semibold text-white";
@@ -198,6 +199,9 @@ export function Technology() {
       title="What works today, and what comes next"
       lead={`${components.length} components, a low-power neuromorphic edge, and the reports and forecasts a mall manager reads.`}
     >
+      <p className="mb-2">
+        <TabHint text="5 tabs: click or swipe to open the next one" />
+      </p>
       <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none]">
         <div className="w-max">
           <ContinuousTabs tabs={TABS.map(({ id, label }) => ({ id, label }))} defaultActiveId={TABS[0].id} onChange={setTab} />
