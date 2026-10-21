@@ -1,10 +1,9 @@
-import { Competition, Problem, Solution } from "@/components/site/business";
+import { Fundamentals } from "@/components/site/fundamentals";
 import { Hero } from "@/components/site/hero";
-import { Metrics } from "@/components/site/metrics";
-import { Money } from "@/components/site/money";
 import { Nav } from "@/components/site/nav";
-import { Segments } from "@/components/site/segments";
+import { Overview } from "@/components/site/overview";
 import { Footer, Team } from "@/components/site/team";
+import { Technology } from "@/components/site/technology";
 
 export default function Home() {
   return (
@@ -13,12 +12,9 @@ export default function Home() {
       <Nav />
       <main>
         <Hero />
-        <Problem />
-        <Solution />
-        <Segments />
-        <Competition />
-        <Metrics />
-        <Money />
+        <Overview />
+        <Fundamentals />
+        <Technology />
         <Team />
       </main>
       <Footer />

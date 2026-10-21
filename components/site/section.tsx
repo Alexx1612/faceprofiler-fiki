@@ -19,13 +19,13 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className={cn("relative mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10", className)}>
-      <div className="mb-5 max-w-4xl">
+    <section id={id} className={cn("relative mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8", className)}>
+      <div className="mb-4 max-w-4xl">
         <NeumorphEyebrow intent="night">{eyebrow}</NeumorphEyebrow>
-        <GradientHeading size="md" weight="semi" variant="default" className="mt-2">
+        <GradientHeading size="sm" weight="semi" variant="default" className="mt-1">
           {title}
         </GradientHeading>
-        {lead && <p className="text-muted-foreground -mt-1 text-sm leading-relaxed sm:text-base">{lead}</p>}
+        {lead && <p className="text-muted-foreground -mt-2 text-sm leading-relaxed">{lead}</p>}
       </div>
       {children}
     </section>

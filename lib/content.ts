@@ -16,12 +16,10 @@ export const project = {
 };
 
 export const nav = [
-  { id: "problem", label: "Problem" },
-  { id: "solution", label: "Solution" },
-  { id: "customers", label: "Customers" },
-  { id: "competition", label: "Competition" },
+  { id: "problem", label: "Overview" },
+  { id: "business", label: "Business" },
+  { id: "technology", label: "Technology" },
   { id: "metrics", label: "Metrics" },
-  { id: "money", label: "Costs & revenue" },
   { id: "team", label: "Team" },
 ];
 
@@ -94,13 +92,13 @@ export const components: { name: string; text: string; status: Status }[] = [
   { name: "Traffic & occupancy", text: "People per frame and movement trails; heatmaps next.", status: "Partial" },
   { name: "Attention analysis", text: "Head direction per face; mapping it to shelves next.", status: "Partial" },
   { name: "Recording search", text: "Searchable log of every saved face; event search next.", status: "Partial" },
-  { name: "Event reconstruction", text: "Timestamped crops per person; cross-camera timeline next.", status: "Partial" },
+  { name: "Event reconstruction", text: "Timestamped crops per person; exportable evidence pack next.", status: "Partial" },
   { name: "After-hours alert", text: "Person and unknown-face detection work; schedules and SMS next.", status: "Partial" },
-  { name: "Cross-camera tracking", text: "Tracks people within one camera; linking cameras next.", status: "Partial" },
+  { name: "Cross-camera tracking", text: "Follows and names the same person across cameras.", status: "Current" },
   { name: "Liveness check", text: "Confirms a face is real from its pulse (rPPG), so a photo cannot pass.", status: "Partial" },
   { name: "Keycard & visitor passes", text: "Check-in/out by keycard or single-use pass for visitors.", status: "Next" },
   { name: "Isolated per organisation", text: "Each customer's data in its own container (pod/Docker).", status: "Next" },
-  { name: "LLM reports", text: "A local LLM turns events and notes into readable reports.", status: "Next" },
+  { name: "LLM summaries", text: "A local LLM turns events and notes into readable summaries.", status: "Current" },
   { name: "Gesture analysis", text: "Hand and body gestures from body pose.", status: "Next" },
   { name: "Object removal alert", text: "Alert when a marked object leaves its place.", status: "Next" },
   { name: "Camera tamper alert", text: "Covered, blurred, moved or disconnected cameras.", status: "Next" },
@@ -239,7 +237,7 @@ export const plans = [
     description: "Malls, chains and restricted sites",
     priceMonthly: "€19",
     priceYearly: "€15",
-    badge: "Most chosen",
+    badge: "Recommended",
     featuresLabel: "Everything in Starter, plus",
     features: [
       { text: "After-hours schedules per zone" },
@@ -268,3 +266,118 @@ export const otherRevenue = [
   { title: "Edge box", text: "A pre-configured mini-PC for sites without a spare computer, sold with a margin.", price: "from €900" },
   { title: "Analytics reports", text: "Monthly footfall, dwell and attention reports for retail, as an add-on.", price: "€49 / site / month" },
 ];
+
+/* ---------- v3: fundamentals, validation, technology (see README) ---------- */
+
+/** Market size: one sourced figure (opened 21 Oct 2026). */
+export const market = {
+  entry: "Sites that already run CCTV but have no one watching it: schools and kindergartens, care homes, small malls and offices in Romania, then the EU.",
+  tam: "Global video analytics: USD 8.5 billion in 2024, expected USD 31.0 billion by 2033 (about 15% a year).",
+  source: { label: "IMARC Group via Research and Markets", url: "https://www.researchandmarkets.com/report/video-analytics" },
+};
+
+/** Customer interviews run by the team (sites are deliberately not named). */
+export const interviews = [
+  { label: "Teachers: need alerts for fights or children leaving unnoticed", value: 70, detail: "7 of 10 teachers" },
+  { label: "Camera sites: want a demo of closing-hours alerts", value: 80, detail: "80% of sites asked" },
+  { label: "Elderly care: would consider fall / life alerts", value: 40, detail: "2 of 5 places" },
+];
+
+/** What the interviews mean for the next experiments (build-measure-learn). */
+export const hypotheses = [
+  { h: "Sites with cameras will run a free on-site demo", evidence: "80% asked for one", next: "Measure demo → paid conversion (target ≥ 40%)" },
+  { h: "Schools pay for fight and unnoticed-exit alerts", evidence: "7 of 10 teachers", next: "Pilot in one school; count true vs false alerts per week" },
+  { h: "Care homes buy fall / life alerts", evidence: "Only 2 of 5", next: "Offer as an add-on, not the entry product" },
+];
+
+export const channels = [
+  { title: "On-site demos", text: "A free 30-day demo on the site's own cameras; the step 80% of sites asked for. Does not scale, teaches us fastest." },
+  { title: "Security integrators", text: "Installers resell the licence with their maintenance contracts (Partner plan): one partner brings many sites." },
+  { title: "Sector networks", text: "School inspectorates, care-home associations and mall management companies: one talk reaches dozens of buyers." },
+  { title: "University & accelerator", text: "UPB network and startup programmes for first pilots, mentors and credibility." },
+];
+
+export const operations = {
+  inHouse: ["Recognition, tracking and neuromorphic models", "Platform, alerts and the local LLM summaries", "Data isolation per organisation (Docker)", "Pilots and customer support"],
+  partners: ["Camera installation: security integrators", "Edge PCs: hardware supplier", "GDPR / AI Act review: law firm", "Update server: low-cost hosting"],
+};
+
+/** Lifetime value per customer (assumptions, a 20-camera mall). */
+export const ltv = {
+  lines: [
+    { label: "Licence: 20 cameras × €15 × 12 months × 5 years", amount: 18000 },
+    { label: "Analytics reports: €49 × 12 × 5 years", amount: 2940 },
+    { label: "Setup & enrolment (one time)", amount: 1000 },
+  ],
+  cac: 2500,
+  cacNote: "Assumed cost to win one site: demo hardware, 3 visits, sales time.",
+};
+
+/** Measured in the team's neuromorphic-gestures lessons (energy = 45 nm per-operation estimates, not on a chip). */
+export const neuro = [
+  { idea: "Spiking motion watcher wakes the person detector", result: "Detector sleeps on 43% of frames, 0 people missed: −42% energy", where: "Pedestrian scene (CDnet); only 6–20% on a busy hall" },
+  { idea: "Spiking motion watcher vs a classical one", result: "0.002–0.007 µJ per frame vs 4.4 µJ (MOG2) vs ~15,000 µJ (YOLO11n)", where: "CDnet 2014, unseen scenes" },
+  { idea: "Spiking face-expression network", result: "65 µJ per face vs 394 µJ for its ordinary twin (6× less), 66.8% vs 67.9% accuracy", where: "FER-2013" },
+  { idea: "Liquid network (CfC) for activity / fall detection", result: "88.7% accuracy with a tiny always-on model (GRU 92.3%)", where: "UCI HAR, phone motion sensors" },
+  { idea: "Spiking reservoir for forecasting", result: "36 nJ per value vs 623 µJ for a pretrained model; less accurate today (skill +0.02 vs +0.24)", where: "Real household power, 1 h ahead" },
+  { idea: "Remaining-life prediction", result: "A spiking model reads sensors cycle by cycle and warns before failure", where: "NASA C-MAPSS engines; same method for cameras and disks" },
+];
+
+export const neuroWhy = [
+  "Always on for milliwatts: only changes in the image cost energy.",
+  "Event cameras send changes, not pictures: more private, microsecond reaction.",
+  "Small models answer early and run on cheap edge hardware or neuromorphic chips.",
+];
+
+/** Mall analytics: what exists and what is being built. */
+export const mallStatus = {
+  done: ["People per frame and movement trails", "Head direction (what people look at)", "Face log with time, track and expression", "Cross-camera tracking", "LLM summaries of events and notes"],
+  building: ["Occupancy per zone", "Heatmaps per floor plan", "Automatic weekly report (charts + written insight)"],
+};
+
+/** Sample report (illustrative data). */
+export const mallReport = {
+  hours: ["10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21"],
+  footfall: [420, 610, 880, 1150, 1240, 1080, 990, 1120, 1310, 1190, 860, 520],
+  zones: [
+    { zone: "Food court", minutes: 18.4 },
+    { zone: "Cinema", minutes: 9.0 },
+    { zone: "Fashion", minutes: 7.8 },
+    { zone: "Electronics", minutes: 6.1 },
+    { zone: "Entrance", minutes: 1.2 },
+  ],
+  insight: "Saturday peak at 18:00 (1,310 visitors). Food-court dwell is 18 minutes, the longest in the mall: place promotions at its entrance and add staff 17:00–19:00.",
+};
+
+/** Footfall forecast (illustrative data): 12 weeks observed, 4 forecast by an SNN / liquid model. */
+export const forecast = {
+  observed: [41.2, 42.8, 40.1, 43.5, 44.9, 43.2, 45.8, 47.1, 46.0, 48.3, 49.0, 47.6],
+  predicted: [49.8, 51.2, 55.6, 50.4],
+  band: 0.06,
+  examples: [
+    { title: "Staffing", text: "Saturday forecast +18% → 2 extra cashiers 16:00–20:00." },
+    { title: "Promotions", text: "Promo week forecast +9% over baseline; the real count afterwards shows if it worked." },
+    { title: "Sales estimate", text: "51,200 visitors × 22% conversion × €38 basket ≈ €428,000 for the week." },
+    { title: "Energy", text: "Lighting and heating follow the expected occupancy, not a fixed timetable." },
+  ],
+};
+
+/** Typical service life in years (approximate industry ranges). */
+export const lifetimes = [
+  { part: "IP camera", low: 5, high: 10 },
+  { part: "Recorder (NVR)", low: 5, high: 7 },
+  { part: "Edge PC", low: 4, high: 6 },
+  { part: "Surveillance disk", low: 3, high: 5 },
+];
+
+/** 7-year cumulative cost, 20-camera mall (illustrative assumptions in `lifetimeCostNote`). */
+export const lifetimeCost = {
+  years: [0, 1, 2, 3, 4, 5, 6, 7],
+  series: [
+    { name: "Nau-ino on existing cameras", values: [1900, 5500, 9100, 12700, 16300, 20800, 24400, 28000] },
+    { name: "Replace with cloud cameras", values: [20000, 24000, 28000, 32000, 36000, 40000, 44000, 48000] },
+    { name: "One extra night guard", values: [0, 18000, 36000, 54000, 72000, 90000, 108000, 126000] },
+  ],
+};
+export const lifetimeCostNote =
+  "Assumptions: Nau-ino €1,000 setup + €900 edge PC (replaced in year 5) + €15 per camera per month; cloud cameras €800 each + €4,000 install + €200 per camera per year; night guard €1,500 per month.";

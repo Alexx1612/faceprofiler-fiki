@@ -14,16 +14,16 @@ export function Team() {
       id="team"
       eyebrow="Team & roles"
       title="The people behind Nau-ino"
-      lead="Three roles cover the AI, the platform and the business. Click a card to see what each person owns."
+      lead="AI, platform and business. Click a card for details."
     >
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         {team.map((m) => (
-          <div key={m.email} className="flex flex-col gap-3">
+          <div key={m.email} className="flex flex-col gap-1.5">
             <ExpandableProfileCard
               imageSrc={asset(m.photo)}
               title={m.name}
               subtitle={m.role}
-              className="h-48 w-full sm:h-60"
+              className="h-28 w-full sm:h-32"
               content={
                 <div className="flex flex-col gap-6">
                   <p>{m.bio}</p>
@@ -51,6 +51,7 @@ export function Team() {
               <Mail className="size-4 shrink-0" />
               <span className="truncate">{m.email}</span>
             </a>
+            <p className="px-1 text-xs text-neutral-500">{m.owns.join(" · ")}</p>
           </div>
         ))}
       </div>
@@ -61,7 +62,7 @@ export function Team() {
 export function Footer() {
   return (
     <footer className="border-t border-white/10">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex items-center gap-2 font-semibold text-white">
           <Logo className="size-5 text-sky-400" /> {project.name}
         </div>
