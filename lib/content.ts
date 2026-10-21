@@ -17,6 +17,7 @@ export const project = {
 
 export const nav = [
   { id: "problem", label: "Overview" },
+  { id: "proof", label: "Proof" },
   { id: "business", label: "Business" },
   { id: "technology", label: "Technology" },
   { id: "metrics", label: "Metrics" },
@@ -381,3 +382,16 @@ export const lifetimeCost = {
 };
 export const lifetimeCostNote =
   "Assumptions: Nau-ino €1,000 setup + €900 edge PC (replaced in year 5) + €15 per camera per month; cloud cameras €800 each + €4,000 install + €200 per camera per year; night guard €1,500 per month.";
+
+/** Distance test with the trained YOLOv8-nano face detector (owner's new examples; aliases only). */
+export const distance = {
+  cases: [
+    { k: 1, subject: "Subject 01", setting: "Indoor corridor", step: 30, px: 170 },
+    { k: 2, subject: "Subject 01", setting: "Outdoor car park", step: 30, px: 165 },
+    { k: 3, subject: "Subject 02", setting: "Indoor corridor", step: 30, px: 174 },
+    { k: 4, subject: "Subject 02", setting: "Outdoor car park", step: 27, px: 195 },
+  ],
+  pipeline: "Trained YOLOv8-nano face detector + InsightFace, enrolled from the one close-up shown per setting.",
+  evidence: "The far frames are the farthest of each walking sequence (step 27–30), with and without a mask. None of these 8 frames appears in the evaluation's error log.",
+  caveat: "Error-log based: a per-photo re-run on this set is pending. Insets are magnified for the page; the model reads the original 3840 × 2160 frame. Number plates blurred.",
+};
