@@ -386,12 +386,15 @@ export const lifetimeCostNote =
 /** Distance test with the trained YOLOv8-nano face detector (owner's new examples; aliases only). */
 export const distance = {
   cases: [
-    { k: 1, subject: "Subject 01", setting: "Indoor corridor", step: 30, px: 170 },
-    { k: 2, subject: "Subject 01", setting: "Outdoor car park", step: 30, px: 165 },
-    { k: 3, subject: "Subject 02", setting: "Indoor corridor", step: 30, px: 174 },
-    { k: 4, subject: "Subject 02", setting: "Outdoor car park", step: 27, px: 195 },
+    { k: 1, subject: "Subject 01", setting: "Indoor corridor", metres: 30, px: 170 },
+    { k: 2, subject: "Subject 01", setting: "Outdoor car park", metres: 30, px: 165 },
+    { k: 3, subject: "Subject 02", setting: "Indoor corridor", metres: 30, px: 174 },
+    { k: 4, subject: "Subject 02", setting: "Outdoor car park", metres: 27, px: 195 },
   ],
+  featured: [2, 3],
   pipeline: "Trained YOLOv8-nano face detector + InsightFace, enrolled from the one close-up shown per setting.",
-  evidence: "The far frames are the farthest of each walking sequence (step 27–30), with and without a mask. None of these 8 frames appears in the evaluation's error log.",
+  evidence: "The farthest frame of each walk, 27–30 m from the camera, with and without a mask. None of these 8 frames appears in the trained model's error log.",
   caveat: "Error-log based: a per-photo re-run on this set is pending. Insets are magnified for the page; the model reads the original 3840 × 2160 frame. Number plates blurred.",
+  /** The trained pipeline on the 405-photo real-world test (dry run, measured earlier). */
+  accuracy: { correct: 244, wrong: 4, missed: 58 },
 };

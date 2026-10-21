@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { CircleCheck, CircleDashed, Wrench, Zap } from "lucide-react";
 
 import { ContinuousTabs } from "@/components/watermelon/continuous-tabs";
@@ -9,7 +9,7 @@ import { components, forecast, lifetimes, mallReport, mallStatus, neuro, neuroWh
 import { cn } from "@/lib/utils";
 import { Columns, ForecastChart, HBars, Ranges } from "./charts";
 import { Section } from "./section";
-import { TabHint } from "./tab-hint";
+import { NextArrow, TabHint } from "./tab-hint";
 
 const box = "rounded-2xl border border-white/10 bg-white/[0.02] p-4";
 const h4 = "mb-2 text-sm font-semibold text-white";
@@ -202,17 +202,18 @@ export function Technology() {
       <p className="mb-2">
         <TabHint text="5 tabs: click or swipe to open the next one" />
       </p>
-      <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none]">
-        <div className="w-max">
-          <ContinuousTabs tabs={TABS.map(({ id, label }) => ({ id, label }))} defaultActiveId={TABS[0].id} onChange={setTab} />
+      <div className="flex items-center gap-2">
+        <div className="-ml-4 min-w-0 overflow-x-auto pl-4 [scrollbar-width:none]">
+          <div className="w-max">
+            <ContinuousTabs tabs={TABS.map(({ id, label }) => ({ id, label }))} defaultActiveId={TABS[0].id} activeId={tab} onChange={setTab} />
+          </div>
         </div>
+        <NextArrow onClick={() => setTab(TABS[(TABS.findIndex((t) => t.id === tab) + 1) % TABS.length].id)} />
       </div>
       <div className="mt-4">
-        <AnimatePresence mode="wait">
-          <motion.div key={current.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-            {current.el}
-          </motion.div>
-        </AnimatePresence>
+        <motion.div key={current.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+          {current.el}
+        </motion.div>
       </div>
     </Section>
   );

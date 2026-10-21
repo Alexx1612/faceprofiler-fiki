@@ -20,6 +20,8 @@ interface OgImageSectionProps {
   /** Inner tab/bubble radius — should be outer radius minus container padding (~3px) */
   roundedInner?: string
   onChange?: () => void
+  /** Rendered right of the tab bar; receives a function that opens the next tab. */
+  trailing?: (next: () => void) => ReactNode
 }
 
 function DirectionAwareTabs({
@@ -28,6 +30,7 @@ function DirectionAwareTabs({
   rounded,
   roundedInner,
   onChange,
+  trailing,
 }: OgImageSectionProps) {
   const [activeTab, setActiveTab] = useState(0)
   const [direction, setDirection] = useState(0)
@@ -68,6 +71,7 @@ function DirectionAwareTabs({
 
   return (
     <div className="flex w-full flex-col items-center">
+      <div className="flex max-w-full items-center gap-2">
       <div
         className={cn(
           "shadow-inner-shadow flex cursor-pointer space-x-1 rounded-full border border-none bg-neutral-600 px-[3px] py-[3.2px]",
@@ -102,6 +106,8 @@ function DirectionAwareTabs({
             {tab.label}
           </button>
         ))}
+      </div>
+      {trailing?.(() => handleTabClick((activeTab + 1) % tabs.length))}
       </div>
       <MotionConfig transition={{ duration: 0.4, type: "spring", bounce: 0.2 }}>
         <motion.div

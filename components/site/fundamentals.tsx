@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { HBars, MultiLine } from "./charts";
 import { TrackedTargets } from "./metrics";
 import { Section } from "./section";
-import { TabHint } from "./tab-hint";
+import { NextArrow, TabHint } from "./tab-hint";
 
 const eur = (n: number) => `€${n.toLocaleString("en-US")}`;
 const box = "rounded-2xl border border-white/10 bg-white/[0.02] p-4";
@@ -298,7 +298,8 @@ export function Fundamentals() {
     >
       <DirectionAwareTabs
         tabs={TABS.map((t, i) => ({ id: i, label: t.label, content: <div className="mt-4 text-left">{t.el}</div> }))}
-        className="max-w-full justify-start overflow-x-auto border border-white/10 bg-white/[0.06] [scrollbar-width:none] [&>button]:shrink-0 [&>button]:whitespace-nowrap"
+        trailing={(next) => <NextArrow onClick={next} />}
+        className="max-w-full min-w-0 justify-start overflow-x-auto border border-white/10 bg-white/[0.06] [scrollbar-width:none] [&>button]:shrink-0 [&>button]:whitespace-nowrap"
       />
     </Section>
   );
