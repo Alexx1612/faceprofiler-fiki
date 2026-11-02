@@ -17,7 +17,7 @@ export const m2Solution = {
 
 export const m2Plan = [
   { step: "1. Problem first", text: "Ask about daily routines, incidents and how they are handled today, without mentioning our product." },
-  { step: "2. Start where we have access", text: "A school one of us attended: a building full of people who must be known, with day and night risks." },
+  { step: "2. Start where we have access", text: "Two schools, the first one attended by one of us: buildings full of people who must be known, with day and night risks." },
   { step: "3. Two uses of the cameras", text: "Daytime (supervising children, fights) and night time (intruders after hours), each with its own questions." },
   { step: "4. Fix the questions", text: "Rewrite the first draft into open questions about real past events, then publish them as a form." },
   { step: "5. Widen the segments", text: "Repeat with dorms, elderly care homes, military and office buildings, malls and other public places." },
@@ -25,7 +25,7 @@ export const m2Plan = [
 ];
 
 export const m2Interviews = {
-  where: "The high school Alexandru graduated from (name withheld for the interviewees' privacy).",
+  where: "Two schools, starting with the high school Alexandru graduated from (names withheld for the interviewees' privacy).",
   who: ["2 teachers", "The deputy headmistress (directoare adjunctă)"],
   how: "Face-to-face, semi-structured interviews, one person at a time, notes taken during the conversation.",
   why: "A school is a closed building where everybody should be known, it has both daytime and night-time risks, and we could reach the decision makers directly.",
@@ -74,12 +74,12 @@ export const m2Insights = [
 export const m2Ready = {
   verdict: "Not yet, but we have a start.",
   forReasons: [
-    "The problem was recognised by the staff we interviewed at the school, for both day and night.",
+    "The problem was recognised by the staff we interviewed at both schools, for both day and night.",
     "We have a working demo and a clearer, two-mode idea of the product.",
     "Our questions are now open and about real events, ready to be used at scale through the form.",
   ],
   againstReasons: [
-    "One school and three people are not enough to say the problem is common or urgent.",
+    "Two schools are not enough to say the problem is common or urgent everywhere.",
     "We still have to interview the other segments: student dorms, elderly care homes, military buildings, office buildings, malls and other public areas.",
     "Nobody has been asked yet whether they would pay, how much, or who signs the purchase.",
   ],
@@ -87,7 +87,7 @@ export const m2Ready = {
 };
 
 export const m2Evidence = [
-  { item: "Interview notes from the school (2 teachers, deputy headmistress)", status: "To be attached (scans or typed notes, names removed)" },
+  { item: "Interview notes from the two schools (teachers, deputy headmistress)", status: "To be attached (scans or typed notes, names removed)" },
   { item: "First draft vs improved question list", status: "On this page" },
   { item: "Online form with the improved questions", status: "On this page" },
   { item: "Working demo used later to test the solution", status: "Home page, Proof and Technology sections" },
