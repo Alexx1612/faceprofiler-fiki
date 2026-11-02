@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { HBars, MultiLine } from "./charts";
 import { TrackedTargets } from "./metrics";
 import { Section } from "./section";
-import { NextArrow, TabHint } from "./tab-hint";
+import { NextArrow, TabHint, TabLabel } from "./tab-hint";
 
 const eur = (n: number) => `€${n.toLocaleString("en-US")}`;
 const box = "rounded-2xl border border-white/10 bg-white/[0.02] p-4";
@@ -278,13 +278,13 @@ function Financials() {
 }
 
 const TABS = [
-  { label: "① Customers", el: <Customers /> },
-  { label: "② Interviews", el: <Validation /> },
-  { label: "③ Channels", el: <Channels /> },
-  { label: "④ Competition & USP", el: <Competition /> },
-  { label: "⑤ Operations", el: <Operations /> },
-  { label: "⑥ Business model", el: <BusinessModel /> },
-  { label: "⑦ Financials", el: <Financials /> },
+  { label: "Customers", el: <Customers /> },
+  { label: "Interviews", el: <Validation /> },
+  { label: "Channels", el: <Channels /> },
+  { label: "Competition & USP", el: <Competition /> },
+  { label: "Operations", el: <Operations /> },
+  { label: "Business model", el: <BusinessModel /> },
+  { label: "Financials", el: <Financials /> },
 ];
 
 /** Business fundamentals as numbered tabs (customer, validation, channels, competition, operations, model, financials). */
@@ -297,7 +297,7 @@ export function Fundamentals() {
       lead={<TabHint text="7 tabs: click or swipe to open the next one" />}
     >
       <DirectionAwareTabs
-        tabs={TABS.map((t, i) => ({ id: i, label: t.label, content: <div className="mt-4 text-left">{t.el}</div> }))}
+        tabs={TABS.map((t, i) => ({ id: i, label: <TabLabel n={i + 1} text={t.label} />, content: <div className="mt-4 text-left">{t.el}</div> }))}
         trailing={(next) => <NextArrow onClick={next} />}
         className="max-w-full min-w-0 justify-start overflow-x-auto border border-white/10 bg-white/[0.06] [scrollbar-width:none] [&>button]:shrink-0 [&>button]:whitespace-nowrap"
       />

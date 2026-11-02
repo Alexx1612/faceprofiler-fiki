@@ -10,6 +10,16 @@ export function TabHint({ text }: { text: string }) {
   );
 }
 
+/** Tab label with a clearly visible number badge in front. */
+export function TabLabel({ n, text }: { n: number; text: string }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-sky-400 text-xs font-bold text-sky-950">{n}</span>
+      {text}
+    </span>
+  );
+}
+
 /** Round button at the right end of a tab bar: opens the next tab, its arrow keeps nudging. */
 export function NextArrow({ onClick }: { onClick: () => void }) {
   return (

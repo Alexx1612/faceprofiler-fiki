@@ -45,9 +45,10 @@ export function M2Form() {
           </select>
         </label>
       </div>
+      <div className="grid gap-4 md:grid-cols-2">
       {(["Day", "Night"] as const).map((t) => (
-        <fieldset key={t} className="flex flex-col gap-3">
-          <legend className="mb-1 text-xs font-semibold tracking-wider text-sky-300 uppercase">{t === "Day" ? "During the day" : "At night"}</legend>
+        <fieldset key={t} className={`flex flex-col gap-3 rounded-xl border p-3 ${t === "Day" ? "border-amber-300/20 bg-amber-300/[0.03]" : "border-indigo-300/20 bg-indigo-300/[0.04]"}`}>
+          <legend className={`px-1 text-xs font-semibold tracking-wider uppercase ${t === "Day" ? "text-amber-300" : "text-indigo-300"}`}>{t === "Day" ? "☀ During the day" : "☾ At night"}</legend>
           {m2Questions.map((q, i) =>
             q.time === t ? (
               <label key={i} className="flex flex-col gap-1 text-sm text-neutral-200">
@@ -58,6 +59,7 @@ export function M2Form() {
           )}
         </fieldset>
       ))}
+      </div>
       <button type="submit" className="flex items-center gap-2 self-start rounded-full bg-sky-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-sky-400">
         <Send className="size-4" /> Send answers by e-mail
       </button>

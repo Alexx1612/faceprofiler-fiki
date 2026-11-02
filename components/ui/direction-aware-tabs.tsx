@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 
 type Tab = {
   id: number
-  label: string
+  label: ReactNode
   content: ReactNode
 }
 
