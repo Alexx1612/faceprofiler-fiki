@@ -26,7 +26,7 @@ export const m2Plan = [
 
 export const m2Interviews = {
   where: "Two schools, starting with the high school Alexandru graduated from (names withheld for the interviewees' privacy).",
-  who: ["2 teachers", "The deputy headmistress (directoare adjunctă)"],
+  who: ["Around 5 teachers across the two schools", "The deputy headmistress (directoare adjunctă)"],
   how: "Face-to-face, semi-structured interviews, one person at a time, notes taken during the conversation.",
   why: "A school is a closed building where everybody should be known, it has both daytime and night-time risks, and we could reach the decision makers directly.",
 };
