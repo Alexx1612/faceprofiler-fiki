@@ -4,7 +4,7 @@ import { Section } from "./section";
 /** 24-second intro video right under the hero. */
 export function IntroVideo() {
   return (
-    <Section id="intro" eyebrow="Intro" title="Nau-ino in 24 seconds">
+    <Section id="intro" eyebrow="Intro" title="Nau-ino in under 30 seconds">
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-black shadow-xl">
         <video
           className="aspect-video w-full"
