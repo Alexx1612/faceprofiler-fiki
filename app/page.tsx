@@ -1,6 +1,7 @@
 import { Distance } from "@/components/site/distance";
 import { Fundamentals } from "@/components/site/fundamentals";
 import { Hero } from "@/components/site/hero";
+import { IntroVideo } from "@/components/site/intro-video";
 import { Nav } from "@/components/site/nav";
 import { Overview } from "@/components/site/overview";
 import { Footer, Team } from "@/components/site/team";
@@ -13,6 +14,7 @@ export default function Home() {
       <Nav />
       <main>
         <Hero />
+        <IntroVideo />
         <Overview />
         <Distance />
         <Fundamentals />
