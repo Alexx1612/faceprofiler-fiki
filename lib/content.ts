@@ -31,7 +31,15 @@ export const clips = [
   { id: "4872", title: "Two coworkers talking at a desk", people: ["Lucas", "Irina"] },
 ];
 
-export const team = [
+export const team: {
+  name: string;
+  role: string;
+  email: string;
+  photo: string;
+  bio: string;
+  owns: string[];
+  hidden?: boolean;
+}[] = [
   {
     name: "Alexandru-Mugurel Mirea",
     role: "CEO & AI Lead",
@@ -53,6 +61,8 @@ export const team = [
     role: "Platform & Security Engineer",
     email: "damian.monea@stud.acs.upb.ro",
     photo: "/team/member-3.jpg",
+    /** Hidden from the team list at the owner's request (2 Nov 2026). */
+    hidden: true,
     bio: "Builds the platform around the models: keycard and visitor-pass check-in, one isolated container per organisation, and the local LLM that writes the reports.",
     owns: ["Access control & visitor passes", "Isolated deployments (Docker)", "Local LLM reports"],
   },

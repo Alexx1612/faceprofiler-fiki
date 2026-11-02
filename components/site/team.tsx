@@ -16,8 +16,8 @@ export function Team() {
       title="The people behind Nau-ino"
       lead="AI, platform and business. Click a card for details."
     >
-      <div className="grid gap-3 sm:grid-cols-3">
-        {team.map((m) => (
+      <div className="grid gap-3 sm:grid-cols-2">
+        {team.filter((m) => !m.hidden).map((m) => (
           <div key={m.email} className="flex flex-col gap-1.5">
             <ExpandableProfileCard
               imageSrc={asset(m.photo)}
@@ -67,7 +67,7 @@ export function Footer() {
           <Logo className="size-5 text-sky-400" /> {project.name}
         </div>
         <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
-          Demo footage: Mixkit free stock video, fictional names. Team photos are placeholder cats (Wikimedia Commons, public domain / CC0). UI built with Cult UI and Watermelon UI components.
+          Demo footage: Mixkit free stock video, fictional names. UI built with Cult UI and Watermelon UI components.
           Figures marked as estimates or targets are assumptions, not results.
         </p>
       </div>
