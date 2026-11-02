@@ -16,14 +16,14 @@ export function Team() {
       title="The people behind Nau-ino"
       lead="AI, platform and business. Click a card for details."
     >
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid max-w-2xl gap-4 sm:grid-cols-2">
         {team.filter((m) => !m.hidden).map((m) => (
           <div key={m.email} className="flex flex-col gap-1.5">
             <ExpandableProfileCard
               imageSrc={asset(m.photo)}
               title={m.name}
               subtitle={m.role}
-              className="h-28 w-full sm:h-32"
+              className="aspect-[4/5] h-auto w-full"
               content={
                 <div className="flex flex-col gap-6">
                   <p>{m.bio}</p>

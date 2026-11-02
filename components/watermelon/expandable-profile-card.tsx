@@ -71,7 +71,7 @@ export default function ExpandableProfileCard({
                 <motion.img 
                   layoutId={`image-${layoutId}`} 
                   src={imageSrc} 
-                  className="h-full w-full object-cover" 
+                  className="h-full w-full object-cover object-top"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent md:hidden" />
               </div>

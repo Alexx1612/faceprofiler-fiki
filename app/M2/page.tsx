@@ -4,7 +4,7 @@ import { M2Form } from "@/components/site/m2-form";
 import { Nav } from "@/components/site/nav";
 import { Section } from "@/components/site/section";
 import { Footer } from "@/components/site/team";
-import { m2Evidence, m2Insights, m2Interviews, m2Plan, m2Problem, m2Questions, m2Ready, m2Solution } from "@/lib/m2";
+import { m2Insights, m2Interviews, m2Plan, m2Problem, m2Questions, m2Ready, m2Solution } from "@/lib/m2";
 
 export const metadata: Metadata = {
   title: "Nau-ino · M2 Validation 1",
@@ -141,17 +141,6 @@ export default function M2() {
 
         <Section id="form" eyebrow="Questionnaire" title="Answer our questions" lead="For staff of schools, dorms, care homes, offices, malls and other buildings.">
           <M2Form />
-        </Section>
-
-        <Section id="evidence" eyebrow="Proof" title="Evidence for this milestone">
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {m2Evidence.map((e) => (
-              <li key={e.item} className={card}>
-                <p className={h3}>{e.item}</p>
-                <p className="text-sm text-neutral-400">{e.status}</p>
-              </li>
-            ))}
-          </ul>
         </Section>
       </main>
       <Footer />
