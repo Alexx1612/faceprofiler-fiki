@@ -24,7 +24,10 @@ export function Logo({ className }: { className?: string }) {
 }
 
 /** Course milestones, each a page of its own. */
-export const milestones = [{ href: "/M2/", code: "M2", label: "Validation 1 (idea)" }];
+export const milestones = [
+  { href: "/M2/", code: "M2", label: "Validation 1 (idea)" },
+  { href: "/M3/", code: "M3", label: "Wireframe & landing page" },
+];
 
 /** "Milestones" drop-down: opens on click, closes on outside click or Escape. */
 function MilestonesMenu() {
