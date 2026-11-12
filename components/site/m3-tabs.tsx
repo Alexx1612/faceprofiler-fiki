@@ -31,7 +31,7 @@ function Landing() {
       <div className={box}>
         <p className="mb-2 text-sm font-semibold text-white">What it is</p>
         <p className="text-sm text-neutral-300">{m3Landing.summary}</p>
-        <Link href={m3Landing.path} className="mt-3 inline-flex items-center gap-1 rounded-full bg-sky-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-400">
+        <Link href={m3Landing.path} className="mt-3 inline-flex items-center gap-1 rounded-full bg-sky-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-600">
           Open the landing page <ArrowUpRight className="size-4" />
         </Link>
       </div>

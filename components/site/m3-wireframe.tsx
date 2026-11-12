@@ -35,7 +35,7 @@ function Img({ className, label }: { className?: string; label?: string }) {
         <line x1="0" y1="0" x2="100" y2="100" stroke="#a1a1aa" strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
         <line x1="100" y1="0" x2="0" y2="100" stroke="#a1a1aa" strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
       </svg>
-      {label && <span className="absolute bottom-1 left-1 rounded-sm bg-zinc-100 px-1 text-[10px] text-zinc-600">{label}</span>}
+      {label && <span className="absolute bottom-1 left-1 rounded-sm bg-zinc-100 px-1 text-[11px] text-zinc-600">{label}</span>}
     </div>
   );
 }
@@ -52,7 +52,7 @@ function Hot({ i, children, className, on }: { i: number; children: React.ReactN
   const h = m3Screens[on ?? screen].hot[i];
   const body = (
     <>
-      <span className="absolute -top-2.5 -left-2.5 z-10 flex size-5 items-center justify-center rounded-full bg-sky-500 text-[10px] font-bold text-white shadow">{i + 1}</span>
+      <span className="absolute -top-2.5 -left-2.5 z-10 flex size-5 items-center justify-center rounded-full bg-sky-700 text-[11px] font-bold text-white shadow">{i + 1}</span>
       {children}
     </>
   );
@@ -236,11 +236,11 @@ function Camera() {
         <Img className="aspect-[16/8] w-full" />
         <Hot i={0} className="absolute top-[18%] left-[22%]">
           <span className="flex h-20 w-16 items-end justify-center border-2 border-zinc-700 bg-white/40">
-            <span className="mb-1 bg-zinc-700 px-1 text-[10px] text-zinc-50">Ana 0.84</span>
+            <span className="mb-1 bg-zinc-700 px-1 text-[11px] text-zinc-50">Ana 0.84</span>
           </span>
         </Hot>
         <span className="absolute top-[24%] left-[60%] flex h-16 w-14 items-end justify-center border-2 border-dashed border-zinc-600 bg-white/40">
-          <span className="mb-1 bg-zinc-600 px-1 text-[10px] text-zinc-50">Unknown_1</span>
+          <span className="mb-1 bg-zinc-600 px-1 text-[11px] text-zinc-50">Unknown_1</span>
         </span>
       </div>
       <div className="mt-3 flex items-center gap-2">
@@ -527,8 +527,8 @@ export function M3Wireframe() {
 
   return (
     <Nav.Provider value={{ screen, go }}>
-      <div className="grid gap-4 lg:grid-cols-[180px_minmax(0,1fr)]">
-        <ol className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] lg:flex-col lg:overflow-visible">
+      <div className="grid gap-4 xl:grid-cols-[180px_minmax(0,1fr)]">
+        <ol className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] md:flex-wrap md:overflow-visible xl:flex-col xl:flex-nowrap">
           {m3Order.map((id, n) => (
             <li key={id} className="shrink-0">
               <button
@@ -566,12 +566,12 @@ export function M3Wireframe() {
               <Screen />
             </div>
           </div>
-          <p className="mt-1 text-xs text-neutral-500 md:hidden">The frame is wider than a phone: swipe it sideways.</p>
+          <p className="mt-1 text-xs text-neutral-400 lg:hidden">The frame is wider than this screen: scroll it sideways.</p>
 
           <ol className="mt-3 grid gap-2 sm:grid-cols-2">
             {s.hot.map((h, i) => (
               <li key={h.label} className="flex gap-2 rounded-xl border border-white/10 bg-white/[0.02] p-2.5 text-sm">
-                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-sky-500 text-[10px] font-bold text-white">{i + 1}</span>
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-sky-700 text-[11px] font-bold text-white">{i + 1}</span>
                 <span className="text-neutral-300">
                   <b className="text-white">{h.label}</b>
                   {h.to ? (
