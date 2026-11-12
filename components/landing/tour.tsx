@@ -79,8 +79,8 @@ function Pane({ step }: { step: number }) {
         <h3>Night report, Tuesday</h3>
         <p>Written at 07:00 from the night&apos;s events</p>
         <p>
-          A quiet night. The guard did three rounds. Cleaning staff left at 23:05. One person who is not enrolled came in through the side gate at 02:17 and
-          left at 02:24; the guard was sent at 02:18.
+          <strong>A stranger came in at 02:17.</strong> One person who is not enrolled entered through the side gate and left at 02:24. The guard was
+          alerted at 02:18 and sent to the gate. Otherwise as usual: the guard did three rounds and cleaning staff left at 23:05.
         </p>
       </div>
       <p className="lp-pane__caption" style={{ color: "var(--color-well-muted)" }}>

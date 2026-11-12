@@ -241,7 +241,7 @@
   min-height: min(86svh, 820px);
   display: flex;
   align-items: center;
-  padding-block: 104px 88px;
+  padding-block: 96px 72px;
   overflow: clip;
 }
 
@@ -324,6 +324,26 @@
 
 .lp-night {
   padding: var(--space-md);
+  /* More solid than the other glass: it carries the product's message over a busy photo. */
+  background: oklch(19% 0.018 268 / 0.9);
+}
+
+.lp-night__sum {
+  margin: 0 6px var(--space-sm);
+  font-size: 14px;
+  color: var(--color-ink);
+}
+
+.lp-night__foot {
+  margin: var(--space-sm) 6px 0;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.lp-chip.lp-chip--alert {
+  background: var(--color-accent-2);
+  color: var(--color-well-ink);
+  font-weight: 600;
 }
 
 .lp-night__head {
@@ -363,7 +383,7 @@
   grid-template-columns: 36px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-sm);
-  padding: 11px 6px;
+  padding: 9px 6px;
   border-top: 1px solid color-mix(in oklab, var(--color-light) 7%, transparent);
   animation: lp-rise 600ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
@@ -694,6 +714,13 @@
 .lp-well__card p + p {
   margin-top: var(--space-sm);
   color: var(--color-well-ink);
+}
+
+.lp-well__card strong {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 700;
+  color: oklch(48% 0.14 48);
 }
 
 .lp-pane__caption {

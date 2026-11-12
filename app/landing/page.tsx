@@ -81,21 +81,19 @@ export default function Landing() {
                 <a href="#pilot" className="lp-btn">
                   Book a pilot
                 </a>
-                <a href="#how" className="lp-btn lp-btn--ghost">
-                  See how it works
-                </a>
               </div>
               <p className="lp-hero__note">Free for 30 days, on your own cameras.</p>
             </div>
 
-            <div className="lp-glass lp-night" aria-label="Sample night as the console shows it">
+            <div className="lp-glass lp-night" aria-label="Sample night report as the console shows it">
               <div className="lp-night__head">
                 <div>
-                  <p className="lp-night__title">Last night</p>
-                  <p className="lp-night__sub">A sample night, fictional names</p>
+                  <p className="lp-night__title">Last night&apos;s report</p>
+                  <p className="lp-night__sub">Everyone your 6 cameras saw, 21:00 to 07:00</p>
                 </div>
-                <span className="lp-chip">6 cameras</span>
+                <span className="lp-chip lp-chip--alert">1 stranger</span>
               </div>
+              <p className="lp-night__sum">Staff seen 3 times, all named. 1 stranger, flagged the moment they appeared.</p>
               <ul className="lp-rows">
                 {night.map((r) => (
                   <li key={r.time} className="lp-row">
@@ -128,6 +126,7 @@ export default function Landing() {
                 An adult nobody enrolled, at the side gate
                 <b>Review</b>
               </div>
+              <p className="lp-night__foot">Sample night, fictional names.</p>
             </div>
           </div>
           <a href="#how" className="lp-cue">
@@ -219,6 +218,7 @@ export default function Landing() {
             </span>
             <Link href="/">Project wiki</Link>
             <Link href="/M3/">Wireframe</Link>
+            <a href={`mailto:${team[0].email}`}>{team[0].email}</a>
             <a href={`mailto:${team[1].email}`}>{team[1].email}</a>
           </div>
           <p className="lp-footer__credits">
