@@ -291,7 +291,6 @@
 
 .lp-hero__lead {
   margin-top: var(--space-md);
-  min-height: 3lh; /* the place word changes length; holding three lines keeps the buttons below still */
   max-width: 30ch;
   font-size: clamp(1.05rem, 1.5vw, 1.25rem);
   color: var(--color-ink);
@@ -514,24 +513,35 @@
 }
 
 .lp-swap {
-  display: inline-block;
+  display: inline-grid;
+  white-space: nowrap;
+}
+
+.lp-swap > span {
+  grid-area: 1 / 1;
+}
+
+.lp-swap--place {
   color: var(--color-accent-hi);
 }
 
-.lp-swap__word {
-  display: inline-block;
-  animation: lp-swap-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+.lp-swap__in {
+  animation: lp-swap-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.lp-swap__soft {
-  display: inline-block;
-  color: var(--color-accent-hi);
-  animation: lp-fade 520ms ease-out both;
+.lp-swap__out {
+  animation: lp-swap-out 420ms ease-in both;
+  pointer-events: none;
 }
 
 @keyframes lp-swap-in {
-  from { opacity: 0; transform: translateY(0.45em); filter: blur(6px); }
-  to { opacity: 1; transform: none; filter: none; }
+  from { opacity: 0; transform: translateY(0.4em); filter: blur(10px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+
+@keyframes lp-swap-out {
+  from { opacity: 1; transform: none; filter: blur(0); }
+  to { opacity: 0; transform: translateY(-0.4em); filter: blur(10px); }
 }
 
 /* Scroll cue at the foot of the hero, only where the screen is tall enough to hold it. */
@@ -941,8 +951,8 @@
 @media (prefers-reduced-motion: reduce) {
   .lp-row,
   .lp-pane,
-  .lp-swap__word,
-  .lp-swap__soft,
+  .lp-swap__in,
+  .lp-swap__out,
   .lp-cue svg {
     animation: none;
   }

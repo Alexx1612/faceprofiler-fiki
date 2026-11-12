@@ -1,30 +1,62 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
- * Landing hero headline and lead with a rotating place word ("school", "company", "office"...).
- * The headline and the lead change together, so both always name the same place. The first word is
- * "school", which is also what screen readers, search engines and visitors with reduced motion get:
- * the rotating text is aria-hidden and a fixed sentence sits beside it for assistive technology.
+ * Landing hero headline with two rotating words: the place ("school", "company"...) and the time
+ * ("tonight", "today"...). Each sits on its own line, so a longer or shorter word never rewraps the
+ * headline or moves the text and buttons below it. The old word blurs out upwards while the new one
+ * blurs in. Screen readers, search engines and visitors with reduced motion get the fixed sentence
+ * "Know who walks into your school tonight."
  */
 
 const PLACES = ["school", "company", "office", "warehouse", "building"];
-const HOLD_MS = 2600;
+const TIMES = ["tonight", "today", "this weekend", "after hours"];
+const HOLD_MS = 2800;
 
-export function HeroCopy() {
-  const [i, setI] = useState(0);
+/** One word slot: the outgoing word and the incoming word share a grid cell and cross-fade with a blur. */
+function Swap({ word, className }: { word: string; className?: string }) {
+  const prev = useRef(word);
+  const [old, setOld] = useState<string | null>(null);
 
   useEffect(() => {
-    const still = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (still.matches) return;
+    if (prev.current === word) return;
+    setOld(prev.current);
+    prev.current = word;
+    const t = window.setTimeout(() => setOld(null), 600);
+    return () => window.clearTimeout(t);
+  }, [word]);
+
+  return (
+    <span className={`lp-swap ${className ?? ""}`}>
+      {old && (
+        <span key={`out-${old}`} className="lp-swap__out">
+          {old}
+        </span>
+      )}
+      <span key={word} className={old ? "lp-swap__in" : undefined}>
+        {word}
+      </span>
+    </span>
+  );
+}
+
+export function HeroCopy() {
+  const [p, setP] = useState(0);
+  const [t, setT] = useState(0);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let tick = 0;
+    // The two words take turns, so only one changes at a time.
     const id = window.setInterval(() => {
-      if (!document.hidden) setI((n) => (n + 1) % PLACES.length);
-    }, HOLD_MS);
+      if (document.hidden) return;
+      tick += 1;
+      if (tick % 2) setP((n) => (n + 1) % PLACES.length);
+      else setT((n) => (n + 1) % TIMES.length);
+    }, HOLD_MS / 2);
     return () => window.clearInterval(id);
   }, []);
-
-  const place = PLACES[i];
 
   return (
     <>
@@ -33,24 +65,12 @@ export function HeroCopy() {
         <span aria-hidden="true">
           Know who walks into your
           <br />
-          <span className="lp-swap">
-            <span key={place} className="lp-swap__word">
-              {place}
-            </span>
-          </span>{" "}
-          tonight.
+          <Swap word={PLACES[p]} className="lp-swap--place" />
+          <br />
+          <Swap word={TIMES[t]} />.
         </span>
       </h1>
-      <p className="lp-hero__lead">
-        <span className="lp-sr">Nau-ino watches the cameras your school already has and flags every stranger.</span>
-        <span aria-hidden="true">
-          Nau-ino watches the cameras your{" "}
-          <span key={place} className="lp-swap__soft">
-            {place}
-          </span>{" "}
-          already has and flags every stranger.
-        </span>
-      </p>
+      <p className="lp-hero__lead">Nau-ino watches the cameras you already have and flags every stranger.</p>
     </>
   );
 }
