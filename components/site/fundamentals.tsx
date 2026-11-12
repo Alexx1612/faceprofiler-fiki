@@ -37,7 +37,7 @@ function Customers() {
       {segments.map((s) => (
         <div key={s.label} className={box}>
           <p className="font-semibold text-white">{s.label}</p>
-          <p className="text-xs text-neutral-500">{s.who}</p>
+          <p className="text-xs text-neutral-400">{s.who}</p>
           <p className="mt-2 text-sm text-neutral-300">
             <span className="text-red-300">Pain:</span> {s.pain}
           </p>
@@ -56,7 +56,7 @@ function Validation() {
     <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
       <div className={box}>
         <p className={h4}>What customers told us</p>
-        <HBars labelAbove items={interviews.map((i) => ({ label: i.label, value: i.value, detail: i.detail }))} max={100} suffix="%" caption="Share who said yes (hover a bar)" />
+        <HBars labelAbove track title="Share of interviewees who said yes" items={interviews.map((i) => ({ label: i.label, value: i.value, detail: i.detail }))} max={100} suffix="%" caption="Share who said yes · hover or tab to a bar" />
         <p className="mt-2 text-xs text-neutral-400">7 of 10 teachers · 2 of 5 elderly-care places · 80% of camera sites asked.</p>
       </div>
       <div className={box}>
@@ -71,7 +71,7 @@ function Validation() {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-neutral-500">One or two hypotheses at a time, so each result is clear.</p>
+        <p className="mt-3 text-xs text-neutral-400">One or two hypotheses at a time, so each result is clear.</p>
       </div>
     </div>
   );
@@ -94,7 +94,7 @@ function Channels() {
 const cell = {
   yes: { Icon: Check, cls: "bg-emerald-400/15 text-emerald-300", label: "Yes" },
   partial: { Icon: Minus, cls: "bg-amber-400/15 text-amber-300", label: "Partly" },
-  no: { Icon: X, cls: "bg-white/5 text-neutral-500", label: "No" },
+  no: { Icon: X, cls: "bg-white/5 text-neutral-400", label: "No" },
 };
 const advantageIcons = [Camera, Building2, UserPlus, EyeOff, Cpu, ShieldCheck];
 
@@ -133,7 +133,7 @@ function Competition() {
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-xs text-neutral-500">
+        <p className="mt-2 text-xs text-neutral-400">
           <span className="sm:hidden">Swipe the table sideways. </span>Our assessment from each vendor&apos;s public product pages, Oct 2026. The other
           competitor is &quot;doing nothing&quot;.
         </p>
@@ -203,7 +203,7 @@ function BusinessModel() {
             <span className="jet shrink-0 rounded-full bg-sky-400/10 px-2 py-0.5 text-xs whitespace-nowrap text-sky-300">{r.price}</span>
           </div>
         ))}
-        <p className="text-xs text-neutral-500">Prices are our proposal for the pilot phase.</p>
+        <p className="text-xs text-neutral-400">Prices are our proposal for the pilot phase.</p>
       </div>
     </div>
   );
@@ -226,7 +226,7 @@ function Financials() {
             <li key={c.label}>
               <div className="flex justify-between gap-2 text-xs">
                 <span className="text-neutral-300">
-                  {c.label} <span className="text-neutral-500">· {c.kind}</span>
+                  {c.label} <span className="text-neutral-400">· {c.kind}</span>
                 </span>
                 <span className="jet text-neutral-200">{eur(c.amount)}</span>
               </div>
@@ -236,7 +236,7 @@ function Financials() {
             </li>
           ))}
         </ul>
-        <p className="mt-2 text-xs text-neutral-500">
+        <p className="mt-2 text-xs text-neutral-400">
           Fixed {Math.round((fixed / total) * 100)}%. Estimate, not actual spend. {costNote}
         </p>
       </div>
@@ -258,16 +258,16 @@ function Financials() {
           ].map(([k, v]) => (
             <div key={k} className="rounded-xl bg-white/[0.04] p-2">
               <p className="text-base font-semibold text-white">{v}</p>
-              <p className="text-[10px] text-neutral-400">{k}</p>
+              <p className="text-xs text-neutral-400">{k}</p>
             </div>
           ))}
         </div>
-        <p className="mt-2 text-xs text-neutral-500">Assumptions: a 20-camera mall on Business, 5-year life. {ltv.cacNote}</p>
+        <p className="mt-2 text-xs text-neutral-400">Assumptions: a 20-camera mall on Business, 5-year life. {ltv.cacNote}</p>
       </div>
       <div className={box}>
         <p className={h4}>7-year cost for a 20-camera mall</p>
-        <MultiLine x={lifetimeCost.years} series={lifetimeCost.series} caption="Illustrative · hover a year" />
-        <p className="mt-1 text-[11px] leading-snug text-neutral-500">{lifetimeCostNote}</p>
+        <MultiLine title="Cumulative 7-year cost for a 20-camera mall, three options" x={lifetimeCost.years} series={lifetimeCost.series} caption="Illustrative · hover or tab to a year" />
+        <p className="mt-1 text-xs leading-snug text-neutral-400">{lifetimeCostNote}</p>
       </div>
       <div className="lg:col-span-3">
         <p className={h4}>Targets we track from the first pilot</p>
@@ -299,7 +299,7 @@ export function Fundamentals() {
       <DirectionAwareTabs
         tabs={TABS.map((t, i) => ({ id: i, label: <TabLabel n={i + 1} text={t.label} />, content: <div className="mt-4 text-left">{t.el}</div> }))}
         trailing={(next) => <NextArrow onClick={next} />}
-        className="max-w-full min-w-0 justify-start overflow-x-auto border border-white/10 bg-white/[0.06] [scrollbar-width:none] [&>button]:shrink-0 [&>button]:whitespace-nowrap"
+        className="max-w-full min-w-0 justify-start overflow-x-auto border border-white/10 bg-white/[0.06] [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_85%,transparent)] lg:[mask-image:none] [&>button]:shrink-0 [&>button]:whitespace-nowrap"
       />
     </Section>
   );

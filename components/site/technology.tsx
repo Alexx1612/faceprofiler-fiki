@@ -13,7 +13,7 @@ import { NextArrow, TabHint } from "./tab-hint";
 
 const box = "rounded-2xl border border-white/10 bg-white/[0.02] p-4";
 const h4 = "mb-2 text-sm font-semibold text-white";
-const tag = "jet ml-2 rounded-full border border-amber-300/30 px-1.5 py-px text-[10px] font-normal text-amber-200 uppercase";
+const tag = "jet ml-2 rounded-full border border-amber-300/30 px-1.5 py-px text-[11px] font-normal text-amber-200 uppercase";
 
 const statusStyle: Record<Status, { box: string; dot: string; label: string }> = {
   Current: { box: "border-emerald-400/25", dot: "bg-emerald-400", label: "Working today" },
@@ -32,7 +32,7 @@ function Components() {
               <p className="mb-3 flex items-center gap-2 text-sm font-medium text-white">
                 <span className={cn("size-2 rounded-full", statusStyle[s].dot)} />
                 {statusStyle[s].label}
-                <span className="ml-auto text-xs text-neutral-500">{items.length}</span>
+                <span className="ml-auto text-xs text-neutral-400">{items.length}</span>
               </p>
               <ul className="flex flex-wrap gap-1.5">
                 {items.map((c) => (
@@ -45,7 +45,7 @@ function Components() {
           );
         })}
       </div>
-      <p className="mt-2 text-xs text-neutral-500">
+      <p className="mt-2 text-xs text-neutral-400">
         Hover a component for details. EU: face checks need consent or another legal basis (GDPR); the AI Act bans emotion recognition in
         workplaces and schools and face databases scraped from the internet.
       </p>
@@ -65,7 +65,7 @@ function Neuro() {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-neutral-500">
+        <p className="mt-3 text-xs text-neutral-400">
           Spiking neural networks (SNN) compute with short pulses, like neurons; liquid networks (LNN, CfC) are small recurrent networks whose
           time constants adapt to the input.
         </p>
@@ -75,11 +75,11 @@ function Neuro() {
           <div key={n.idea} className="grid gap-0.5 border-b border-white/[0.06] px-4 py-2.5 last:border-0 sm:grid-cols-[0.9fr_1.4fr] sm:gap-4">
             <p className="text-sm font-medium text-white">{n.idea}</p>
             <p className="text-sm text-neutral-300">
-              {n.result} <span className="text-xs text-neutral-500">· {n.where}</span>
+              {n.result} <span className="text-xs text-neutral-400">· {n.where}</span>
             </p>
           </div>
         ))}
-        <p className="bg-white/[0.02] px-4 py-2 text-[11px] text-neutral-500">
+        <p className="bg-white/[0.02] px-4 py-2 text-xs text-neutral-400">
           Measured in the team&apos;s neuromorphic lessons on real datasets; energy figures are 45 nm per-operation estimates, not measured on a
           chip.
         </p>
@@ -113,7 +113,7 @@ function Mall() {
         <p className={h4}>
           Visitors per hour, Saturday <span className={tag}>Sample report</span>
         </p>
-        <Columns labels={mallReport.hours} values={mallReport.footfall} unit="visitors" caption="Illustrative data · hover an hour" />
+        <Columns title="Visitors per hour on a sample Saturday" labels={mallReport.hours} values={mallReport.footfall} unit="visitors" caption="Illustrative data · hover or tab to an hour" />
         <p className="mt-2 rounded-xl bg-sky-400/[0.07] p-2.5 text-xs leading-snug text-neutral-200">
           <b className="text-sky-300">LLM insight:</b> {mallReport.insight}
         </p>
@@ -122,8 +122,8 @@ function Mall() {
         <p className={h4}>
           Average stay per zone <span className={tag}>Sample</span>
         </p>
-        <HBars items={mallReport.zones.map((z) => ({ label: z.zone, value: z.minutes }))} max={20} suffix=" min" caption="Illustrative data · minutes" />
-        <p className="mt-2 text-xs text-neutral-500">The report generator turns these charts into a weekly PDF with written insight.</p>
+        <HBars title="Average stay per zone, minutes" items={mallReport.zones.map((z) => ({ label: z.zone, value: z.minutes }))} max={20} suffix=" min" caption="Illustrative data · minutes" />
+        <p className="mt-2 text-xs text-neutral-400">The report generator turns these charts into a weekly PDF with written insight.</p>
       </div>
     </div>
   );
@@ -136,8 +136,8 @@ function Forecasts() {
         <p className={h4}>
           Weekly visitors, observed and forecast <span className={tag}>Illustrative</span>
         </p>
-        <ForecastChart observed={forecast.observed} predicted={forecast.predicted} band={forecast.band} unit="thousands" caption="12 weeks observed, 4 forecast (±6% band) · hover a week" />
-        <p className="mt-2 text-xs text-neutral-500">
+        <ForecastChart title="Weekly visitors, observed and forecast" observed={forecast.observed} predicted={forecast.predicted} band={forecast.band} unit="thousands" caption="12 weeks observed, 4 forecast (±6% band) · hover or tab to a week" />
+        <p className="mt-2 text-xs text-neutral-400">
           A spiking reservoir or liquid (CfC) network on the edge PC learns the weekly rhythm from the camera counts, at nanojoules per value.
         </p>
       </div>
@@ -148,7 +148,7 @@ function Forecasts() {
             <p className="mt-1 text-xs leading-snug text-neutral-400">{e.text}</p>
           </div>
         ))}
-        <p className="col-span-2 text-[11px] text-neutral-500">Conversion and basket values are assumptions for the example.</p>
+        <p className="col-span-2 text-xs text-neutral-400">Conversion and basket values are assumptions for the example.</p>
       </div>
     </div>
   );
@@ -159,7 +159,7 @@ function Lifetime() {
     <div className="grid gap-4 lg:grid-cols-2">
       <div className={box}>
         <p className={h4}>Typical service life of a camera system</p>
-        <Ranges items={lifetimes} maxYears={10} caption="Approximate ranges, years · hover a part" />
+        <Ranges title="Typical service life of camera-system parts, years" items={lifetimes} maxYears={10} caption="Approximate ranges, years · hover or tab to a part" />
       </div>
       <div className={box}>
         <p className={h4}>
@@ -174,7 +174,7 @@ function Lifetime() {
             recordings are never lost.
           </li>
         </ul>
-        <p className="mt-2 text-xs text-neutral-500">Status: method proven on public engine data; camera version is next.</p>
+        <p className="mt-2 text-xs text-neutral-400">Status: method proven on public engine data; camera version is next.</p>
       </div>
     </div>
   );

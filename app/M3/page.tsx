@@ -16,7 +16,7 @@ export default function M3() {
     <>
       <Nav home={false} />
       <main className="pt-16">
-        <Section id="m3" eyebrow="Milestone 3 · Wireframe and landing page" title="How the console works, screen by screen" lead={<M3Hint />}>
+        <Section id="m3" level={1} eyebrow="Milestone 3 · Wireframe and landing page" title="How the console works, screen by screen" lead={<M3Hint />}>
           <div className="mb-4">
             <LandingLink />
           </div>

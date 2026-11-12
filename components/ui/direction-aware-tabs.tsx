@@ -81,13 +81,14 @@ function DirectionAwareTabs({
       >
         {tabs.map((tab) => (
           <button
+            type="button"
             key={tab.id}
             onClick={() => handleTabClick(tab.id)}
             className={cn(
-              "relative flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-neutral-200 transition focus-visible:ring-1 focus-visible:outline-1 focus-visible:outline-none sm:text-sm",
+              "relative flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-neutral-200 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300 sm:text-sm",
               activeTab === tab.id
                 ? "text-white"
-                : "text-neutral-200/80 hover:text-neutral-300/60",
+                : "text-neutral-200/80 hover:text-white",
               rounded ? roundedInner : undefined
             )}
             style={{ WebkitTapHighlightColor: "transparent" }}
@@ -118,6 +119,7 @@ function DirectionAwareTabs({
           <div className="p-1" ref={ref}>
             <AnimatePresence
               custom={direction}
+              initial={false}
               mode="popLayout"
               onExitComplete={() => setIsAnimating(false)}
             >

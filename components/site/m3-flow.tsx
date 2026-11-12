@@ -52,7 +52,7 @@ const edges: { d: string; label: string; lx: number; ly: number; focal?: boolean
 ];
 
 const mono = "var(--font-geist-mono), ui-monospace, monospace";
-const sans = "var(--font-geist-sans), system-ui, sans-serif";
+const sans = "var(--font-site-sans), system-ui, sans-serif";
 
 export function M3Flow() {
   return (

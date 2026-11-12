@@ -10,7 +10,7 @@ function Card({ tag, title, children }: { tag: string; title: string; children: 
   return (
     <TextureCardStyled className="h-full">
       <div className="flex h-full flex-col p-4 sm:p-5">
-        <p className="jet text-[11px] tracking-widest text-sky-300 uppercase">{tag}</p>
+        <p className="jet text-xs tracking-widest text-sky-300 uppercase">{tag}</p>
         <h3 className="mt-1 text-lg leading-snug font-semibold text-white">{title}</h3>
         <div className="mt-3 flex-1 text-sm text-neutral-300">{children}</div>
       </div>
@@ -72,7 +72,7 @@ export function Overview() {
               {market.source.label}
             </a>
           </p>
-          <p className="mt-2 text-xs text-neutral-500">A growing market: most sites still choose the substitute, doing nothing.</p>
+          <p className="mt-2 text-xs text-neutral-400">A growing market: most sites still choose the substitute, doing nothing.</p>
         </Card>
       </div>
     </Section>

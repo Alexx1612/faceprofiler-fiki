@@ -78,7 +78,7 @@ export function M3Tabs() {
     <DirectionAwareTabs
       tabs={TABS.map((t, i) => ({ id: i, label: <TabLabel n={i + 1} text={t.label} />, content: <div className="mt-4 text-left">{t.el}</div> }))}
       trailing={(next) => <NextArrow onClick={next} />}
-      className="max-w-full min-w-0 justify-start overflow-x-auto border border-white/10 bg-white/[0.06] [scrollbar-width:none] [&>button]:shrink-0 [&>button]:whitespace-nowrap"
+      className="max-w-full min-w-0 justify-start overflow-x-auto border border-white/10 bg-white/[0.06] [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_85%,transparent)] lg:[mask-image:none] [&>button]:shrink-0 [&>button]:whitespace-nowrap"
     />
   );
 }

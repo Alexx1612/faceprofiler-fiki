@@ -26,7 +26,7 @@ export function M2Form() {
     window.location.href = `mailto:${to}?subject=${encodeURIComponent("Nau-ino customer discovery answers")}&body=${encodeURIComponent(lines.join("\n"))}`;
   };
 
-  const field = "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-neutral-500 focus:border-sky-400/50 focus:outline-none";
+  const field = "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-neutral-400 focus:border-sky-400/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sky-400";
 
   return (
     <form onSubmit={send} className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5">
@@ -63,7 +63,7 @@ export function M2Form() {
       <button type="submit" className="flex items-center gap-2 self-start rounded-full bg-sky-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-sky-400">
         <Send className="size-4" /> Send answers by e-mail
       </button>
-      <p className="text-xs text-neutral-500">Opens your e-mail app with the answers filled in. Nothing is stored on this site.</p>
+      <p className="text-xs text-neutral-400">Opens your e-mail app with the answers filled in. Nothing is stored on this site.</p>
     </form>
   );
 }

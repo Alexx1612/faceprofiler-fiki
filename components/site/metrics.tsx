@@ -10,7 +10,7 @@ import { measured, tracked } from "@/lib/content";
  */
 function AnimatedValue({ value, precision, suffix }: { value: number; precision: number; suffix: string }) {
   return (
-    <span className="tabular-nums">
+    <span>
       {value.toFixed(precision)}
       {suffix}
     </span>
@@ -27,12 +27,12 @@ export function MetricsStrip() {
             <div className="text-lg font-semibold tracking-tight text-white sm:text-xl">
               <AnimatedValue value={m.value} precision={m.precision} suffix={m.suffix} />
             </div>
-            <p className="text-[11px] leading-tight font-medium text-neutral-200">{m.label}</p>
-            <p className="text-[10px] leading-tight text-neutral-500">{m.note}</p>
+            <p className="text-xs leading-tight font-medium text-neutral-200">{m.label}</p>
+            <p className="text-xs leading-tight text-neutral-400">{m.note}</p>
           </div>
         ))}
       </div>
-      <p className="mt-1 text-[10px] text-neutral-500">Key metrics, measured: 405-photo test and 3 clips, laptop CPU, no graphics card, 16 Oct 2026.</p>
+      <p className="mt-1 text-xs text-neutral-400">Key metrics, measured: 405-photo test and 3 clips, laptop CPU, no graphics card, 16 Oct 2026.</p>
     </div>
   );
 }

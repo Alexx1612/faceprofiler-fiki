@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
 
-/** "There is more": a moving arrow above a tab bar, so readers open the other tabs. */
+/** "There is more": an arrow that nudges a few times above a tab bar, so readers open the other tabs. */
 export function TabHint({ text }: { text: string }) {
   return (
     <span className="inline-flex items-center gap-2 text-sm font-medium text-sky-300">
@@ -20,14 +20,14 @@ export function TabLabel({ n, text }: { n: number; text: string }) {
   );
 }
 
-/** Round button at the right end of a tab bar: opens the next tab, its arrow keeps nudging. */
+/** Round button at the right end of a tab bar: opens the next tab, its arrow nudges a few times on load. */
 export function NextArrow({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       aria-label="Next tab"
       title="Next tab"
-      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-sky-400 text-sky-950 shadow-lg shadow-sky-500/30 transition-transform hover:scale-105"
+      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-sky-400 text-sky-950 ring-1 ring-white/20 transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
     >
       <ArrowRight className="animate-nudge size-6" strokeWidth={2.5} />
     </button>

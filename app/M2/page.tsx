@@ -16,7 +16,7 @@ export default function M2() {
     <>
       <Nav home={false} />
       <main className="pt-16">
-        <Section id="m2" eyebrow="Milestone 2 · Validation 1 (idea)" title="Customer discovery: problem first, then the solution" lead={<M2Hint />}>
+        <Section id="m2" level={1} eyebrow="Milestone 2 · Validation 1 (idea)" title="Customer discovery: problem first, then the solution" lead={<M2Hint />}>
           <M2Tabs />
         </Section>
       </main>

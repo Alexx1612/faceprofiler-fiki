@@ -20,7 +20,7 @@ const TextureCardStyled = React.forwardRef<
       <div className="h-full rounded-[22px] border border-white/50 dark:border-neutral-950">
         <div className="h-full rounded-[21px] border border-neutral-950/20 dark:border-neutral-900/70">
           {/* Inner content wrapper */}
-          <div className="h-full w-full rounded-[20px] border border-white/50 text-neutral-500 dark:border-neutral-700/50">
+          <div className="h-full w-full rounded-[20px] border border-white/50 text-neutral-400 dark:border-neutral-700/50">
             {children}
           </div>
         </div>
@@ -47,7 +47,7 @@ const TextureCard = React.forwardRef<
       <div className="rounded-[calc(var(--radius)-1px)] border border-black/10 dark:border-neutral-900/80">
         <div className="rounded-[calc(var(--radius)-2px)] border border-white/50 dark:border-neutral-950">
           <div className="rounded-[calc(var(--radius)-3px)] border border-neutral-950/20 dark:border-neutral-900/70">
-            <div className="from-card/70 to-secondary/50 w-full rounded-[calc(var(--radius)-4px)] border border-white/50 bg-gradient-to-b text-neutral-500 dark:border-neutral-700/50">
+            <div className="from-card/70 to-secondary/50 w-full rounded-[calc(var(--radius)-4px)] border border-white/50 bg-gradient-to-b text-neutral-400 dark:border-neutral-700/50">
               {children}
             </div>
           </div>

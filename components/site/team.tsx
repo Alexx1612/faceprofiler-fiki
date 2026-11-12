@@ -51,7 +51,7 @@ export function Team() {
               <Mail className="size-4 shrink-0" />
               <span className="truncate">{m.email}</span>
             </a>
-            <p className="px-1 text-xs text-neutral-500">{m.owns.join(" · ")}</p>
+            <p className="px-1 text-xs text-neutral-400">{m.owns.join(" · ")}</p>
           </div>
         ))}
       </div>

@@ -81,12 +81,12 @@ function Questions() {
               {m2Questions.map((q, i) =>
                 q.time === t ? (
                   <li key={i} className="text-sm">
-                    <p className="text-neutral-500 line-through decoration-red-400/50">
+                    <p className="text-neutral-400 line-through decoration-red-400/50">
                       {i + 1}. {q.draft}
                     </p>
                     <p className="text-neutral-100">
                       → {q.improved}
-                      {q.isNew && <span className="ml-2 rounded bg-emerald-400/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300 uppercase">new</span>}
+                      {q.isNew && <span className="ml-2 rounded bg-emerald-400/15 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-300 uppercase">new</span>}
                     </p>
                   </li>
                 ) : null
@@ -95,7 +95,7 @@ function Questions() {
           </div>
         ))}
       </div>
-      <p className="mt-2 text-xs text-neutral-500">Struck through: first draft (weak). Arrow: the improved question we used.</p>
+      <p className="mt-2 text-xs text-neutral-400">Struck through: first draft (weak). Arrow: the improved question we used.</p>
     </div>
   );
 }
@@ -158,7 +158,7 @@ export function M2Tabs() {
     <DirectionAwareTabs
       tabs={TABS.map((t, i) => ({ id: i, label: <TabLabel n={i + 1} text={t.label} />, content: <div className="mt-4 text-left">{t.el}</div> }))}
       trailing={(next) => <NextArrow onClick={next} />}
-      className="max-w-full min-w-0 justify-start overflow-x-auto border border-white/10 bg-white/[0.06] [scrollbar-width:none] [&>button]:shrink-0 [&>button]:whitespace-nowrap"
+      className="max-w-full min-w-0 justify-start overflow-x-auto border border-white/10 bg-white/[0.06] [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_85%,transparent)] lg:[mask-image:none] [&>button]:shrink-0 [&>button]:whitespace-nowrap"
     />
   );
 }

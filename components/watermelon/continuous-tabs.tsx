@@ -100,7 +100,7 @@ export const ContinuousTabs: FC<ContinuousTabsProps> = ({
                                 className={`relative z-10 text-sm sm:text-base font-semibold transition-colors duration-200
                     ${isActive
                                         ? "text-[#EDEDEC] dark:text-zinc-950"
-                                        : "text-[#343437] dark:text-zinc-500 hover:text-[#62625D] dark:hover:text-zinc-300"
+                                        : "text-[#343437] dark:text-zinc-400 hover:text-[#62625D] dark:hover:text-zinc-300"
                                     }
                   `}
                             >

@@ -83,13 +83,13 @@ export default function ChangeablePricingSection({
             />
             <button
               onClick={() => setBillingCycle("monthly")}
-              className={`jet w-[72px] py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase transition-colors z-10 ${billingCycle === "monthly" ? "text-neutral-800 dark:text-sky-400" : "text-neutral-400 dark:text-neutral-500"}`}
+              className={`jet w-[72px] py-1.5 rounded-full text-[11px] font-bold tracking-widest uppercase transition-colors z-10 ${billingCycle === "monthly" ? "text-neutral-800 dark:text-sky-400" : "text-neutral-400 dark:text-neutral-400"}`}
             >
               {monthlyLabel}
             </button>
             <button
               onClick={() => setBillingCycle("yearly")}
-              className={`jet w-[72px] py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase transition-colors z-10 ${billingCycle === "yearly" ? "text-neutral-800 dark:text-sky-400" : "text-neutral-400 dark:text-neutral-500"}`}
+              className={`jet w-[72px] py-1.5 rounded-full text-[11px] font-bold tracking-widest uppercase transition-colors z-10 ${billingCycle === "yearly" ? "text-neutral-800 dark:text-sky-400" : "text-neutral-400 dark:text-neutral-400"}`}
             >
               {yearlyLabel}
             </button>
@@ -143,12 +143,12 @@ export default function ChangeablePricingSection({
                             {plan.name}
                           </span>
                           {plan.badge && (
-                            <span className="bg-green-100 dark:bg-green-500/10 text-green-600 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider leading-none">
+                            <span className="bg-green-100 dark:bg-green-500/10 text-green-600 text-[11px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider leading-none">
                               {plan.badge}
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1.5 leading-snug sm:leading-none">
+                        <span className="text-[11px] text-neutral-400 dark:text-neutral-400 mt-1.5 leading-snug sm:leading-none">
                           {plan.description}
                         </span>
                       </div>
@@ -184,7 +184,7 @@ export default function ChangeablePricingSection({
                           </motion.span>
                         </AnimatePresence>
                       </div>
-                      <span className="jet text-[10px] text-neutral-400 font-bold tracking-widest uppercase mt-1.5 leading-none">
+                      <span className="jet text-[11px] text-neutral-400 font-bold tracking-widest uppercase mt-1.5 leading-none">
                         {plan.unit ?? unitLabel}
                       </span>
                     </div>
@@ -206,7 +206,7 @@ export default function ChangeablePricingSection({
                       >
                         <div className="pt-3.5 mt-3.5 sm:pt-4 sm:mt-4 mb-1 border-t border-dashed border-neutral-200 dark:border-neutral-800">
                           {plan.featuresLabel && (
-                            <p className="jet text-[10px] font-bold text-neutral-400 tracking-widest uppercase mb-3">
+                            <p className="jet text-xs font-bold text-neutral-400 tracking-widest uppercase mb-3">
                               {plan.featuresLabel}
                             </p>
                           )}
@@ -245,7 +245,7 @@ export default function ChangeablePricingSection({
 
         {/* Footer info & CTA */}
         <div className="flex flex-col gap-4 items-center sm:flex-row sm:justify-between mt-5 px-3 pb-2">
-          <span className="jet text-[10px] text-neutral-400 uppercase tracking-[0.05em] leading-relaxed text-center sm:text-left">
+          <span className="jet text-[11px] text-neutral-400 uppercase tracking-[0.05em] leading-relaxed text-center sm:text-left">
             {footerText}
           </span>
           <button

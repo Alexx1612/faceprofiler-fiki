@@ -49,7 +49,7 @@ function MilestonesMenu() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="flex items-center gap-1 rounded-full border border-sky-400/30 bg-sky-400/10 px-3 py-1.5 text-sm text-sky-200 transition-colors hover:bg-sky-400/20"
+        className="flex min-h-11 items-center gap-1 rounded-full border border-sky-400/30 bg-sky-400/10 px-3 text-sm sm:min-h-9 text-sky-200 transition-colors hover:bg-sky-400/20"
       >
         Milestones <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} />
       </button>
@@ -60,7 +60,7 @@ function MilestonesMenu() {
               key={m.href}
               href={m.href}
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-200 hover:bg-white/5"
+              className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm text-neutral-200 hover:bg-white/5"
             >
               <span className="rounded bg-sky-400/15 px-1.5 py-0.5 text-xs font-semibold text-sky-300">{m.code}</span>
               {m.label}
@@ -105,7 +105,7 @@ export function Nav({ home = true }: { home?: boolean }) {
       )}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <Link href={home ? "#top" : "/"} className="flex shrink-0 items-center gap-2 font-semibold tracking-tight text-white">
+        <Link href={home ? "#top" : "/"} className="flex min-h-11 shrink-0 items-center gap-2 font-semibold tracking-tight text-white">
           <Logo className="size-6 text-sky-400" />
           {project.name}
         </Link>
@@ -115,7 +115,7 @@ export function Nav({ home = true }: { home?: boolean }) {
               key={n.id}
               href={home ? `#${n.id}` : `/#${n.id}`}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-sm transition-colors",
+                "inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-sm transition-colors sm:min-h-9",
                 active === n.id ? "bg-white/10 text-white" : "text-neutral-400 hover:text-white"
               )}
             >

@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Wix_Madefor_Display, Wix_Madefor_Text } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+/* Body and headings in Wix Madefor (same family as the landing page); Geist Mono stays for figures and code. */
+const siteSans = Wix_Madefor_Text({
+  variable: "--font-site-sans",
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const siteDisplay = Wix_Madefor_Display({
+  variable: "--font-site-display",
+  subsets: ["latin", "latin-ext"],
+  weight: ["500", "600", "700"],
 });
 
 const geistMono = Geist_Mono({
@@ -28,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`dark ${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`dark ${siteSans.variable} ${siteDisplay.variable} ${geistMono.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   );

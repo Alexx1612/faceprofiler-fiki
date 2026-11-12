@@ -308,7 +308,7 @@ function AddPerson() {
           <T>Name</T>
           <span className="h-6 rounded border border-zinc-400" />
           <T>Group</T>
-          <span className="flex h-6 items-center justify-end rounded border border-zinc-400 px-2 text-[10px] text-zinc-500">▾</span>
+          <span className="flex h-6 items-center justify-end rounded border border-zinc-400 px-2 text-[11px] text-zinc-500">▾</span>
           <span className="mt-1 flex items-center gap-2">
             <span className="size-3.5 rounded-sm border border-zinc-500" />
             <T>Consent recorded (staff, or a parent for students)</T>
