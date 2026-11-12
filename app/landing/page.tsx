@@ -19,8 +19,15 @@ const display = Wix_Madefor_Display({ subsets: ["latin", "latin-ext"], weight: [
 const text = Wix_Madefor_Text({ subsets: ["latin", "latin-ext"], weight: ["400", "500", "600"], variable: "--font-wix-text" });
 
 export const metadata: Metadata = {
-  title: "Nau-ino · Know who walks in tonight",
+  title: "Nau-ino · Know who walks into your school tonight",
   description: "Nau-ino watches the cameras your school already has and flags every stranger. Free 30-day pilot on your own cameras.",
+  openGraph: {
+    title: "Nau-ino · Know who walks into your school tonight",
+    description: "Nau-ino watches the cameras your school already has and flags every stranger. Free 30-day pilot on your own cameras.",
+    images: [{ url: asset("/landing/campus-dusk-1080.jpg"), width: 1080, height: 720 }],
+    type: "website",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 const night = [
@@ -34,6 +41,9 @@ const CheckIcon = () => <Check aria-hidden="true" strokeWidth={2.4} />;
 export default function Landing() {
   return (
     <div className={`lp ${display.variable} ${text.variable}`}>
+      <a href="#main" className="lp-skip">
+        Skip to content
+      </a>
       <header className="lp-nav">
         <div className="lp-wrap lp-nav__bar">
           <a href="#top" className="lp-brand">
@@ -51,14 +61,21 @@ export default function Landing() {
         </div>
       </header>
 
-      <main>
+      <main id="main">
         <section id="top" className="lp-hero">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="lp-hero__photo" src={asset("/landing/campus-dusk.jpg")} alt="" />
+          <img
+            className="lp-hero__photo"
+            src={asset("/landing/campus-dusk-1080.jpg")}
+            srcSet={`${asset("/landing/campus-dusk-1080.jpg")} 1080w, ${asset("/landing/campus-dusk.jpg")} 1920w`}
+            sizes="(orientation: portrait) 400vw, 100vw"
+            alt=""
+            fetchPriority="high"
+          />
           <div className="lp-hero__scrim" />
           <div className="lp-wrap lp-hero__grid">
             <div>
-              <h1>Know who walks in tonight.</h1>
+              <h1>Know who walks into your school tonight.</h1>
               <p className="lp-hero__lead">Nau-ino watches the cameras your school already has and flags every stranger.</p>
               <div className="lp-actions">
                 <a href="#pilot" className="lp-btn">

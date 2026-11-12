@@ -10,12 +10,14 @@ import { team } from "@/lib/content";
  */
 export function PilotForm() {
   const [f, setF] = useState<Record<string, string>>({});
+  const [status, setStatus] = useState("Opens your e-mail app with this filled in. Nothing is stored on this site.");
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF((v) => ({ ...v, [k]: e.target.value }));
   const to = team[1].email;
 
   const send = (e: React.FormEvent) => {
     e.preventDefault();
     const body = [`School: ${f.school ?? ""}`, `Town: ${f.town ?? ""}`, `My role: ${f.role ?? ""}`, `Cameras: ${f.cameras ?? ""}`].join("\n");
+    setStatus("Your e-mail app should open now. Press send there to book the pilot.");
     window.location.href = `mailto:${to}?subject=${encodeURIComponent("Nau-ino pilot request")}&body=${encodeURIComponent(body)}`;
   };
 
@@ -51,7 +53,9 @@ export function PilotForm() {
       <button type="submit" className="lp-btn">
         Book a pilot
       </button>
-      <p className="lp-form__note">Opens your e-mail app with this filled in. Nothing is stored on this site.</p>
+      <p className="lp-form__note" role="status">
+        {status}
+      </p>
     </form>
   );
 }
