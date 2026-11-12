@@ -67,7 +67,8 @@ export function HeroCopy() {
           <br />
           <Swap word={PLACES[p]} className="lp-swap--place" />
           <br />
-          <Swap word={TIMES[t]} />.
+          {/* The full stop is part of the word, so it fades with it instead of jumping when the slot narrows. */}
+          <Swap word={`${TIMES[t]}.`} />
         </span>
       </h1>
       <p className="lp-hero__lead">Nau-ino watches the cameras you already have and flags every stranger.</p>
