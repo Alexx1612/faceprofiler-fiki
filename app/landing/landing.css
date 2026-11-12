@@ -237,10 +237,11 @@
 .lp-hero {
   position: relative;
   isolation: isolate;
-  min-height: min(100svh, 900px);
+  /* Shorter than the screen on purpose: the top of the next section shows, so the page reads as scrollable. */
+  min-height: min(86svh, 820px);
   display: flex;
   align-items: center;
-  padding-block: 112px 72px;
+  padding-block: 104px 88px;
   overflow: clip;
 }
 
@@ -290,6 +291,7 @@
 
 .lp-hero__lead {
   margin-top: var(--space-md);
+  min-height: 3lh; /* the place word changes length; holding three lines keeps the buttons below still */
   max-width: 30ch;
   font-size: clamp(1.05rem, 1.5vw, 1.25rem);
   color: var(--color-ink);
@@ -409,20 +411,44 @@
   color: var(--color-accent);
 }
 
+/* The stranger row is the point of the card: a filled amber row, so it reads first from across the hero. */
+.lp-row--open {
+  margin-top: 6px;
+  padding-inline: 10px;
+  border-top-color: transparent;
+  border-radius: var(--radius-inner);
+  background: color-mix(in oklab, var(--color-accent-2) 22%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--color-accent-2);
+}
+
 .lp-row--open .lp-initial {
+  background: var(--color-accent-2);
+  box-shadow: none;
+  color: var(--color-well-ink);
+  font-weight: 700;
+}
+
+.lp-row--open .lp-row__name {
+  font-size: 17px;
+  font-weight: 700;
   color: var(--color-accent-2);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-accent-2) 55%, transparent);
+}
+
+.lp-row--open .lp-row__place {
+  color: var(--color-ink);
 }
 
 .lp-row--open .lp-row__status {
+  font-weight: 600;
   color: var(--color-accent-2);
 }
 
 .lp-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--color-accent-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent-2) 30%, transparent);
 }
 
 .lp-open {
@@ -432,13 +458,17 @@
   margin-top: var(--space-xs);
   padding: 12px 14px;
   border-radius: var(--radius-inner);
-  background: color-mix(in oklab, var(--color-accent-2) 12%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-accent-2) 30%, transparent);
+  background: var(--color-accent-2);
+  color: var(--color-well-ink);
   font-size: 14px;
+  font-weight: 500;
 }
 
 .lp-open b {
   margin-left: auto;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-well-ink);
   font-weight: 600;
   color: var(--color-accent-2);
 }
@@ -447,6 +477,79 @@
 
 .lp-section {
   padding-block: var(--section-y);
+}
+
+.lp-hero + .lp-section {
+  padding-top: clamp(40px, 5vw, 64px);
+}
+
+/* Rotating place word in the hero headline and lead (components/landing/hero-copy.tsx). */
+.lp-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.lp-swap {
+  display: inline-block;
+  color: var(--color-accent-hi);
+}
+
+.lp-swap__word {
+  display: inline-block;
+  animation: lp-swap-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.lp-swap__soft {
+  display: inline-block;
+  color: var(--color-accent-hi);
+  animation: lp-fade 520ms ease-out both;
+}
+
+@keyframes lp-swap-in {
+  from { opacity: 0; transform: translateY(0.45em); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+/* Scroll cue at the foot of the hero, only where the screen is tall enough to hold it. */
+.lp-cue {
+  display: none;
+}
+
+@media (min-width: 1024px) and (min-height: 720px) {
+  .lp-cue {
+    position: absolute;
+    left: 50%;
+    bottom: 20px;
+    translate: -50% 0;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-height: 44px;
+    padding: 4px 12px;
+    font-size: 13px;
+    color: var(--color-ink-2);
+    text-decoration: none;
+    text-shadow: 0 1px 8px var(--color-shade);
+    transition: color 160ms ease;
+  }
+  .lp-cue:hover {
+    color: var(--color-ink);
+  }
+  .lp-cue svg {
+    width: 18px;
+    height: 18px;
+    animation: lp-cue 1.6s ease-in-out 3;
+  }
+}
+
+@keyframes lp-cue {
+  0%, 100% { transform: none; }
+  50% { transform: translateY(4px); }
 }
 
 .lp-section + .lp-section {
@@ -810,7 +913,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .lp-row,
-  .lp-pane {
+  .lp-pane,
+  .lp-swap__word,
+  .lp-swap__soft,
+  .lp-cue svg {
     animation: none;
   }
   .lp-btn,

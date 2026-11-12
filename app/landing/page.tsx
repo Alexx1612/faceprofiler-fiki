@@ -1,8 +1,9 @@
-import { Check } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import type { Metadata } from "next";
 import { Wix_Madefor_Display, Wix_Madefor_Text } from "next/font/google";
 import Link from "next/link";
 
+import { HeroCopy } from "@/components/landing/hero-copy";
 import { PilotForm } from "@/components/landing/pilot-form";
 import { Tour } from "@/components/landing/tour";
 import { Logo } from "@/components/site/nav";
@@ -75,8 +76,7 @@ export default function Landing() {
           <div className="lp-hero__scrim" />
           <div className="lp-wrap lp-hero__grid">
             <div>
-              <h1>Know who walks into your school tonight.</h1>
-              <p className="lp-hero__lead">Nau-ino watches the cameras your school already has and flags every stranger.</p>
+              <HeroCopy />
               <div className="lp-actions">
                 <a href="#pilot" className="lp-btn">
                   Book a pilot
@@ -130,6 +130,10 @@ export default function Landing() {
               </div>
             </div>
           </div>
+          <a href="#how" className="lp-cue">
+            How it works
+            <ChevronDown aria-hidden="true" strokeWidth={2} />
+          </a>
         </section>
 
         <section id="how" className="lp-section">
