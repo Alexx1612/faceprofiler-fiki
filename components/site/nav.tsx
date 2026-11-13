@@ -123,6 +123,12 @@ export function Nav({ home = true }: { home?: boolean }) {
             </Link>
           ))}
         </nav>
+        <Link
+          href="/pitch/"
+          className="flex min-h-11 shrink-0 items-center rounded-full bg-sky-400 px-3 text-sm font-semibold text-[#0b0f17] transition-colors hover:bg-sky-300 sm:min-h-9"
+        >
+          Pitch
+        </Link>
         <MilestonesMenu />
       </div>
     </header>

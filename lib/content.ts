@@ -408,3 +408,55 @@ export const distance = {
   /** The trained pipeline on the 405-photo real-world test (dry run, measured earlier). */
   accuracy: { correct: 244, wrong: 4, missed: 58 },
 };
+
+/** Pitch page (/pitch/): the investor pitch as one scrolling page. "[__]" marks figures still to fill in. */
+export const pitch = {
+  headline: "Nau-ino",
+  lead: "Software that works with a site’s existing CCTV cameras: it recognises staff, flags strangers, and reports how work happens on a production floor. It runs on one computer on site.",
+  problem: [
+    "In schools and kindergartens, an unknown adult in a corridor is usually noticed only after someone complains.",
+    "Finding one person in a day of recordings means going through the video by hand, often for hours.",
+    "Production-hall managers don’t know how long people spend at their stations or who works without a helmet, even though the cameras see it.",
+    "Cloud video services mean sending faces off site, which most schools and small firms won’t do because of GDPR.",
+  ],
+  how: [
+    "We install it on a computer that can see the site’s camera streams. Nothing new goes on the walls.",
+    "Staff are added with one or two photos each. For a production hall, the manager draws each worker’s area on the camera image.",
+    "The software detects and tracks people in the video and recognises the enrolled ones. Anyone else gets a number (Unknown_1, Unknown_2…), not a name.",
+    "Staff get an alert only when someone needs to look, and every event is saved with the video frames that show it.",
+  ],
+  products: [
+    { who: "Schools, kindergartens, offices", text: "Recognises enrolled staff and flags people it doesn’t know. You can also search a day of recordings for one person." },
+    { who: "Production halls and warehouses", text: "A report per worker per shift: time in their own work area, how often and how long they left it, time moving vs standing, distance walked, and helmet and vest use." },
+  ],
+  proof: [
+    { test: "Known people named correctly", result: "358 of 359", setup: "405-photo test, demo models" },
+    { test: "Wrong names given", result: "0", setup: "same test" },
+    { test: "Strangers left anonymous", result: "42 of 43", setup: "same test" },
+    { test: "Video speed", result: "13–20 frames/s", setup: "laptop CPU, no graphics card" },
+    { test: "Worker report vs true values", result: "within about 2%", setup: "simulated floor where the true answer is known" },
+  ],
+  proofNote: "We haven’t tested on a real production floor yet. That’s what the pilot is for.",
+  interviewNote:
+    "We talked to schools, kindergartens, production-hall and warehouse owners, and security firms. One production-hall owner has agreed to let us record their workers so we can test the shift reports on real work.",
+  validation: [
+    { value: "7 of 10", label: "teachers want an alert for fights or for children leaving unnoticed" },
+    { value: "80%", label: "of sites with cameras asked to see a demo of after-hours alerts" },
+    { value: "2 of 5", label: "elderly-care homes would consider fall alerts, so we treat that as an add-on" },
+  ],
+  market: [
+    { value: "6,293", text: "school units in Romania. At €960 a year each, that’s about €6M a year." },
+    { value: "[__]", text: "production halls and warehouses in Romania with CCTV. We still need a sourced number." },
+    { value: "$8.5B", text: "global video-analytics market in 2024, $31.0B expected by 2033 (IMARC Group)." },
+  ],
+  whyNow:
+    "A few years ago, face recognition on video needed a server with a graphics card. Today it runs on a normal laptop, so a school can afford it. At the same time, GDPR and the EU AI Act make buyers wary of cloud services that store faces, and most schools and halls already have cameras installed.",
+  ask: {
+    lead: "[€__] over the next 12 months, to run two pilots and turn them into paying customers.",
+    steps: [
+      { when: "3 months", goal: "Shift reports running on real shifts in the production hall; access alerts in one school" },
+      { when: "6 months", goal: "[__] paying sites; at least 4 in 10 pilots become paying customers" },
+      { when: "12 months", goal: "A first security installer reselling it; 150 cameras under contract" },
+    ],
+  },
+};
