@@ -409,7 +409,7 @@ export const distance = {
   accuracy: { correct: 244, wrong: 4, missed: 58 },
 };
 
-/** Pitch page (/pitch/): the investor pitch as one scrolling page. "[__]" marks figures still to fill in. */
+/** Pitch page (/pitch/): the investor pitch as one scrolling page. */
 export const pitch = {
   headline: "Nau-ino",
   lead: "Software that works with a site’s existing CCTV cameras: it recognises staff, flags strangers, and reports how work happens on a production floor. It runs on one computer on site.",
@@ -446,16 +446,15 @@ export const pitch = {
   ],
   market: [
     { value: "6,293", text: "school units in Romania. At €960 a year each, that’s about €6M a year." },
-    { value: "[__]", text: "production halls and warehouses in Romania with CCTV. We still need a sourced number." },
     { value: "$8.5B", text: "global video-analytics market in 2024, $31.0B expected by 2033 (IMARC Group)." },
   ],
   whyNow:
     "A few years ago, face recognition on video needed a server with a graphics card. Today it runs on a normal laptop, so a school can afford it. At the same time, GDPR and the EU AI Act make buyers wary of cloud services that store faces, and most schools and halls already have cameras installed.",
   ask: {
-    lead: "[€__] over the next 12 months, to run two pilots and turn them into paying customers.",
+    lead: "Funding and mentoring for the next 12 months, to run two pilots and turn them into paying customers.",
     steps: [
       { when: "3 months", goal: "Shift reports running on real shifts in the production hall; access alerts in one school" },
-      { when: "6 months", goal: "[__] paying sites; at least 4 in 10 pilots become paying customers" },
+      { when: "6 months", goal: "First paying sites; at least 4 in 10 pilots become paying customers" },
       { when: "12 months", goal: "A first security installer reselling it; 150 cameras under contract" },
     ],
   },

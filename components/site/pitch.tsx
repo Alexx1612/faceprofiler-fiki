@@ -1,4 +1,4 @@
-import { asset, competitors, matrix, pitch, plans, team } from "@/lib/content";
+import { asset, competitors, matrix, pitch, plans } from "@/lib/content";
 import { Section } from "./section";
 
 const card = "rounded-2xl border border-white/10 bg-white/[0.03] p-5";
@@ -77,7 +77,7 @@ export function PitchPage() {
       </Section>
 
       <Section id="pitch-market" title="Where we start: Romanian schools" lead="After that: care homes, small offices and security integrators in the rest of the EU.">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {pitch.market.map((m) => (
             <div key={m.value} className={card}>
               <p className="font-heading text-2xl font-semibold text-neutral-100 sm:text-3xl">{m.value}</p>
@@ -137,20 +137,6 @@ export function PitchPage() {
 
       <Section id="pitch-why-now" title="Why this is possible now">
         <p className="text-muted-foreground max-w-4xl leading-relaxed">{pitch.whyNow}</p>
-      </Section>
-
-      <Section id="pitch-team" title="Team" lead="Both students at Politehnica University of Bucharest.">
-        <div className="grid gap-3 sm:grid-cols-2">
-          {team
-            .filter((m) => !m.hidden)
-            .map((m) => (
-              <div key={m.name} className={card}>
-                <h3 className="font-heading font-semibold text-neutral-100">{m.name}</h3>
-                <p className="text-sm text-sky-300">{m.role}</p>
-                <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{m.bio}</p>
-              </div>
-            ))}
-        </div>
       </Section>
 
       <Section id="pitch-ask" title="What we are asking for" lead={pitch.ask.lead}>
