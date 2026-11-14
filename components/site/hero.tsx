@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/hero-dithering";
 import { NeumorphEyebrow } from "@/components/ui/neumorph-eyebrow";
 import { asset, project } from "@/lib/content";
+import { AsciiEyes } from "./ascii-eyes";
 import { MetricsStrip } from "./metrics";
 
 const shader = { colorBack: "#00000000", colorFront: "#38bdf8", shape: "sphere", type: "4x4", size: 2, speed: 0.6, scale: 0.75 } as const;
@@ -105,6 +106,7 @@ export function Hero() {
       <HeroDitheringContainer className="mx-auto max-w-6xl gap-4 px-4 pb-2 sm:gap-6 sm:px-6 sm:pb-2 lg:pb-2">
         <HeroDitheringContent className="sm:px-0 md:px-0 lg:pl-0 xl:pl-0">
           <NeumorphEyebrow intent="night">{project.eyebrow}</NeumorphEyebrow>
+          <AsciiEyes className="max-w-xl" />
           <p aria-hidden="true" className="animate-in fade-in slide-in-from-bottom-4 text-5xl leading-none font-semibold tracking-[-0.04em] text-white duration-700 sm:text-6xl">
             {project.name}
           </p>
