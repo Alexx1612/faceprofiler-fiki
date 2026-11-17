@@ -31,7 +31,8 @@ aside{border-right:1px solid var(--line);padding:16px;display:flex;flex-directio
 h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:0 0 6px}
 #drop{border:2px dashed var(--line);border-radius:10px;padding:16px;text-align:center;color:var(--mute);cursor:pointer}
 #drop.on{border-color:var(--acc);color:var(--acc)}
-.samples{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.samples button{border:1px solid var(--line);background:none;border-radius:8px;padding:2px;cursor:pointer}
+.samples{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.samples button{position:relative;border:1px solid var(--line);background:none;border-radius:8px;padding:2px;cursor:pointer}.samples b{position:absolute;right:3px;bottom:3px;background:var(--acc);color:#1a1204;border-radius:6px;font:700 10px/1 system-ui;padding:2px 4px}
+.shots{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.shots figure{position:relative;margin:0;width:64px}.shots img{width:64px;height:64px;object-fit:cover;border-radius:6px;display:block}.shots figcaption{font-size:10px;color:var(--mute);text-align:center}.shots figure button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:#2a3442;color:#fff;cursor:pointer;line-height:20px;padding:0}.addshot{width:64px;height:64px;border:1px dashed var(--line);border-radius:6px;background:none;color:var(--mute);font-size:11px;cursor:pointer}
 .samples img{width:52px;height:52px;object-fit:cover;border-radius:6px;display:block}
 #pick{position:relative;display:none}#pick img{width:100%;border-radius:8px;display:block}
 .box{position:absolute;border:2px solid #fffc;border-radius:4px;background:none;padding:0;cursor:pointer;box-shadow:0 0 0 1px #0009}
@@ -58,13 +59,14 @@ input[type=checkbox]{accent-color:var(--acc);width:16px;height:16px}
 </script>
 </head>
 <body data-stock>
-<header><h1>3D Face</h1><p>Stock faces from our demo turned into 3D: turn them, relight them, render them as ASCII. Runs in your browser.</p></header>
+<header><h1>3D Face</h1><p>Stock faces from our demo, each from up to three angles, turned into 3D: turn them, relight them, render them as ASCII. Runs in your browser.</p></header>
 <main>
 <aside>
   <section>
-    <h2>1. Stock face</h2>
-    <div id="drop">Drop a photo here or click to choose<input id="file" type="file" accept="image/*" hidden></div>
+    <h2>1. Stock face (number = angles)</h2>
+    <div id="drop">Drop 1 to 3 photos of the same person, or click to choose<input id="file" type="file" accept="image/*" hidden></div>
     <div class="samples" id="samples"></div>
+    <div class="shots" id="shots"></div>
   </section>
   <section id="pickwrap" hidden>
     <h2>2. Face</h2>
@@ -88,11 +90,12 @@ input[type=checkbox]{accent-color:var(--acc);width:16px;height:16px}
     <button class="btn" id="png" disabled>Save picture (.png)</button>
     <div id="msg"></div>
   </section>
-  <p class="foot">Stock faces: stills from Mixkit free stock footage, fictional names. Face points: MediaPipe Face Landmarker (Apache-2.0). Rendering: three.js (MIT). A face mask from one photo: depth is estimated, the back of the head is not modelled.</p>
+  <p class="foot">Face points: MediaPipe Face Landmarker (Apache-2.0). Rendering: three.js (MIT). Extra photos from other angles are aligned onto the first and averaged into one shape; the first photo gives the colours. Depth is estimated; the back of the head is not modelled.</p>
 </aside>
 <div id="stage"><div id="empty">Choose a photo, or tap a sample on the left.</div><div id="ascii"></div><div id="hint">Drag to turn · scroll to zoom · right-drag to move</div></div>
 </main>
 <script type="module">
+window.__face3d = {};
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { AsciiEffect } from 'three/addons/effects/AsciiEffect.js';
@@ -199,16 +202,79 @@ function closeHoles(pos, uv, tri) {
   return { pos: P, uv: U, tri: T, holes: loops.length - 1 };
 }
 
-let current = null, mesh = null, wire = null, texture = null, mode = 'photo';
+let photos = [], refFace = 0, mesh = null, wire = null, texture = null, mode = 'photo', tess = null;
+const MAX_PHOTOS = 3;
+
+/** 468 face points of one photo as 3D [x, y, z] in image-width units, y up, z toward the camera. */
+function points3d(pts, img) {
+  const ar = img.width / img.height;
+  return pts.slice(0, 468).map(p => [p.x * ar, -p.y, -p.z * ar]);
+}
+
+/**
+ * Similarity alignment (Horn's quaternion method): rotation, scale and shift that best map `b` onto
+ * `a`. Returns the moved copy of `b` and the RMS error relative to the face's size.
+ */
+function align(a, b) {
+  const n = a.length, ca = [0, 0, 0], cb = [0, 0, 0];
+  for (let i = 0; i < n; i++) for (let d = 0; d < 3; d++) { ca[d] += a[i][d] / n; cb[d] += b[i][d] / n; }
+  const A = a.map(p => p.map((v, d) => v - ca[d])), B = b.map(p => p.map((v, d) => v - cb[d]));
+  const S = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  let na = 0, nb = 0;
+  for (let i = 0; i < n; i++) {
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) S[r][c] += B[i][r] * A[i][c];
+    na += A[i][0] ** 2 + A[i][1] ** 2 + A[i][2] ** 2; nb += B[i][0] ** 2 + B[i][1] ** 2 + B[i][2] ** 2;
+  }
+  const [[xx, xy, xz], [yx, yy, yz], [zx, zy, zz]] = S;
+  const N = [
+    [xx + yy + zz, yz - zy, zx - xz, xy - yx],
+    [yz - zy, xx - yy - zz, xy + yx, zx + xz],
+    [zx - xz, xy + yx, -xx + yy - zz, yz + zy],
+    [xy - yx, zx + xz, yz + zy, -xx - yy + zz],
+  ];
+  const shift = N.flat().reduce((s, v) => s + Math.abs(v), 0);
+  let q = [1, 0, 0, 0];
+  for (let it = 0; it < 200; it++) { // power iteration on N + shift*I: largest eigenvector of N
+    const r = N.map((row, i) => row.reduce((s, v, j) => s + v * q[j], 0) + shift * q[i]);
+    const l = Math.hypot(...r); q = r.map(v => v / l);
+  }
+  const [w, x, y, z] = q;
+  const R = [
+    [w * w + x * x - y * y - z * z, 2 * (x * y - w * z), 2 * (x * z + w * y)],
+    [2 * (x * y + w * z), w * w - x * x + y * y - z * z, 2 * (y * z - w * x)],
+    [2 * (x * z - w * y), 2 * (y * z + w * x), w * w - x * x - y * y + z * z],
+  ];
+  const s = Math.sqrt(na / (nb || 1));
+  const moved = B.map(p => [0, 1, 2].map(r => s * (R[r][0] * p[0] + R[r][1] * p[1] + R[r][2] * p[2]) + ca[r]));
+  let err = 0; for (let i = 0; i < n; i++) err += (moved[i][0] - a[i][0]) ** 2 + (moved[i][1] - a[i][1]) ** 2 + (moved[i][2] - a[i][2]) ** 2;
+  return { moved, rms: Math.sqrt(err / n) / Math.sqrt(na / n) };
+}
+
+/** The face shape: the first photo's points, averaged with every other photo aligned onto it. */
+function fusedShape() {
+  const ref = photos[0], base = points3d(ref.faces[refFace].p, ref.canvas);
+  const sum = base.map(p => p.map(v => v * 2)); let weight = 2, used = 1; const skipped = [], errs = [];
+  for (const ph of photos.slice(1)) {
+    const { moved, rms } = align(base, points3d(ph.faces[0].p, ph.canvas));
+    // Does not fit: probably another person. Measured on the stock samples (2026-11-17): the same
+    // person 0-8 % (one extremely turned photo 12 %), different people 9.2-15.2 %. Face shape is a weak
+    // identity signal, so this only keeps obvious mix-ups out; it is not identity verification.
+    if (rms > 0.09) { skipped.push(ph.name); continue; }
+    moved.forEach((p, i) => p.forEach((v, d) => (sum[i][d] += v)));
+    weight += 1; used += 1; errs.push(rms);
+  }
+  return { shape: sum.map(p => p.map(v => v / weight)), used, skipped, errs };
+}
+
 function buildMesh() {
-  if (!current) return;
-  const { pts, tess, img } = current;
-  const ar = img.width / img.height, depth = +$('#depth').value;
-  const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length, cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+  if (!photos.length) return;
+  const ref = photos[0], pts = ref.faces[refFace].p, depth = +$('#depth').value;
+  const { shape, used, skipped, errs } = fusedShape();
+  const cx = shape.reduce((s, p) => s + p[0], 0) / shape.length, cy = shape.reduce((s, p) => s + p[1], 0) / shape.length;
+  const cz = shape.reduce((s, p) => s + p[2], 0) / shape.length;
+  const r = Math.max(...shape.map(p => Math.hypot(p[0] - cx, p[1] - cy)));
   let pos = [], uv = [];
-  for (const p of pts.slice(0, 468)) { pos.push((p.x - cx) * ar, -(p.y - cy), -p.z * ar * depth); uv.push(p.x, 1 - p.y); }
-  const r = Math.max(...pts.slice(0, 468).map(p => Math.hypot((p.x - cx) * ar, p.y - cy)));
-  pos = pos.map(v => v / r);
+  shape.forEach((p, i) => { pos.push((p[0] - cx) / r, (p[1] - cy) / r, ((p[2] - cz) / r) * depth); uv.push(pts[i].x, 1 - pts[i].y); });
   let tri = triangles(tess, 468);
   // face every triangle toward the viewer (+z)
   tri = tri.map(([a, b, c]) => {
@@ -234,7 +300,10 @@ function buildMesh() {
   wire = new THREE.LineSegments(new THREE.WireframeGeometry(geo), new THREE.LineBasicMaterial({ color: 0x7aa2ff, transparent: true, opacity: 0.55 }));
   scene.add(mesh); scene.add(wire); applyMode();
   $('#glb').disabled = $('#png').disabled = false;
-  msg(`${g.tri.length.toLocaleString()} triangles from 468 face points.`);
+  const fit = errs.length ? ` (alignment error ${(100 * errs.reduce((s, e) => s + e, 0) / errs.length).toFixed(1)}%)` : '';
+  msg(`${g.tri.length.toLocaleString()} triangles · shape from ${used} photo${used > 1 ? 's' : ''}${fit}.` +
+      (skipped.length ? ` Left out (does not fit this face, maybe another person): ${skipped.join(', ')}.` : ''));
+  window.__face3d.used = used; window.__face3d.skipped = skipped.length;
 }
 function material() {
   if (mode === 'clay') return new THREE.MeshStandardMaterial({ color: 0xc9b8a6, roughness: 0.65, metalness: 0, side: THREE.DoubleSide });
@@ -251,48 +320,73 @@ function applyMode() {
   document.querySelectorAll('#modes button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === mode));
 }
 
-/* ---------- photo and face choice ---------- */
-async function usePhoto(src) {
+/* ---------- photos and face choice ---------- */
+async function loadPhoto(src, name) {
+  const img = await new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = () => rej(new Error('This file is not a readable photo.')); i.src = src; });
+  const k = Math.min(1, 2048 / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  const lm = await getLandmarker(); tess = lm._tess;
+  const res = lm.detect(c);
+  const faces = res.faceLandmarks.map(p => { const xs = p.map(q => q.x), ys = p.map(q => q.y); return { p, box: [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)] }; })
+    .sort((a, b) => b.box[2] * b.box[3] - a.box[2] * a.box[3]);
+  return { canvas: c, faces, name, thumb: c.toDataURL('image/jpeg', 0.8) };
+}
+
+/** Replaces (reset) or extends the photo set; the first photo carries the texture and the face choice. */
+async function addPhotos(list, reset) {
   try {
     msg('Reading the photo…');
-    const img = await new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = () => rej(new Error('This file is not a readable photo.')); i.src = src; });
-    const k = Math.min(1, 2048 / Math.max(img.naturalWidth, img.naturalHeight));
-    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    const lm = await getLandmarker();
-    const res = lm.detect(c);
-    if (!res.faceLandmarks.length) { msg('No face found. Try a clear, front-facing photo.'); return; }
+    if (reset) { photos = []; refFace = 0; }
+    for (const { src, name } of list) {
+      if (photos.length >= MAX_PHOTOS) { msg(`Up to ${MAX_PHOTOS} photos of the same person.`); break; }
+      const ph = await loadPhoto(src, name);
+      if (!ph.faces.length) { msg(`No face found in ${name}. Try a clear photo.`); continue; }
+      photos.push(ph);
+    }
+    if (!photos.length) return;
     if (texture) texture.dispose();
-    texture = new THREE.CanvasTexture(c); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = 4;
-    const faces = res.faceLandmarks.map(p => { const xs = p.map(q => q.x), ys = p.map(q => q.y); return { p, box: [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)] }; })
-      .sort((a, b) => b.box[2] * b.box[3] - a.box[2] * a.box[3]);
-    const pick = $('#pick'); pick.style.display = 'block'; $('#pickwrap').hidden = false;
-    pick.innerHTML = `<img src="${c.toDataURL('image/jpeg', 0.85)}" alt="chosen photo">` + faces.map((f, i) =>
-      `<button class="box" data-i="${i}" aria-label="Face ${i + 1}" style="left:${f.box[0] * 100}%;top:${f.box[1] * 100}%;width:${f.box[2] * 100}%;height:${f.box[3] * 100}%"><span>${i + 1}</span></button>`).join('');
-    const choose = i => { pick.querySelectorAll('.box').forEach(b => b.classList.toggle('on', +b.dataset.i === i)); current = { pts: faces[i].p, tess: lm._tess, img: c }; controls.reset(); $('#empty').style.display = 'none'; buildMesh(); };
-    pick.querySelectorAll('.box').forEach(b => b.onclick = () => choose(+b.dataset.i));
-    choose(0);
-    if (faces.length > 1) msg(`${faces.length} faces found: click a numbered box to model another one.`);
+    texture = new THREE.CanvasTexture(photos[0].canvas); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = 4;
+    renderPhotos();
+    controls.reset(); $('#empty').style.display = 'none'; buildMesh();
+    if (photos[0].faces.length > 1 && photos.length === 1) msg(`${photos[0].faces.length} faces found: click a numbered box to model another one.`);
   } catch (e) { msg('Could not load: ' + e.message + ' (the first run needs internet).'); }
 }
 
+function renderPhotos() {
+  const ref = photos[0], pick = $('#pick');
+  pick.style.display = 'block'; $('#pickwrap').hidden = false;
+  pick.innerHTML = `<img src="${ref.thumb}" alt="first photo">` + ref.faces.map((f, i) =>
+    `<button class="box${i === refFace ? ' on' : ''}" data-i="${i}" aria-label="Face ${i + 1}" style="left:${f.box[0] * 100}%;top:${f.box[1] * 100}%;width:${f.box[2] * 100}%;height:${f.box[3] * 100}%"><span>${i + 1}</span></button>`).join('');
+  pick.querySelectorAll('.box').forEach(b => b.onclick = () => { refFace = +b.dataset.i; renderPhotos(); buildMesh(); });
+  $('#shots').innerHTML = photos.map((p, i) => `<figure><img src="${p.thumb}" alt=""><figcaption>${i ? 'angle ' + (i + 1) : 'colours'}</figcaption>${i ? `<button data-i="${i}" aria-label="Remove photo ${i + 1}">×</button>` : ''}</figure>`).join('')
+    + (photos.length < MAX_PHOTOS && !STOCK ? '<button class="addshot" id="addshot">+ add an angle</button>' : '');
+  $('#shots').querySelectorAll('figure button').forEach(b => b.onclick = () => { photos.splice(+b.dataset.i, 1); renderPhotos(); buildMesh(); });
+  const add = $('#addshot'); if (add) add.onclick = () => { addMode = true; file.click(); };
+}
+
 // Stock-only mode (the public website copy): <body data-stock> hides photo upload, so only the
-// bundled stock faces can be modelled, and the first one opens by itself.
+// bundled stock faces can be modelled, and the first set opens by itself.
 const STOCK = document.body.hasAttribute('data-stock');
 const drop = $('#drop'), file = $('#file');
+let addMode = false;
 if (STOCK) {
   drop.remove();
 } else {
-  drop.onclick = () => file.click();
-  file.onchange = () => file.files[0] && usePhoto(URL.createObjectURL(file.files[0]));
+  file.multiple = true;
+  const take = files => addPhotos([...files].slice(0, MAX_PHOTOS).map(f => ({ src: URL.createObjectURL(f), name: f.name })), !addMode);
+  drop.onclick = () => { addMode = false; file.click(); };
+  file.onchange = () => { if (file.files.length) take(file.files); file.value = ''; };
   drop.ondragover = e => { e.preventDefault(); drop.classList.add('on'); };
   drop.ondragleave = () => drop.classList.remove('on');
-  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('on'); const f = e.dataTransfer.files[0]; if (f) usePhoto(URL.createObjectURL(f)); };
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('on'); addMode = false; if (e.dataTransfer.files.length) take(e.dataTransfer.files); };
 }
 fetch('samples/samples.json').then(r => r.ok ? r.json() : []).then(list => {
-  $('#samples').innerHTML = list.map(s => `<button title="${s.name}" data-src="samples/${s.file}"><img src="samples/${s.file}" alt="${s.name}"></button>`).join('');
-  document.querySelectorAll('#samples button').forEach(b => b.onclick = () => usePhoto(b.dataset.src));
-  if (STOCK && list.length) usePhoto('samples/' + list[0].file);
+  const sets = list.map(s => ({ name: s.name, files: s.files || [s.file] }));
+  $('#samples').innerHTML = sets.map((s, i) => `<button title="${s.name}${s.files.length > 1 ? ' (' + s.files.length + ' angles)' : ''}" data-i="${i}"><img src="samples/${s.files[0]}" alt="${s.name}">${s.files.length > 1 ? `<b>${s.files.length}</b>` : ''}</button>`).join('');
+  const open = i => addPhotos(sets[i].files.map((f, k) => ({ src: 'samples/' + f, name: `${sets[i].name} ${k + 1}` })), true);
+  document.querySelectorAll('#samples button').forEach(b => b.onclick = () => open(+b.dataset.i));
+  if (STOCK && sets.length) open(0);
 }).catch(() => {});
 
 document.querySelectorAll('#modes button').forEach(b => b.onclick = () => { mode = b.dataset.m; applyMode(); });
@@ -316,7 +410,8 @@ renderer.setAnimationLoop(() => {
   controls.update();
   if (mode === 'ascii') ascii.render(scene, camera); else renderer.render(scene, camera);
 });
-window.__face3d = { get triangles() { return mesh ? mesh.geometry.index.count / 3 : 0; }, get mode() { return mode; } };
+
+Object.defineProperties(window.__face3d, { triangles: { get: () => (mesh ? mesh.geometry.index.count / 3 : 0) }, mode: { get: () => mode } });
 </script>
 </body>
 </html>

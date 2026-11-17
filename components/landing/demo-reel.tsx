@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 import { asset } from "@/lib/content";
@@ -61,39 +62,67 @@ const demos = [
   },
 ];
 
+const TABS = [...demos.map((d) => ({ id: d.id, tab: d.tab })), { id: "face3d", tab: "3D face" }];
+
+/**
+ * Collapsed by default: a single row ("Watch the demos") that opens the tabs. Nothing heavy loads
+ * until it is opened, and only the chosen video or the 3D creator is mounted.
+ */
 export function DemoReel() {
+  const [open, setOpen] = useState(false);
   const [id, setId] = useState("faces");
-  const d = demos.find((x) => x.id === id)!;
+  const d = demos.find((x) => x.id === id);
   return (
     <div className="lp-reel">
-      <div className="lp-reel__tabs" role="group" aria-label="Demo">
-        {demos.map((x) => (
-          <button key={x.id} type="button" aria-pressed={x.id === id} onClick={() => setId(x.id)}>
-            {x.tab}
-          </button>
-        ))}
-      </div>
-      <div key={d.id} className="lp-tour__stage">
-        <AppFrame screen={d.screen}>
-          <div className="lp-cam">
-            <video src={asset(d.video)} poster={asset(d.poster)} autoPlay muted loop playsInline aria-label={d.text} />
-            <span className="lp-cam__badge lp-cam__badge--left">{d.label}</span>
-            <span className="lp-cam__badge lp-cam__badge--right">
-              <span className="lp-cam__rec" aria-hidden="true" />
-              REC
-            </span>
-          </div>
-          <div className="lp-cam__stats">
-            {d.legend.map(([k, v]) => (
-              <span key={k}>
-                <b>{k}</b> {v}
-              </span>
+      <button type="button" className="lp-reel__toggle" aria-expanded={open} aria-controls="lp-reel-body" onClick={() => setOpen((o) => !o)}>
+        <span>
+          <b>{open ? "Hide the demos" : "Watch the demos"}</b>
+          <small>Faces at a door · workers in their work areas · a shop aisle · a 3D face from photos</small>
+        </span>
+        <ChevronDown aria-hidden="true" className={open ? "lp-reel__chev lp-reel__chev--open" : "lp-reel__chev"} />
+      </button>
+      {open && (
+        <div id="lp-reel-body" className="lp-reel__body">
+          <div className="lp-reel__tabs" role="group" aria-label="Demo">
+            {TABS.map((x) => (
+              <button key={x.id} type="button" aria-pressed={x.id === id} onClick={() => setId(x.id)}>
+                {x.tab}
+              </button>
             ))}
           </div>
-          <p className="lp-reel__text">{d.text}</p>
-          <p className="lp-pane__caption">{d.credit}</p>
-        </AppFrame>
-      </div>
+          <div key={id} className="lp-tour__stage">
+            {d ? (
+              <AppFrame screen={d.screen}>
+                <div className="lp-cam">
+                  <video src={asset(d.video)} poster={asset(d.poster)} autoPlay muted loop playsInline aria-label={d.text} />
+                  <span className="lp-cam__badge lp-cam__badge--left">{d.label}</span>
+                  <span className="lp-cam__badge lp-cam__badge--right">
+                    <span className="lp-cam__rec" aria-hidden="true" />
+                    REC
+                  </span>
+                </div>
+                <div className="lp-cam__stats">
+                  {d.legend.map(([k, v]) => (
+                    <span key={k}>
+                      <b>{k}</b> {v}
+                    </span>
+                  ))}
+                </div>
+                <p className="lp-reel__text">{d.text}</p>
+                <p className="lp-pane__caption">{d.credit}</p>
+              </AppFrame>
+            ) : (
+              <AppFrame screen="3D Face" status="Runs in your browser">
+                <iframe className="lp-reel__frame" src={asset("/face3d/")} title="3D face from stock photos" loading="lazy" />
+                <p className="lp-reel__text">
+                  Stock faces from our demo, each from up to three angles, turned into one 3D face. Drag to turn it, switch to clay, depth or ASCII.
+                </p>
+                <p className="lp-pane__caption">Fictional people from stock footage. The full app also takes your own photos; nothing is uploaded.</p>
+              </AppFrame>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
