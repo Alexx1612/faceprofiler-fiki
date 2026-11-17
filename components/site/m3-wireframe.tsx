@@ -562,6 +562,8 @@ export function M3Wireframe() {
       const el = frame?.querySelector<HTMLElement>(`[data-hot="${st.screen}-${st.hot}"]`);
       if (!frame || !el) return stop();
       el.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+      el.classList.add("m3-target"); // pulsing glow on the box about to be clicked
+      timers.push(window.setTimeout(() => el.classList.remove("m3-target"), 2100));
       at(350, () => {
         const fr = frame.getBoundingClientRect();
         const r = el.getBoundingClientRect();
@@ -639,13 +641,31 @@ export function M3Wireframe() {
           </div>
 
           {say && (
-            <div aria-live="polite" className="animate-in fade-in slide-in-from-top-1 mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-sky-400/25 bg-sky-400/[0.08] px-3 py-2 text-sm text-sky-100">
-              {tour !== null && <span className="jet text-xs text-sky-300">{String(tour + 1).padStart(2, "0")}/{String(m3Tour.length).padStart(2, "0")}</span>}
-              <span>{say}</span>
-              {target && (
-                <span className="ml-auto flex items-center gap-2 text-xs text-neutral-300">
-                  clicking <b className="text-white">{target.label}</b> <StatusBadge status={target.status} />
-                </span>
+            <div
+              key={tour ?? "done"}
+              aria-live="polite"
+              className="m3-step animate-in fade-in slide-in-from-left-4 mb-3 overflow-hidden rounded-2xl border-2 border-sky-400/60 bg-gradient-to-r from-sky-500/20 via-sky-400/10 to-transparent duration-500"
+            >
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5">
+                {tour !== null && (
+                  <span className="jet flex size-12 shrink-0 flex-col items-center justify-center rounded-xl bg-sky-500 leading-none font-bold text-white shadow-[0_0_24px_rgba(56,189,248,0.6)]">
+                    <span className="text-lg">{String(tour + 1).padStart(2, "0")}</span>
+                    <span className="text-[10px] opacity-80">of {String(m3Tour.length).padStart(2, "0")}</span>
+                  </span>
+                )}
+                <span className="min-w-0 flex-1 text-lg leading-snug font-semibold text-white sm:text-xl">{say}</span>
+                {target && (
+                  <span className="flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3 py-1.5 text-sm text-neutral-200">
+                    <MousePointer2 className="size-4 text-sky-300" /> clicking <b className="text-white">{target.label}</b> <StatusBadge status={target.status} />
+                  </span>
+                )}
+              </div>
+              {tour !== null && (
+                <div className="flex gap-1 px-4 pb-3" aria-hidden="true">
+                  {m3Tour.map((_, i) => (
+                    <span key={i} className={cn("h-1.5 flex-1 rounded-full transition-colors duration-500", i < tour ? "bg-sky-400" : i === tour ? "m3-bar bg-sky-300" : "bg-white/15")} />
+                  ))}
+                </div>
               )}
             </div>
           )}
