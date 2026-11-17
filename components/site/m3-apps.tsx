@@ -28,6 +28,14 @@ function AppHeader({ app }: { app: AppDemo }) {
       <span className="jet text-xs text-sky-300">{/^\d/.test(app.version) ? `v${app.version}` : app.version}</span>
       <span className="text-xs text-neutral-400">{app.runs}</span>
       <p className="basis-full text-sm text-neutral-300">{app.oneLine}</p>
+      {app.id === "search" && (
+        <a
+          href="../face3d/"
+          className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-sky-600 px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-sky-500"
+        >
+          Try the 3D face on stock faces
+        </a>
+      )}
     </div>
   );
 }

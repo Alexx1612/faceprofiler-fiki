@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import { Wix_Madefor_Display, Wix_Madefor_Text } from "next/font/google";
 import Link from "next/link";
 
+import { DemoReel } from "@/components/landing/demo-reel";
 import { HeroCopy } from "@/components/landing/hero-copy";
+import { NightLive } from "@/components/landing/night-live";
 import { PilotForm } from "@/components/landing/pilot-form";
 import { Tour } from "@/components/landing/tour";
 import { Logo } from "@/components/site/nav";
@@ -31,11 +33,6 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
-const night = [
-  { i: "I", name: "Ion, night guard", place: "Main entrance", time: "21:58" },
-  { i: "A", name: "Ana, cleaning staff", place: "Corridor B", time: "22:30" },
-  { i: "I", name: "Ion, night guard", place: "Gym door", time: "00:12" },
-];
 
 const CheckIcon = () => <Check aria-hidden="true" strokeWidth={2.4} />;
 
@@ -53,6 +50,7 @@ export default function Landing() {
           </a>
           <nav className="lp-nav__links" aria-label="Sections">
             <a href="#how">How it works</a>
+            <a href="#demo">Demo</a>
             <a href="#modes">Day and night</a>
             <a href="#privacy">Privacy</a>
           </nav>
@@ -85,49 +83,7 @@ export default function Landing() {
               <p className="lp-hero__note">Free for 30 days, on your own cameras.</p>
             </div>
 
-            <div className="lp-glass lp-night" aria-label="Sample night report as the console shows it">
-              <div className="lp-night__head">
-                <div>
-                  <p className="lp-night__title">Last night&apos;s report</p>
-                  <p className="lp-night__sub">Everyone your 6 cameras saw, 21:00 to 07:00</p>
-                </div>
-                <span className="lp-chip lp-chip--alert">1 stranger</span>
-              </div>
-              <p className="lp-night__sum">Staff seen 3 times, all named. 1 stranger, flagged the moment they appeared.</p>
-              <ul className="lp-rows">
-                {night.map((r) => (
-                  <li key={r.time} className="lp-row">
-                    <span className="lp-initial">{r.i}</span>
-                    <span>
-                      <span className="lp-row__name">{r.name}</span>
-                      <br />
-                      <span className="lp-row__place">{r.place}</span>
-                    </span>
-                    <span className="lp-row__status">
-                      <CheckIcon />
-                      {r.time}
-                    </span>
-                  </li>
-                ))}
-                <li className="lp-row lp-row--open">
-                  <span className="lp-initial">?</span>
-                  <span>
-                    <span className="lp-row__name">Unknown_1</span>
-                    <br />
-                    <span className="lp-row__place">Side gate</span>
-                  </span>
-                  <span className="lp-row__status">
-                    <span className="lp-dot" aria-hidden="true" />
-                    02:17
-                  </span>
-                </li>
-              </ul>
-              <div className="lp-open">
-                An adult nobody enrolled, at the side gate
-                <b>Review</b>
-              </div>
-              <p className="lp-night__foot">Sample night, fictional names.</p>
-            </div>
+            <NightLive />
           </div>
           <a href="#how" className="lp-cue">
             How it works
@@ -140,6 +96,14 @@ export default function Landing() {
             <h2 className="lp-h2">From enrolment to the morning report.</h2>
             <p className="lp-sub">Four steps, on the cameras and the computer the school already has.</p>
             <Tour />
+          </div>
+        </section>
+
+        <section id="demo" className="lp-section">
+          <div className="lp-wrap">
+            <h2 className="lp-h2">Watch it work on real cameras.</h2>
+            <p className="lp-sub">Faces at a door, workers on a floor, people in a shop aisle: the same cameras, three uses.</p>
+            <DemoReel />
           </div>
         </section>
 
@@ -223,7 +187,7 @@ export default function Landing() {
           </div>
           <p className="lp-footer__credits">
             Campus photo: <a href="https://commons.wikimedia.org/wiki/File:Dickinson_Law_Exterior_Night.jpg">Dickinson Law Exterior Night</a>, Wikimedia Commons, CC0.
-            Demo clip: Mixkit stock footage.
+            Demo clip: Mixkit stock footage. Work floor and shop aisle: <a href="https://github.com/intel-iot-devkit/sample-videos">Intel IoT DevKit sample videos</a>, CC BY 4.0, adapted with analysis overlays.
           </p>
         </div>
       </footer>

@@ -948,12 +948,394 @@
   to { opacity: 1; }
 }
 
+/* ---------- Nau-ino app window (hero panel and tour stage) ----------
+   Inside the frame the tokens switch to the camera app's control-room theme (demo/frontend
+   styles.css, dark): slate panels, amber primary, coral for strangers. */
+
+.lp-app {
+  --color-paper: #0b0f14;
+  --color-paper-2: #11161d;
+  --color-paper-3: #161d26;
+  --color-ink: #e7ecf2;
+  --color-ink-2: #c9d2dd;
+  --color-muted: #a3afbe;
+  --color-rule: #232c38;
+  --color-accent: #f2a33a;
+  --color-accent-ink: #1a1204;
+  --color-accent-2: #ff7a59;
+  --color-focus: #f2a33a;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #0b0f14;
+  border: 1px solid #2a3442;
+  box-shadow: 0 1px 0 oklch(100% 0 0 / 0.06) inset, 0 40px 90px -30px oklch(6% 0.02 268 / 0.85), 0 0 0 6px oklch(100% 0 0 / 0.03);
+  color: var(--color-ink);
+  font-family: "Segoe UI Variable Text", "Segoe UI", var(--font-body);
+}
+
+.lp-app__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: #11161d;
+  border-bottom: 1px solid #232c38;
+  font-size: 12px;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.lp-app__dots {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.lp-app__dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #2a3442;
+}
+
+.lp-app__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.lp-app__brand svg {
+  width: 16px;
+  height: 16px;
+  color: #f2a33a;
+}
+
+.lp-app__screen::before {
+  content: "/";
+  margin-right: 10px;
+  color: #3a4657;
+}
+
+.lp-app__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lp-app__ok {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #31a875;
+  box-shadow: 0 0 0 3px #31a87522;
+}
+
+.lp-app__body {
+  padding: var(--space-md);
+}
+
+.lp-app .lp-glass,
+.lp-app.lp-night {
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.lp-app .lp-pane {
+  padding: 0;
+}
+
+.lp-app .lp-well {
+  background: transparent;
+  padding: 0;
+}
+
+.lp-app .lp-well__card {
+  background: #11161d;
+  border: 1px solid #232c38;
+  color: var(--color-ink);
+}
+
+.lp-app .lp-well__card p {
+  color: var(--color-ink-2);
+}
+
+.lp-app .lp-well__card h3,
+.lp-app .lp-well__card strong {
+  color: var(--color-ink);
+}
+
+.lp-app .lp-pane__caption {
+  color: var(--color-muted) !important;
+}
+
+.lp-app .lp-chip {
+  background: #161d26;
+  color: var(--color-ink-2);
+}
+
+.lp-app .lp-chip.lp-chip--alert {
+  background: #ff7a59;
+  color: #1a0b06;
+}
+
+.lp-app .lp-open {
+  background: #ff7a59;
+  color: #1a0b06;
+}
+
+.lp-app .lp-open b {
+  background: #1a0b06;
+  color: #ffd9cc;
+}
+
+/* live camera view inside the tour's "Watch" step */
+.lp-cam {
+  position: relative;
+}
+
+.lp-cam video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #000;
+}
+
+.lp-cam__badge {
+  position: absolute;
+  top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.62);
+  color: #fff;
+  font: 600 12px/1.2 "Segoe UI", var(--font-body);
+}
+
+.lp-cam__badge--left {
+  left: 10px;
+}
+
+.lp-cam__badge--right {
+  right: 10px;
+}
+
+.lp-cam__rec {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f0605a;
+  animation: lp-blink 1.2s steps(1) infinite;
+}
+
+.lp-cam__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.lp-cam__stats span {
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: #161d26;
+  border: 1px solid #232c38;
+  font-size: 12px;
+  color: var(--color-ink-2);
+}
+
+.lp-cam__stats b {
+  color: #f2a33a;
+  font-weight: 700;
+}
+
+/* live night (hero) and the self-playing tour: same idea as the M3 night scenario, in Dusk tokens */
+
+.lp-live__clock {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: var(--space-sm) 0 var(--space-xs);
+}
+
+.lp-live__time {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+.lp-live__rec {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-accent-2);
+  animation: lp-blink 1.2s steps(1) infinite;
+}
+
+.lp-live__bar {
+  position: relative;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-rule);
+}
+
+.lp-live__bar > span {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-accent);
+  transform-origin: left;
+  transition: transform 100ms linear;
+}
+
+.lp-live__bar > i {
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-accent-2);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 3px oklch(83% 0.095 62 / 0.25);
+}
+
+.lp-live__btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--color-rule);
+  background: none;
+  color: var(--color-ink-2);
+  cursor: pointer;
+}
+
+.lp-live__btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.lp-live__btn:focus-visible,
+.lp-tour__play:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.lp-live--alert {
+  animation: lp-alarm 1.6s ease-out;
+}
+
+.lp-live--alert .lp-row--open {
+  animation: lp-rise 420ms ease both, lp-glow 1.8s ease-in-out 420ms 2;
+}
+
+.lp-tour__n {
+  margin-right: 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent);
+}
+
+.lp-tour button {
+  position: relative;
+}
+
+.lp-tour button[aria-pressed="true"] {
+  background: linear-gradient(90deg, oklch(77% 0.1 274 / 0.12), transparent 70%);
+}
+
+.lp-tour__bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--color-accent);
+  transform-origin: left;
+  animation: lp-fill linear both;
+}
+
+.lp-tour__play {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--space-md);
+  padding: 8px 14px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-ink-2);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.lp-tour__play svg {
+  width: 14px;
+  height: 14px;
+}
+
+.lp-tour__stage {
+  align-self: start;
+  border-radius: var(--radius-card);
+  animation: lp-flash 900ms ease-out both;
+}
+
+@keyframes lp-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.2; }
+}
+
+@keyframes lp-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes lp-flash {
+  0% { box-shadow: 0 0 0 0 oklch(77% 0.1 274 / 0.6), 0 0 48px oklch(77% 0.1 274 / 0.45); transform: translateY(6px); }
+  60% { box-shadow: 0 0 0 10px oklch(77% 0.1 274 / 0), 0 0 24px oklch(77% 0.1 274 / 0.15); transform: none; }
+  100% { box-shadow: 0 0 0 0 oklch(77% 0.1 274 / 0); transform: none; }
+}
+
+@keyframes lp-alarm {
+  0% { box-shadow: var(--glass-hi), 0 0 0 0 oklch(83% 0.095 62 / 0.7), 0 0 60px oklch(83% 0.095 62 / 0.5); }
+  100% { box-shadow: var(--glass-hi), 0 0 0 14px oklch(83% 0.095 62 / 0), 0 0 0 oklch(83% 0.095 62 / 0); }
+}
+
+@keyframes lp-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(83% 0.095 62 / 0); }
+  50% { box-shadow: 0 0 0 4px oklch(83% 0.095 62 / 0.35); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lp-row,
   .lp-pane,
   .lp-swap__in,
   .lp-swap__out,
-  .lp-cue svg {
+  .lp-cue svg,
+  .lp-live__rec,
+  .lp-cam__rec,
+  .lp-live--alert,
+  .lp-live--alert .lp-row--open,
+  .lp-tour__bar,
+  .lp-tour__stage {
     animation: none;
   }
   .lp-btn,
@@ -962,4 +1344,91 @@
   .lp-form select {
     transition: none;
   }
+}
+
+/* demo reel: three app windows with real footage */
+.lp-reel {
+  display: grid;
+  gap: var(--space-md);
+  max-width: 980px;
+}
+
+.lp-reel__tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-rule);
+  justify-self: start;
+  flex-wrap: wrap;
+}
+
+.lp-reel__tabs button {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-ink-2);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.lp-reel__tabs button[aria-pressed="true"] {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-weight: 600;
+}
+
+.lp-reel__tabs button:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.lp-reel__text {
+  margin: 10px 0 4px;
+  font-size: 14px;
+  color: var(--color-ink-2);
+}
+
+/* tour cursor: glides to what it is about to click, then a ripple (like the M3 night scenario) */
+.lp-tourwrap {
+  position: relative;
+}
+
+.lp-cursor {
+  position: absolute;
+  z-index: 30;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  transition: left 900ms cubic-bezier(0.3, 0.7, 0.3, 1), top 900ms cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+
+.lp-cursor svg {
+  width: 26px;
+  height: 26px;
+  fill: #fff;
+  color: #10141b;
+  filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.55));
+}
+
+.lp-cursor__ripple {
+  position: absolute;
+  left: -14px;
+  top: -14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #f2a33a;
+  animation: lp-ripple 650ms ease-out forwards;
+}
+
+@keyframes lp-ripple {
+  from { transform: scale(0.4); opacity: 0.95; }
+  to { transform: scale(2.4); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-cursor { display: none; }
 }
