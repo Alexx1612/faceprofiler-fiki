@@ -1,10 +1,12 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import { createContext, useContext, useState } from "react";
+import { ArrowLeft, MousePointer2, Play, Square } from "lucide-react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
-import { m3Order, m3Screens, m3Sidebar, type ScreenId } from "@/lib/m3";
+import { m3Order, m3Screens, m3Sidebar, m3Tour, type ScreenId } from "@/lib/m3";
 import { cn } from "@/lib/utils";
+import { Avatar, CamFeed, Ticker } from "./m3-art";
+import { StatusBadge, usePeek } from "./tech-peek";
 
 /**
  * Clickable grey-box wireframe of the school console.
@@ -12,7 +14,9 @@ import { cn } from "@/lib/utils";
  * Methodology: every screen is drawn from a handful of primitives (placeholder bars, image boxes with a
  * cross, outlined buttons). Numbered click targets come from `m3Screens[screen].hot`, so the badge in the
  * frame and the line in the list under it always agree. Clicking a target with a destination opens that
- * screen, which is how the wireframe shows the relations between views.
+ * screen, which is how the wireframe shows the relations between views. Hovering or focusing a target
+ * shows its technical details (what it does, what it needs, status). Camera tiles and photos are drawn,
+ * animated placeholders (m3-art). "Play the night scenario" moves a cursor through `m3Tour` by itself.
  */
 
 const Nav = createContext<{ screen: ScreenId; go: (s: ScreenId) => void }>({ screen: "live", go: () => {} });
@@ -27,18 +31,6 @@ const T = ({ children, className }: { children: React.ReactNode; className?: str
   <span className={cn("text-[11px] leading-tight text-zinc-700", className)}>{children}</span>
 );
 
-/** Image placeholder: a box with a cross, the classic wireframe sign for "picture here". */
-function Img({ className, label }: { className?: string; label?: string }) {
-  return (
-    <div className={cn("relative overflow-hidden rounded border border-zinc-400 bg-zinc-200", className)}>
-      <svg className="absolute inset-0 size-full" preserveAspectRatio="none" viewBox="0 0 100 100" aria-hidden="true">
-        <line x1="0" y1="0" x2="100" y2="100" stroke="#a1a1aa" strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
-        <line x1="100" y1="0" x2="0" y2="100" stroke="#a1a1aa" strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
-      </svg>
-      {label && <span className="absolute bottom-1 left-1 rounded-sm bg-zinc-100 px-1 text-[11px] text-zinc-600">{label}</span>}
-    </div>
-  );
-}
 
 const Btn = ({ children, primary }: { children: React.ReactNode; primary?: boolean }) => (
   <span className={cn("inline-flex items-center justify-center rounded border px-2.5 py-1 text-[11px]", primary ? "border-zinc-700 bg-zinc-700 text-zinc-50" : "border-zinc-400 bg-zinc-50 text-zinc-700")}>
@@ -50,19 +42,21 @@ const Btn = ({ children, primary }: { children: React.ReactNode; primary?: boole
 function Hot({ i, children, className, on }: { i: number; children: React.ReactNode; className?: string; on?: ScreenId }) {
   const { screen, go } = useContext(Nav);
   const h = m3Screens[on ?? screen].hot[i];
+  const { handlers, card } = usePeek(h.label, h);
   const body = (
     <>
       <span className="absolute -top-2.5 -left-2.5 z-10 flex size-5 items-center justify-center rounded-full bg-sky-700 text-[11px] font-bold text-white shadow">{i + 1}</span>
       {children}
+      {card}
     </>
   );
-  const cls = cn("relative block rounded outline-2 outline-offset-2 outline-sky-500 outline-dashed", className);
+  const cls = cn("relative block rounded outline-2 outline-offset-2 outline-sky-500 outline-dashed transition-[background-color,box-shadow] hover:bg-sky-500/10 hover:shadow-[0_0_0_4px_rgba(14,165,233,0.25)]", className);
   return h.to ? (
-    <button type="button" onClick={() => go(h.to!)} title={`${h.label}: opens ${m3Screens[h.to].title}`} className={cn(cls, "cursor-pointer text-left transition-colors hover:bg-sky-500/10 focus-visible:bg-sky-500/15 focus-visible:outline-solid")}>
+    <button type="button" data-hot={`${screen}-${i}`} onClick={() => go(h.to!)} {...handlers} className={cn(cls, "cursor-pointer text-left focus-visible:bg-sky-500/15 focus-visible:outline-solid")}>
       {body}
     </button>
   ) : (
-    <span title={h.label} className={cls}>
+    <span tabIndex={0} data-hot={`${screen}-${i}`} {...handlers} className={cn(cls, "cursor-help")}>
       {body}
     </span>
   );
@@ -152,32 +146,45 @@ function Live() {
       <div className="flex gap-3">
         <div className="grid flex-1 grid-cols-3 gap-2">
           <Hot i={0}>
-            <Img className="aspect-video" label="Main entrance" />
+            <CamFeed className="aspect-video" label="Main entrance" scene="room" />
           </Hot>
-          {["Side gate", "Corridor A", "Corridor B", "Gym", "Yard"].map((c) => (
-            <Img key={c} className="aspect-video" label={c} />
+          {(
+            [
+              ["Side gate", "gate"],
+              ["Corridor A", "empty"],
+              ["Corridor B", "corridor"],
+              ["Gym", "empty"],
+              ["Yard", "yard"],
+            ] as const
+          ).map(([c, sc]) => (
+            <CamFeed key={c} className="aspect-video" label={c} scene={sc} />
           ))}
         </div>
         <div className="flex w-48 shrink-0 flex-col gap-2">
-          <T className="font-semibold">Tonight</T>
+          <T className="flex items-center gap-1.5 font-semibold">
+            <span className="m3-blink size-1.5 rounded-full bg-red-500" /> Tonight
+          </T>
           <Hot i={1}>
-            <Row className="border-zinc-700">
-              <span className="size-6 shrink-0 rounded-full border-2 border-zinc-700" />
-              <span className="flex flex-col gap-1">
+            <Row className="border-red-400 bg-red-50">
+              <Avatar className="size-7 shrink-0 rounded-full" hue={0} ring="ring-red-400" />
+              <span className="flex flex-col gap-0.5">
                 <T className="font-semibold">Unknown_1</T>
                 <T className="text-zinc-500">Side gate, 02:17</T>
               </span>
             </Row>
           </Hot>
-          {["Night guard", "Cleaning staff", "Night guard"].map((n, i) => (
-            <Row key={i}>
-              <span className="size-6 shrink-0 rounded-full bg-zinc-300" />
-              <span className="flex flex-1 flex-col gap-1">
-                <T>{n}</T>
-                <Bar w="60%" />
-              </span>
-            </Row>
-          ))}
+          <Ticker
+            items={["Night guard · Corridor A · 01:58", "Cleaning staff · Gym · 01:31", "Night guard · Main entrance · 00:47", "Door closed · Side gate · 00:12"]}
+            render={(s, fresh) => (
+              <Row className={fresh ? "border-sky-300" : ""}>
+                <Avatar className="size-6 shrink-0 rounded-full" hue={150} />
+                <span className="flex flex-1 flex-col gap-0.5">
+                  <T>{s.split(" · ")[0]}</T>
+                  <T className="text-zinc-500">{s.split(" · ").slice(1).join(", ")}</T>
+                </span>
+              </Row>
+            )}
+          />
         </div>
       </div>
     </Desktop>
@@ -189,10 +196,10 @@ function Alert() {
     <Desktop>
       <Head title="Unknown person at the side gate" />
       <div className="flex gap-4">
-        <Img className="aspect-video w-[58%]" label="Snapshot, 02:17" />
+        <CamFeed className="aspect-video w-[58%]" label="Snapshot, 02:17 · side gate" scene="gate" />
         <div className="flex flex-1 flex-col gap-2">
-          <Row>
-            <Img className="size-12" />
+          <Row className="border-red-300">
+            <Avatar className="size-12" hue={0} ring="ring-red-400" />
             <span className="flex flex-col gap-1">
               <T className="font-semibold">Unknown_1</T>
               <T className="text-zinc-500">Not in People</T>
@@ -233,14 +240,16 @@ function Camera() {
         </Hot>
       </Head>
       <div className="relative">
-        <Img className="aspect-[16/8] w-full" />
-        <Hot i={0} className="absolute top-[18%] left-[22%]">
-          <span className="flex h-20 w-16 items-end justify-center border-2 border-zinc-700 bg-white/40">
-            <span className="mb-1 bg-zinc-700 px-1 text-[11px] text-zinc-50">Ana 0.84</span>
+        <CamFeed className="aspect-[16/8] w-full" scene="empty" />
+        <Hot i={0} className="absolute top-[16%] left-[22%]">
+          <span className="relative flex h-20 w-16 items-end justify-center overflow-hidden border-2 border-emerald-400">
+            <Avatar className="absolute inset-0 border-0" hue={150} />
+            <span className="relative mb-1 bg-emerald-800 px-1 text-[11px] text-zinc-50">Ana 0.84</span>
           </span>
         </Hot>
-        <span className="absolute top-[24%] left-[60%] flex h-16 w-14 items-end justify-center border-2 border-dashed border-zinc-600 bg-white/40">
-          <span className="mb-1 bg-zinc-600 px-1 text-[11px] text-zinc-50">Unknown_1</span>
+        <span className="m3-pulse absolute top-[24%] left-[60%] flex h-16 w-14 items-end justify-center overflow-hidden border-2 border-dashed border-red-400">
+          <Avatar className="absolute inset-0 border-0" hue={0} />
+          <span className="relative mb-1 bg-red-900 px-1 text-[11px] text-zinc-50">Unknown_1</span>
         </span>
       </div>
       <div className="mt-3 flex items-center gap-2">
@@ -273,14 +282,14 @@ function People() {
       <div className="grid grid-cols-5 gap-3">
         <Hot i={1}>
           <div className="flex flex-col gap-1.5 rounded border border-zinc-300 bg-white p-2">
-            <Img className="aspect-[4/5]" />
+            <Avatar className="aspect-[4/5]" />
             <T className="font-semibold">Ana Pop</T>
             <Bar w="60%" />
           </div>
         </Hot>
         {Array.from({ length: 9 }).map((_, i) => (
           <div key={i} className="flex flex-col gap-1.5 rounded border border-zinc-300 bg-white p-2">
-            <Img className="aspect-[4/5]" />
+            <Avatar className="aspect-[4/5]" />
             <Bar w="80%" dark />
             <Bar w="55%" />
           </div>
@@ -301,7 +310,7 @@ function AddPerson() {
             <div className="flex aspect-[4/5] w-28 items-center justify-center rounded border-2 border-dashed border-zinc-400">
               <T className="text-zinc-500">Drop or take photo</T>
             </div>
-            <Img className="aspect-[4/5] w-28" />
+            <Avatar className="aspect-[4/5] w-28" hue={150} />
           </div>
         </div>
         <div className="flex w-72 flex-col gap-2">
@@ -340,24 +349,24 @@ function Profile() {
       </Head>
       <div className="flex gap-5">
         <div className="flex w-40 flex-col gap-2">
-          <Img className="aspect-[4/5]" />
+          <Avatar className="aspect-[4/5]" />
           <T>Staff, cleaning</T>
           <div className="flex gap-1.5">
-            <Img className="size-10" />
-            <Img className="size-10" />
+            <Avatar className="size-10" />
+            <Avatar className="size-10" />
           </div>
         </div>
         <div className="flex flex-1 flex-col gap-2">
           <T className="font-semibold">Seen today</T>
           <Hot i={0}>
             <Row>
-              <Img className="h-8 w-14" />
+              <CamFeed className="h-8 w-14" scene="room" boxes={false} hud={false} />
               <T>Corridor B, 22:30</T>
             </Row>
           </Hot>
           {["Main entrance, 21:55", "Gym, 23:10", "Main entrance, 23:58"].map((s) => (
             <Row key={s}>
-              <Img className="h-8 w-14" />
+              <CamFeed className="h-8 w-14" scene="room" boxes={false} hud={false} />
               <T className="text-zinc-500">{s}</T>
             </Row>
           ))}
@@ -380,13 +389,13 @@ function Search() {
       <div className="mt-2 grid grid-cols-4 gap-3">
         <Hot i={0}>
           <div className="flex flex-col gap-1.5 rounded border border-zinc-300 bg-white p-2">
-            <Img className="aspect-video" />
+            <CamFeed className="aspect-video" scene="gate" hud={false} />
             <T>Side gate, 02:17</T>
           </div>
         </Hot>
         {Array.from({ length: 7 }).map((_, i) => (
           <div key={i} className="flex flex-col gap-1.5 rounded border border-zinc-300 bg-white p-2">
-            <Img className="aspect-video" />
+            <CamFeed className="aspect-video" scene="gate" hud={false} />
             <Bar w="70%" />
           </div>
         ))}
@@ -481,7 +490,7 @@ function Phone() {
           <div className="flex flex-col gap-1.5 rounded-xl border border-zinc-400 bg-white p-3">
             <T className="font-semibold">Nau-ino</T>
             <T>Unknown person at the side gate</T>
-            <Img className="mt-1 aspect-video" />
+            <CamFeed className="mt-1 aspect-video" scene="gate" />
           </div>
         </Hot>
         <div className="mt-3 flex flex-col gap-2 rounded-xl bg-zinc-100 p-3">
@@ -507,23 +516,79 @@ const SCREENS: Record<ScreenId, () => React.ReactElement> = {
   phone: Phone,
 };
 
-/** Screen list, the frame, and what each numbered target does. */
+/** Screen list, the frame, the night-scenario tour, and what each numbered target does. */
 export function M3Wireframe() {
   const [screen, setScreen] = useState<ScreenId>("live");
   const [trail, setTrail] = useState<ScreenId[]>([]);
-  const go = (s: ScreenId) => {
-    if (s === screen) return;
-    setTrail((t) => [...t, screen].slice(-20));
-    setScreen(s);
-  };
+  const [tour, setTour] = useState<number | null>(null);
+  const [cursor, setCursor] = useState<{ x: number; y: number; click: number } | null>(null);
+  const [say, setSay] = useState("");
+  const frameRef = useRef<HTMLDivElement>(null);
+
+  const go = useCallback(
+    (s: ScreenId) => {
+      if (s === screen) return;
+      setTrail((t) => [...t, screen].slice(-20));
+      setScreen(s);
+    },
+    [screen]
+  );
   const back = () => {
     const prev = trail.at(-1);
     if (!prev) return;
     setTrail((t) => t.slice(0, -1));
     setScreen(prev);
   };
+  const stop = () => {
+    setTour(null);
+    setCursor(null);
+    setSay("");
+  };
+
+  /**
+   * One tour step: show its screen, glide the cursor to the numbered target, play a click ripple,
+   * then open the screen the target leads to and move on. Timers are cleared if the step changes or
+   * the visitor presses Stop.
+   */
+  useEffect(() => {
+    if (tour === null) return;
+    const st = m3Tour[tour];
+    const timers: number[] = [];
+    const at = (ms: number, f: () => void) => timers.push(window.setTimeout(f, ms));
+    setScreen(st.screen);
+    setSay(st.say);
+    at(450, () => {
+      const frame = frameRef.current;
+      const el = frame?.querySelector<HTMLElement>(`[data-hot="${st.screen}-${st.hot}"]`);
+      if (!frame || !el) return stop();
+      el.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+      at(350, () => {
+        const fr = frame.getBoundingClientRect();
+        const r = el.getBoundingClientRect();
+        setCursor((c) => ({ x: r.left - fr.left + frame.scrollLeft + r.width / 2, y: r.top - fr.top + frame.scrollTop + r.height / 2, click: c?.click ?? 0 }));
+      });
+      at(1600, () => setCursor((c) => c && { ...c, click: c.click + 1 }));
+      at(2050, () => {
+        const h = m3Screens[st.screen].hot[st.hot];
+        if (h.to) {
+          setTrail((t) => [...t, st.screen].slice(-20));
+          setScreen(h.to);
+        }
+        if (tour + 1 < m3Tour.length) setTour(tour + 1);
+        else
+          at(1200, () => {
+            setTour(null);
+            setCursor(null);
+            setSay("Scenario finished. Hover any numbered box for its technical details.");
+          });
+      });
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [tour]);
+
   const s = m3Screens[screen];
   const Screen = SCREENS[screen];
+  const target = tour !== null ? m3Screens[m3Tour[tour].screen].hot[m3Tour[tour].hot] : null;
 
   return (
     <Nav.Provider value={{ screen, go }}>
@@ -552,19 +617,49 @@ export function M3Wireframe() {
             <button
               type="button"
               onClick={back}
-              disabled={!trail.length}
+              disabled={!trail.length || tour !== null}
               className="flex items-center gap-1 rounded-full border border-white/10 px-3 py-1 text-sm text-neutral-300 transition-colors hover:bg-white/5 disabled:opacity-40"
             >
               <ArrowLeft className="size-4" /> Back
+            </button>
+            <button
+              type="button"
+              onClick={() => (tour === null ? setTour(0) : stop())}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full px-3.5 py-1 text-sm font-medium transition-colors",
+                tour === null ? "bg-sky-600 text-white hover:bg-sky-500" : "border border-white/15 text-neutral-200 hover:bg-white/5"
+              )}
+            >
+              {tour === null ? <Play className="size-4" /> : <Square className="size-3.5" />}
+              {tour === null ? "Play the night scenario" : "Stop"}
             </button>
             <p className="text-sm text-neutral-300">
               <b className="text-white">{s.title}.</b> {s.purpose}
             </p>
           </div>
-          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#1a1f2a] p-4 [scrollbar-width:thin]">
+
+          {say && (
+            <div aria-live="polite" className="animate-in fade-in slide-in-from-top-1 mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-sky-400/25 bg-sky-400/[0.08] px-3 py-2 text-sm text-sky-100">
+              {tour !== null && <span className="jet text-xs text-sky-300">{String(tour + 1).padStart(2, "0")}/{String(m3Tour.length).padStart(2, "0")}</span>}
+              <span>{say}</span>
+              {target && (
+                <span className="ml-auto flex items-center gap-2 text-xs text-neutral-300">
+                  clicking <b className="text-white">{target.label}</b> <StatusBadge status={target.status} />
+                </span>
+              )}
+            </div>
+          )}
+
+          <div ref={frameRef} className="relative overflow-x-auto rounded-2xl border border-white/10 bg-[#1a1f2a] p-4 [scrollbar-width:thin]">
             <div key={screen} className="animate-in fade-in w-fit duration-200">
               <Screen />
             </div>
+            {cursor && (
+              <div className="pointer-events-none absolute z-20 transition-[left,top] duration-700 ease-out" style={{ left: cursor.x, top: cursor.y }} aria-hidden="true">
+                {cursor.click > 0 && <span key={cursor.click} className="m3-ripple absolute -top-3 -left-3 size-6 rounded-full border-2 border-sky-400" />}
+                <MousePointer2 className="size-6 fill-white text-zinc-900 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]" />
+              </div>
+            )}
           </div>
           <p className="mt-1 text-xs text-neutral-400 lg:hidden">The frame is wider than this screen: scroll it sideways.</p>
 
@@ -586,6 +681,9 @@ export function M3Wireframe() {
                     ":"
                   )}{" "}
                   {h.note}
+                  <span className="mt-1.5 flex items-center gap-2 text-xs text-neutral-400">
+                    <StatusBadge status={h.status} /> hover the box for the technical details
+                  </span>
                 </span>
               </li>
             ))}

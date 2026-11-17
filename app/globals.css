@@ -174,3 +174,20 @@ p, li, figcaption {
 @media (prefers-reduced-motion: reduce) {
   .animate-nudge { animation: none; }
 }
+
+/* M3 wireframe and app demos: people walking through a camera view, a scan line, a blinking REC dot,
+   pulsing face boxes and the tour cursor's click ripple. Units are SVG viewBox units (160 x 90). */
+@keyframes m3-walk { from { transform: translateX(-30px); } to { transform: translateX(190px); } }
+@keyframes m3-walk-rev { from { transform: translateX(190px); } to { transform: translateX(-30px); } }
+@keyframes m3-scan { from { transform: translateY(0); } to { transform: translateY(90px); } }
+@keyframes m3-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.15; } }
+@keyframes m3-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+@keyframes m3-ripple { from { transform: scale(0.4); opacity: 0.9; } to { transform: scale(2.4); opacity: 0; } }
+@keyframes m3-orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.m3-scan { animation: m3-scan 4s linear infinite; }
+.m3-blink { animation: m3-blink 1.2s steps(1) infinite; }
+.m3-pulse { animation: m3-pulse 1.6s ease-in-out infinite; }
+.m3-ripple { animation: m3-ripple 0.6s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .m3-scan, .m3-blink, .m3-pulse, .m3-ripple, [style*="m3-walk"] { animation: none !important; }
+}
