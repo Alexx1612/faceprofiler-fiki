@@ -25,7 +25,7 @@ export type Status = "built" | "partial" | "next";
 
 export type Tech = { does: string[]; needs: string[]; status: Status };
 
-export type Hot = { label: string; to?: ScreenId; note: string } & Tech;
+export type Hot = { label: string; to?: string; note: string } & Tech;
 
 export const statusText: Record<Status, string> = {
   built: "Built",
