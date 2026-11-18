@@ -1192,7 +1192,7 @@ export function M3Wireframe() {
             </div>
           )}
 
-          <div ref={frameRef} className="relative overflow-x-auto rounded-2xl border border-white/10 bg-[#1a1f2a] p-4 [scrollbar-width:thin]">
+          <div ref={frameRef} className="relative overflow-x-auto rounded-2xl border border-white/10 bg-[#13233d] p-4 [scrollbar-width:thin]">
             <div key={screen} className="animate-in fade-in w-fit duration-200">
               <Screen />
             </div>

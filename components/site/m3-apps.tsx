@@ -419,6 +419,7 @@ const band = (s: number) => (s >= 0.55 ? ["Strong", "text-emerald-700 bg-emerald
 function AsciiHead({ fast }: { fast?: boolean }) {
   const [yaw, setYaw] = useState(0);
   useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; // still head
     const id = setInterval(() => setYaw((y) => y + (fast ? 0.22 : 0.08)), 80);
     return () => clearInterval(id);
   }, [fast]);
@@ -734,7 +735,7 @@ export function M3AppDemos() {
       )}
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,640px)_1fr]">
-        <div ref={frameRef} className="relative overflow-x-auto rounded-2xl border border-white/10 bg-[#1a1f2a] p-4">
+        <div ref={frameRef} className="relative overflow-x-auto rounded-2xl border border-white/10 bg-[#13233d] p-4">
           <Demo key={`${id}-${run}`} app={app} steps={steps} />
           {ring && <div className="m3-target pointer-events-none absolute z-10 rounded-lg !bg-sky-400/10 transition-all duration-500" style={{ left: ring.x, top: ring.y, width: ring.w, height: ring.h }} aria-hidden="true" />}
           {cursor && (

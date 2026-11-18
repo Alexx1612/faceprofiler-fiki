@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { asset } from "@/lib/content";
 
@@ -69,6 +69,9 @@ const TABS = [...demos.map((d) => ({ id: d.id, tab: d.tab })), { id: "face3d", t
  * until it is opened, and only the chosen video or the 3D creator is mounted.
  */
 export function DemoReel() {
+  // reduced motion asked for: the clips do not start by themselves; they get play controls instead
+  const [still, setStill] = useState(false);
+  useEffect(() => setStill(window.matchMedia("(prefers-reduced-motion: reduce)").matches), []);
   const [open, setOpen] = useState(false);
   const [id, setId] = useState("faces");
   const d = demos.find((x) => x.id === id);
@@ -94,7 +97,7 @@ export function DemoReel() {
             {d ? (
               <AppFrame screen={d.screen}>
                 <div className="lp-cam">
-                  <video src={asset(d.video)} poster={asset(d.poster)} autoPlay muted loop playsInline aria-label={d.text} />
+                  <video src={asset(d.video)} poster={asset(d.poster)} autoPlay={!still} controls={still} muted loop playsInline preload="metadata" aria-label={d.text} />
                   <span className="lp-cam__badge lp-cam__badge--left">{d.label}</span>
                   <span className="lp-cam__badge lp-cam__badge--right">
                     <span className="lp-cam__rec" aria-hidden="true" />

@@ -106,7 +106,7 @@ function Competition() {
           <table className="w-full min-w-[560px] text-xs">
             <thead>
               <tr className="border-b border-white/10 bg-white/[0.03]">
-                <th className="sticky left-0 z-10 bg-[#11151d] p-2.5 text-left font-medium text-neutral-400 sm:bg-transparent">What a small site needs</th>
+                <th className="sticky left-0 z-10 bg-[#10203a] p-2.5 text-left font-medium text-neutral-400 sm:bg-transparent">What a small site needs</th>
                 {matrix.columns.map((col, i) => (
                   <th key={col} title={i > 0 ? competitors[i - 1].kind : undefined} className={cn("p-2.5 text-center font-medium", i === 0 ? "text-sky-300" : "text-neutral-200")}>
                     {col}
@@ -117,7 +117,7 @@ function Competition() {
             <tbody>
               {matrix.rows.map((row) => (
                 <tr key={row.label} className="border-b border-white/[0.06] last:border-0">
-                  <td className="sticky left-0 z-10 w-36 bg-[#0d1118] px-2.5 py-1.5 text-neutral-300 sm:w-auto sm:bg-transparent">{row.label}</td>
+                  <td className="sticky left-0 z-10 w-36 bg-[#0c182c] px-2.5 py-1.5 text-neutral-300 sm:w-auto sm:bg-transparent">{row.label}</td>
                   {row.values.map((v, i) => {
                     const { Icon, cls, label } = cell[v];
                     return (

@@ -73,7 +73,7 @@ const TABS = [
 ];
 
 export const M3Hint = () => (
-  <TabHint text={`${TABS.length} tabs. Click any numbered box to open the screen it leads to, hover it for the technical details, switch between the three apps, or press Play to watch a scenario`} />
+  <TabHint text="Click a numbered box to follow it, hover it for details, or press Play" />
 );
 
 /** Milestone 3 content as numbered tabs, same style as M2. */

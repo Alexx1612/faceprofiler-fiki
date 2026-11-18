@@ -23,7 +23,7 @@ export type Product = {
 
 const school: Product = {
   id: "school",
-  label: "School console",
+  label: "Nau-ino Console",
   brand: "Nau-ino",
   start: "live",
   tourLabel: "Play the night scenario",

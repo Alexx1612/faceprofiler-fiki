@@ -40,7 +40,7 @@ export function M2Form() {
           <select className={field} defaultValue="" onChange={(e) => set("site", e.target.value)}>
             <option value="" disabled>Choose one</option>
             {["School / kindergarten", "Student dorm", "Elderly care home", "Office building", "Mall / shop", "Military / restricted site", "Other public place"].map((s) => (
-              <option key={s} className="bg-[#0f1520]">{s}</option>
+              <option key={s} className="bg-[#0f1d33]">{s}</option>
             ))}
           </select>
         </label>

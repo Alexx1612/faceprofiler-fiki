@@ -27,6 +27,7 @@ export function Logo({ className }: { className?: string }) {
 export const milestones = [
   { href: "/M2/", code: "M2", label: "Validation 1 (idea)" },
   { href: "/M3/", code: "M3", label: "Wireframe & landing page" },
+  { href: "/M4/", code: "M4", label: "UX: interviews & personas" },
 ];
 
 /** "Milestones" drop-down: opens on click, closes on outside click or Escape. */
@@ -54,7 +55,7 @@ function MilestonesMenu() {
         Milestones <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} />
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-60 rounded-xl border border-white/10 bg-[#0f1520] p-1.5 shadow-xl">
+        <div className="absolute right-0 mt-2 w-60 rounded-xl border border-white/10 bg-[#0f1d33] p-1.5 shadow-xl">
           {milestones.map((m) => (
             <Link
               key={m.href}
@@ -101,7 +102,7 @@ export function Nav({ home = true }: { home?: boolean }) {
     <header
       className={cn(
         "fixed inset-x-0 top-0 z-40 transition-colors duration-300",
-        scrolled ? "border-b border-white/[0.06] bg-[#0b0f17]/75 backdrop-blur-xl" : "bg-transparent"
+        scrolled ? "border-b border-white/[0.06] bg-[#0b1628]/75 backdrop-blur-xl" : "bg-transparent"
       )}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
@@ -109,7 +110,7 @@ export function Nav({ home = true }: { home?: boolean }) {
           <Logo className="size-6 text-sky-400" />
           {project.name}
         </Link>
-        <nav className="ml-auto flex min-w-0 overflow-x-auto pr-8 [mask-image:linear-gradient(to_right,black_80%,transparent)] [scrollbar-width:none] sm:pr-0 sm:[mask-image:none]">
+        <nav className="ml-auto hidden min-w-0 lg:flex">
           {nav.map((n) => (
             <Link
               key={n.id}
@@ -125,7 +126,7 @@ export function Nav({ home = true }: { home?: boolean }) {
         </nav>
         <Link
           href="/pitch/"
-          className="flex min-h-11 shrink-0 items-center rounded-full bg-sky-400 px-3 text-sm font-semibold text-[#0b0f17] transition-colors hover:bg-sky-300 sm:min-h-9"
+          className="ml-auto flex min-h-11 shrink-0 items-center rounded-full bg-sky-400 px-3 lg:ml-0 text-sm font-semibold text-[#0b1628] transition-colors hover:bg-sky-300 sm:min-h-9"
         >
           Pitch
         </Link>

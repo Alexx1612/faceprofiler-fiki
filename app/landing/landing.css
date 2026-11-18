@@ -5,29 +5,29 @@
 /* answered: no logos, quotes or metrics were supplied, so none appear; the hero panel is labelled as a sample night */
 
 .lp {
-  --color-paper: oklch(17.5% 0.014 268);
-  --color-paper-2: oklch(21% 0.016 268);
-  --color-paper-3: oklch(25% 0.017 268);
+  --color-paper: #0b1628;
+  --color-paper-2: #10203a;
+  --color-paper-3: #16294a;
   --color-ink: oklch(96% 0.006 75);
-  --color-ink-2: oklch(85% 0.01 262);
-  --color-muted: oklch(70% 0.016 262);
-  --color-rule: oklch(30% 0.016 266);
+  --color-ink-2: oklch(86% 0.02 245);
+  --color-muted: oklch(74% 0.03 245);
+  --color-rule: #22385e;
   --color-light: oklch(100% 0 0);
-  --color-shade: oklch(10% 0.022 268);
-  --color-accent: oklch(77% 0.1 274);
-  --color-accent-ink: oklch(19% 0.035 274);
-  --color-accent-hi: oklch(84% 0.085 274);
-  --color-focus: oklch(80% 0.1 274);
+  --color-shade: #060d1a;
+  --color-accent: oklch(80% 0.12 225);
+  --color-accent-ink: oklch(20% 0.05 245);
+  --color-accent-hi: oklch(87% 0.09 225);
+  --color-focus: oklch(82% 0.12 225);
   --color-accent-2: oklch(83% 0.095 62);
   --color-well: oklch(95.5% 0.008 75);
   --color-well-ink: oklch(21% 0.016 268);
   --color-well-muted: oklch(47% 0.016 265);
   --color-well-rule: oklch(87.5% 0.009 75);
   --color-card: oklch(99.5% 0.003 75);
-  --glass: oklch(22% 0.018 268 / 0.62);
+  --glass: oklch(23% 0.05 255 / 0.62);
   --glass-blur: 22px;
   --glass-hi: inset 0 1px 0 oklch(100% 0 0 / 0.1), inset 0 0 0 1px oklch(100% 0 0 / 0.06);
-  --shadow-card: 0 1px 0 oklch(100% 0 0 / 0.06) inset, 0 40px 80px -32px oklch(8% 0.02 268 / 0.7);
+  --shadow-card: 0 1px 0 oklch(100% 0 0 / 0.06) inset, 0 40px 80px -32px oklch(8% 0.04 258 / 0.7);
   --font-display: var(--font-wix-display), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-wix-text), ui-sans-serif, system-ui, sans-serif;
   --radius-card: 18px;

@@ -338,7 +338,7 @@ export type AppDemo = {
 export const m3Apps: AppDemo[] = [
   {
     id: "camera",
-    name: "Nau-ino camera app",
+    name: "Camera app",
     version: "0.3.0",
     runs: "Windows (one folder, no install) and an Android test build",
     oneLine: "The recognition engine on its own: enrol people from photos, then name them in photos, video or a live camera. Strangers get a stable Unknown_N.",

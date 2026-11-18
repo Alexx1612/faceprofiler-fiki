@@ -37,7 +37,7 @@ function Card({ title, tech, rect }: { title: string; tech: Tech; rect: DOMRect 
       ref={ref}
       role="tooltip"
       style={{ left, top, width: W, visibility: h ? "visible" : "hidden" }}
-      className="animate-in fade-in zoom-in-95 pointer-events-none fixed z-[100] rounded-xl border border-white/15 bg-[#0f141c]/95 p-3.5 text-left shadow-2xl ring-1 ring-black/40 backdrop-blur duration-150"
+      className="animate-in fade-in zoom-in-95 pointer-events-none fixed z-[100] rounded-xl border border-white/15 bg-[#0f1d33]/95 p-3.5 text-left shadow-2xl ring-1 ring-black/40 backdrop-blur duration-150"
     >
       <div className="mb-2 flex items-center gap-2">
         <span className="text-sm font-semibold text-white">{title}</span>
