@@ -50,7 +50,7 @@ function Pane({ step }: { step: number }) {
     return (
       <div className="lp-glass lp-pane" key="watch">
         <div className="lp-cam">
-          <video src={asset("/clips/46446.mp4")} poster={asset("/clips/46446.jpg")} autoPlay muted loop playsInline aria-label="Our demo naming three people as they walk past a camera" />
+          <video src={asset("/clips/315.mp4")} poster={asset("/clips/315.jpg")} autoPlay muted loop playsInline aria-label="Our demo naming two people as they walk down a hall" />
           <span className="lp-cam__badge lp-cam__badge--left">LIVE · Courtyard camera</span>
           <span className="lp-cam__badge lp-cam__badge--right">
             <span className="lp-cam__rec" aria-hidden="true" />

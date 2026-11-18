@@ -24,9 +24,8 @@ export const nav = [
   { id: "team", label: "Team" },
 ];
 
-/** Annotated demo clips (free Mixkit stock footage, fictional names). */
+/** Annotated demo clips (Mixkit stock footage under its free licence, fictional names). */
 export const clips = [
-  { id: "46446", title: "Three colleagues walking outside", people: ["Adrian", "Nora", "Ruby"] },
   { id: "315", title: "Two colleagues walking down a hall", people: ["Julia", "Thomas"] },
   { id: "4872", title: "Two coworkers talking at a desk", people: ["Lucas", "Irina"] },
 ];

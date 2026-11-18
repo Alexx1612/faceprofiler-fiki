@@ -68,14 +68,14 @@ function DemoClip() {
       <video
         ref={ref}
         className="aspect-video w-full object-cover"
-        src={asset("/clips/46446.mp4")}
-        poster={asset("/clips/46446.jpg")}
+        src={asset("/clips/315.mp4")}
+        poster={asset("/clips/315.jpg")}
         muted
         loop
         playsInline
         onPause={() => setPlaying(false)}
         onPlay={() => setPlaying(true)}
-        aria-label="Demo clip: three colleagues recognised by name while walking"
+        aria-label="Demo clip: two colleagues recognised by name while walking down a hall"
       />
     </>
   );

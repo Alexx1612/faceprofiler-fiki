@@ -18,17 +18,17 @@ const demos = [
   {
     id: "faces",
     tab: "Faces",
-    screen: "Live · Courtyard",
-    video: "/clips/46446.mp4",
-    poster: "/clips/46446.jpg",
-    label: "LIVE · Courtyard camera",
+    screen: "Live · Hallway",
+    video: "/clips/315.mp4",
+    poster: "/clips/315.jpg",
+    label: "LIVE · Hallway camera",
     legend: [
       ["Green", "enrolled, named"],
       ["Red", "Unknown_N, a stranger"],
       ["track #", "follows each person"],
     ],
-    text: "Three enrolled people walk past; a fourth face nobody enrolled gets its own Unknown number.",
-    credit: "Our demo app on a stock clip (Mixkit). The names are fictional.",
+    text: "Two enrolled people walk down a hall and are named as they go; a face nobody enrolled would get its own Unknown number.",
+    credit: "Our demo app on a stock clip (Mixkit, free licence). The names are fictional.",
   },
   {
     id: "floor",
