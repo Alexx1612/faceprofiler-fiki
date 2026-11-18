@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
 import { m3Landing, m3Method } from "@/lib/m3";
-import { M3AppDemo } from "./m3-apps";
+import { M3AppDemos } from "./m3-apps";
 import { M3Flow } from "./m3-flow";
 import { M3Wireframe } from "./m3-wireframe";
 import { NextArrow, TabHint, TabLabel } from "./tab-hint";
@@ -66,16 +66,14 @@ function Method() {
 
 const TABS = [
   { label: "Wireframe", el: <M3Wireframe /> },
-  { label: "Camera app", el: <M3AppDemo id="camera" /> },
-  { label: "Worker Analytics", el: <M3AppDemo id="worker" /> },
-  { label: "Face Search", el: <M3AppDemo id="search" /> },
+  { label: "App demos", el: <M3AppDemos /> },
   { label: "Screen map", el: <M3Flow /> },
   { label: "Landing page", el: <Landing /> },
   { label: "How we made it", el: <Method /> },
 ];
 
 export const M3Hint = () => (
-  <TabHint text={`${TABS.length} tabs. Click any numbered box to open the screen it leads to, hover it for the technical details, switch between the three apps, or press Play all 3 scenarios`} />
+  <TabHint text={`${TABS.length} tabs. Click any numbered box to open the screen it leads to, hover it for the technical details, switch between the three apps, or press Play to watch a scenario`} />
 );
 
 /** Milestone 3 content as numbered tabs, same style as M2. */
