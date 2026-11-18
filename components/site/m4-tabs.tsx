@@ -351,16 +351,16 @@ function W4() {
         {days.map((d, i) => (
           <span key={d} className="flex flex-col gap-1">
             <span className="text-zinc-500">{d}</span>
-            <span className={cn("h-14 rounded", i >= 5 ? "bg-amber-200" : "bg-zinc-800/80")} />
+            <span className="flex h-14 flex-col overflow-hidden rounded bg-zinc-800/80">{i < 5 && <span className="mt-[30%] h-[45%] bg-amber-200" />}</span>
           </span>
         ))}
       </div>
       <span className="mt-2 flex gap-3 text-[10px] text-zinc-600">
         <span className="flex items-center gap-1">
-          <span className="size-2 rounded bg-zinc-800/80" /> Night: alerts on
+          <span className="size-2 rounded bg-zinc-800/80" /> After hours: alerts on
         </span>
         <span className="flex items-center gap-1">
-          <span className="size-2 rounded bg-amber-200" /> Booking: public rooms paused
+          <span className="size-2 rounded bg-amber-200" /> Shift: workers allowed
         </span>
       </span>
     </div>

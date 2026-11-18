@@ -10,7 +10,7 @@
 export type Source = "M2" | "M4" | "draft";
 
 export const m4Method = {
-  who: "Six people, face to face, one at a time: a school night guard, a school principal, the owner of a private event hall and three teachers.",
+  who: "Six people, face to face, one at a time: a school night guard, a school principal, the owner of a small production hall and three teachers.",
   why: "Three roles around one night: the person who is on site (guard), the people who answer for the building and decide on buying (principal, hall owner), and the people who see the building in the daytime (teachers).",
   how: "Semi-structured interviews of about 30 minutes: first their work and real past incidents without showing the product, then tasks on the M3 wireframe, then cost and objections. Notes taken during the conversation.",
   language: "All interviews were held in Romanian. Questions, notes and quotes on this page are our English translation. Names, schools and addresses are withheld.",
@@ -19,7 +19,7 @@ export const m4Method = {
 export const m4Participants: { code: string; role: string; segment: string; persona: string }[] = [
   { code: "G1", role: "Night guard", segment: "School", persona: "guard" },
   { code: "P1", role: "Principal", segment: "School", persona: "principal" },
-  { code: "H1", role: "Owner of a private event hall", segment: "Private building", persona: "owner" },
+  { code: "H1", role: "Owner of a small production hall", segment: "Private building", persona: "owner" },
   { code: "T1", role: "Teacher", segment: "School", persona: "principal" },
   { code: "T2", role: "Teacher", segment: "School", persona: "principal" },
   { code: "T3", role: "Teacher", segment: "School", persona: "principal" },
@@ -46,7 +46,7 @@ export const m4Guide: { part: string; minutes: number; questions: string[] }[] =
       "It is 02:17 and this alert comes in. Show me what you would do.",
       "A new cleaner starts on Monday. Add them so the system knows them.",
       "It is 08:00. Find out whether anything happened last night.",
-      "Turn off alerts for the hall during Saturday's wedding (owner only).",
+      "Set the hall so workers on the day shift raise no alerts, but the storage room still does (owner only).",
       "What on these screens is unclear, missing or not needed?",
     ],
   },
@@ -57,7 +57,7 @@ export const m4Guide: { part: string; minutes: number; questions: string[] }[] =
       "What would make you refuse a system like this?",
       "Who would decide on buying it, and from which budget?",
       "What do you pay now for guarding or monitoring, and what would this be worth to you per month?",
-      "Do parents, staff or tenants need to be told or asked? Who would do that?",
+      "Do parents, staff or workers need to be told or asked? Who would do that?",
     ],
   },
 ];
@@ -69,7 +69,7 @@ export const m4Hypotheses: { id: string; claim: string; who: string; result: "pe
   { id: "A3", claim: "The principal wants a short morning summary, not a live screen.", who: "P1, T1-T3", result: "pending" },
   { id: "A4", claim: "A school will refuse anything that identifies pupils; enrolling staff only is acceptable.", who: "P1, T1-T3", result: "pending" },
   { id: "A5", claim: "Blurring faces in exports and recordings makes the system easier to accept.", who: "P1, H1, T1-T3", result: "pending" },
-  { id: "A6", claim: "An event hall needs alerts muted during booked events and on outside them.", who: "H1", result: "pending" },
+  { id: "A6", claim: "A production hall needs alerts off for its workers during shifts and on for everyone after hours.", who: "H1", result: "pending" },
   { id: "A7", claim: "Buyers would pay monthly rather than once, and less than a night guard costs.", who: "P1, H1", result: "pending" },
 ];
 
@@ -121,13 +121,13 @@ export const m4Personas: Persona[] = [
   {
     id: "owner",
     name: "Radu",
-    role: "Owner of a private event hall",
+    role: "Owner of a small production hall",
     primary: false,
-    context: "Rents the hall for weddings, parties and conferences, mostly evenings and weekends; the building is empty on most nights.",
-    goals: ["Protect the hall and equipment when it is empty", "Not be woken up by guests during booked events", "Keep costs lower than a permanent guard"],
-    frustrations: ["Guests and suppliers come and go; he cannot know every face", "Alarm systems ring for nothing during events", "Pays for guarding even on empty nights"],
-    needs: ["Alerts only outside bookings", "Staff and regular suppliers enrolled, guests never", "Alerts on his phone and to the security firm"],
-    tech: "Runs the business from his phone; uses a calendar for bookings.",
+    context: "Runs a small production hall with a handful of workers on day shifts; machines, tools and materials stay inside, and the hall is empty at night and at weekends.",
+    goals: ["Protect machines, tools and stock when the hall is empty", "Know who was in the hall and when, without watching footage", "Keep costs lower than a permanent guard"],
+    frustrations: ["Workers, couriers and suppliers come and go; he is not always there to see them", "Alarm systems ring for nothing when someone works late", "Pays for guarding even on quiet nights"],
+    needs: ["Alerts only outside shift hours, except for restricted rooms", "Workers and regular suppliers enrolled, with allowed hours", "Alerts on his phone and to the security firm"],
+    tech: "Runs the business from his phone; plans shifts on paper or in a spreadsheet.",
     based: "Draft: our assumptions about the private-building segment. To be confirmed with H1's notes.",
   },
 ];
@@ -142,9 +142,9 @@ export const m4Stories: { persona: Persona["id"]; story: string; done: string; s
   { persona: "principal", story: "As the principal, I want faces blurred in anything exported, so that clips can be shown to the police or parents without exposing bystanders.", done: "Blur option: everyone, known people only, or unknown people only; applied to exports.", source: "draft" },
   { persona: "principal", story: "As the principal, I want footage deleted after a set number of days, so that we do not keep data longer than needed.", done: "Retention setting in days; older clips are deleted and the deletion is logged.", source: "M2" },
   { persona: "principal", story: "As the principal, I want an alert to go to the security company if the guard does not answer, so that no alert is lost.", done: "If nobody answers within the set minutes, the next person on the list is alerted.", source: "M2" },
-  { persona: "owner", story: "As the hall owner, I want alerts muted during booked events, so that guests do not trigger them.", done: "Bookings from a calendar; unknown-person alerts are off during a booking, on outside it.", source: "draft" },
-  { persona: "owner", story: "As the hall owner, I want restricted rooms (office, storage) to alert even during events, so that the equipment stays safe.", done: "Zones marked restricted keep alerting during bookings.", source: "draft" },
-  { persona: "owner", story: "As the hall owner, I want to set the system up myself in one evening, so that I do not pay an installer.", done: "First-run setup: cameras, night hours, staff, a test alert; under 30 minutes.", source: "draft" },
+  { persona: "owner", story: "As the owner, I want my workers to raise no alerts during their shifts, so that I only hear about real problems.", done: "Shift hours per worker; an enrolled worker inside their hours never raises an alert.", source: "draft" },
+  { persona: "owner", story: "As the owner, I want the storage room and the office to alert for anyone not allowed there, even during shifts, so that stock and tools stay safe.", done: "Zones marked restricted alert for every person not on their list, at any hour.", source: "draft" },
+  { persona: "owner", story: "As the owner, I want to set the system up myself in one evening, so that I do not pay an installer.", done: "First-run setup: cameras, night hours, staff, a test alert; under 30 minutes.", source: "draft" },
 ];
 
 export const m4UseCases: { id: string; title: string; actor: string; trigger: string; steps: string[]; outcome: string; alt?: string }[] = [
@@ -176,11 +176,11 @@ export const m4UseCases: { id: string; title: string; actor: string; trigger: st
   },
   {
     id: "UC4",
-    title: "Event at the hall",
-    actor: "Hall owner",
-    trigger: "A booking in the calendar starts.",
-    steps: ["Alerts for public rooms pause automatically", "Restricted rooms keep alerting", "Booking ends; alerts resume", "Owner gets a short report of the event night"],
-    outcome: "No alerts from guests; the office and storage stay protected.",
+    title: "After hours at the production hall",
+    actor: "Owner of the production hall",
+    trigger: "The last shift ends.",
+    steps: ["Hall switches to after-hours mode by itself", "Anyone seen now raises an alert, workers too, unless allowed to stay late", "Restricted rooms alert at any hour", "Owner gets a short report in the morning"],
+    outcome: "No alerts from workers during their shifts; the hall, storage and office are watched when nobody should be there.",
   },
   {
     id: "UC5",
@@ -231,7 +231,7 @@ export const m4Flows: { id: string; title: string; persona: Persona["id"]; steps
     persona: "owner",
     steps: [
       { text: "Connect cameras" },
-      { text: "Set night hours and bookings" },
+      { text: "Set shift hours and restricted rooms" },
       { text: "Enrol staff (3 photos or a video)" },
       { text: "Choose privacy: school mode, blur, keep N days" },
       { text: "Send a test alert to the phone" },
@@ -244,6 +244,6 @@ export const m4Changes: { id: string; screen: string; change: string; why: strin
   { id: "W1", screen: "Guard's phone", change: "Alert gets two big buttons, 'I'm checking' and 'Call help', and a countdown to escalation.", why: "An alert is useless if nobody acts on it.", source: "M2" },
   { id: "W2", screen: "Night report", change: "Becomes a morning summary: three numbers, open alerts first, who answered and when.", why: "The principal reads it at 07:30, in two minutes.", source: "draft" },
   { id: "W3", screen: "Settings", change: "New Privacy section: school mode (pupils never enrolled), blur faces, keep footage N days.", why: "Children's faces need extra care.", source: "M2" },
-  { id: "W4", screen: "Schedule (new)", change: "Night hours and bookings; public rooms pause during bookings, restricted rooms keep alerting.", why: "An event hall is busy on some nights and empty on others.", source: "draft" },
+  { id: "W4", screen: "Schedule (new)", change: "Shift hours and after hours; enrolled workers raise no alerts on shift, restricted rooms alert at any hour.", why: "A production hall is busy by day and empty at night and at weekends.", source: "draft" },
   { id: "W5", screen: "Settings", change: "Escalation list: guard, then security company, then principal, with minutes between them.", why: "Who comes at night was the open question in M2.", source: "M2" },
 ];

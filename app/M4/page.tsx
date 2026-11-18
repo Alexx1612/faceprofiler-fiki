@@ -7,7 +7,7 @@ import { Footer } from "@/components/site/team";
 
 export const metadata: Metadata = {
   title: "Nau-ino · M4 UX",
-  description: "Milestone 4: interviews with a night guard, a principal, an event-hall owner and three teachers; personas, user stories, use cases, user flows and the wireframe changes.",
+  description: "Milestone 4: interviews with a night guard, a principal, the owner of a small production hall and three teachers; personas, user stories, use cases, user flows and the wireframe changes.",
 };
 
 /** Milestone 4 (UX): interviews, personas, stories, flows and wireframe changes, in tabs. */
