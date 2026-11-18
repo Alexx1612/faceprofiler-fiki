@@ -8,7 +8,7 @@
  */
 
 const C = {
-  paper: "#0b1628",
+  paper: "#070f1f",
   node: "#141b27",
   ink: "#f5f5f5",
   muted: "#a3a3a3",
@@ -56,7 +56,7 @@ const sans = "var(--font-site-sans), system-ui, sans-serif";
 
 export function M3Flow() {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#0b1628] p-2 [scrollbar-width:thin]">
+    <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#070f1f] p-2 [scrollbar-width:thin]">
       <svg viewBox="0 0 960 480" className="h-auto w-full min-w-[720px]" role="img" aria-labelledby="m3-flow-title m3-flow-desc">
         <title id="m3-flow-title">Nau-ino console: screen map</title>
         <desc id="m3-flow-desc">

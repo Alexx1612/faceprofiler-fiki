@@ -103,7 +103,7 @@ export function Hero() {
       mobileShaderProps={{ ...desk, scale: 0.6 }}
       className="pt-20 sm:pt-20"
     >
-      <HeroDitheringContainer className="mx-auto max-w-6xl gap-4 px-4 pb-2 sm:gap-6 sm:px-6 sm:pb-2 lg:pb-2">
+      <HeroDitheringContainer className="mx-auto max-w-[1440px] gap-4 px-4 pb-2 sm:gap-6 sm:px-6 sm:pb-2 lg:pb-2">
         <HeroDitheringContent className="sm:px-0 md:px-0 lg:pl-0 xl:pl-0">
           <NeumorphEyebrow intent="night">{project.eyebrow}</NeumorphEyebrow>
           <AsciiEyes className="max-w-xl" />

@@ -5,15 +5,15 @@
 /* answered: no logos, quotes or metrics were supplied, so none appear; the hero panel is labelled as a sample night */
 
 .lp {
-  --color-paper: #0b1628;
-  --color-paper-2: #10203a;
-  --color-paper-3: #16294a;
+  --color-paper: #070f1f;
+  --color-paper-2: #0b1730;
+  --color-paper-3: #102240;
   --color-ink: oklch(96% 0.006 75);
   --color-ink-2: oklch(86% 0.02 245);
   --color-muted: oklch(74% 0.03 245);
-  --color-rule: #22385e;
+  --color-rule: #1a2d4f;
   --color-light: oklch(100% 0 0);
-  --color-shade: #060d1a;
+  --color-shade: #040912;
   --color-accent: oklch(80% 0.12 225);
   --color-accent-ink: oklch(20% 0.05 245);
   --color-accent-hi: oklch(87% 0.09 225);
@@ -110,7 +110,7 @@
 
 .lp-wrap {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1440px;
   margin-inline: auto;
   padding-inline: clamp(16px, 4vw, 48px);
 }

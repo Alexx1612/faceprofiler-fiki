@@ -405,7 +405,7 @@ function Wireframe() {
                   <Tag source={c.source} />
                 </span>
               </div>
-              <div className="rounded-xl bg-[#13233d] p-3">
+              <div className="rounded-xl bg-[#0e1c33] p-3">
                 <S />
               </div>
               <p className="text-sm text-neutral-200">{c.change}</p>

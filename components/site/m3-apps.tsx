@@ -735,7 +735,7 @@ export function M3AppDemos() {
       )}
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,640px)_1fr]">
-        <div ref={frameRef} className="relative overflow-x-auto rounded-2xl border border-white/10 bg-[#13233d] p-4">
+        <div ref={frameRef} className="relative overflow-x-auto rounded-2xl border border-white/10 bg-[#0e1c33] p-4">
           <Demo key={`${id}-${run}`} app={app} steps={steps} />
           {ring && <div className="m3-target pointer-events-none absolute z-10 rounded-lg !bg-sky-400/10 transition-all duration-500" style={{ left: ring.x, top: ring.y, width: ring.w, height: ring.h }} aria-hidden="true" />}
           {cursor && (
