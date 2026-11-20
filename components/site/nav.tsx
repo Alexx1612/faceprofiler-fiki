@@ -54,8 +54,8 @@ function MilestonesMenu() {
       >
         Milestones <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} />
       </button>
-      {open && (
-        <div className="absolute right-0 mt-2 w-60 rounded-xl border border-white/10 bg-[#0a1529] p-1.5 shadow-xl">
+      {/* Always in the HTML (hidden while closed) so search engines can follow the milestone links. */}
+      <div hidden={!open} className="absolute right-0 mt-2 w-60 rounded-xl border border-white/10 bg-[#0a1529] p-1.5 shadow-xl">
           {milestones.map((m) => (
             <Link
               key={m.href}
@@ -67,8 +67,7 @@ function MilestonesMenu() {
               {m.label}
             </Link>
           ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

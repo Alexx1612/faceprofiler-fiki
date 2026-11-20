@@ -4,7 +4,7 @@ import { Mail } from "lucide-react";
 
 import ExpandableProfileCard from "@/components/watermelon/expandable-profile-card";
 import { asset, project, team } from "@/lib/content";
-import { Logo, milestones } from "./nav";
+import { Logo } from "./nav";
 import { Section } from "./section";
 
 /** Team as Watermelon expandable profile cards: click a card for responsibilities and e-mail. */
@@ -59,15 +59,6 @@ export function Team() {
   );
 }
 
-/** Plain links to every page, rendered in the HTML so search engines find pages the drop-down only shows after a click. */
-const footerLinks = [
-  ["/", "Home"],
-  ["/pitch/", "Pitch"],
-  ["/landing/", "For schools"],
-  ...milestones.map((m) => [m.href, m.code] as const),
-  ["/face3d/", "3D face demo"],
-] as const;
-
 export function Footer() {
   return (
     <footer className="border-t border-white/10">
@@ -75,13 +66,6 @@ export function Footer() {
         <div className="flex items-center gap-2 font-semibold text-white">
           <Logo className="size-5 text-sky-400" /> {project.name}
         </div>
-        <nav aria-label="All pages" className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          {footerLinks.map(([href, label]) => (
-            <a key={href} href={asset(href)} className="inline-flex min-h-11 items-center text-neutral-400 hover:text-white sm:min-h-0">
-              {label}
-            </a>
-          ))}
-        </nav>
         <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
           Demo footage: Mixkit free stock video, fictional names. UI built with Cult UI and Watermelon UI components.
           Figures marked as estimates or targets are assumptions, not results.
