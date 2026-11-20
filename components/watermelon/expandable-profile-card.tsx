@@ -33,6 +33,8 @@ export default function ExpandableProfileCard({
           layoutId={`image-${layoutId}`} 
           src={imageSrc}
           alt={title}
+          width={800}
+          height={1000}
           className="absolute inset-0 h-full w-full object-cover" 
           variants={{
             hover: { scale: 1.05 }
@@ -71,6 +73,9 @@ export default function ExpandableProfileCard({
                 <motion.img 
                   layoutId={`image-${layoutId}`} 
                   src={imageSrc} 
+                  alt={title}
+                  width={800}
+                  height={1000}
                   className="h-full w-full object-cover object-top"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent md:hidden" />
