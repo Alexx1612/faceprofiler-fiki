@@ -39,9 +39,9 @@ export function Distance() {
           <figure key={c.k} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
             <div className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src(c.k)} alt={`${c.subject}, ${c.setting.toLowerCase()}, ${c.metres} m${masked ? ", masked" : ""}`} className="aspect-video w-full object-cover" />
+              <img src={src(c.k)} alt={`${c.subject}, ${c.setting.toLowerCase()}, ${c.metres} m${masked ? ", masked" : ""}`} width={1280} height={720} className="aspect-video h-auto w-full object-cover" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={asset(`/distance/ref-${c.k}.jpg`)} alt={`${c.subject}: reference close-up`} className="absolute top-3 left-3 h-[38%] rounded-lg border border-white/40 shadow-lg" />
+              <img src={asset(`/distance/ref-${c.k}.jpg`)} alt={`${c.subject}: reference close-up`} width={320} height={400} className="absolute top-3 left-3 h-[38%] w-auto rounded-lg border border-white/40 shadow-lg" />
               <span className="jet absolute top-3 left-3 rounded-tl-lg rounded-br-lg bg-black/60 px-1.5 text-[11px] text-white uppercase">enrolled</span>
               <span className="absolute bottom-3 left-3 rounded-full bg-black/70 px-3 py-1 text-lg font-semibold text-white backdrop-blur">{c.metres} m</span>
             </div>
@@ -90,7 +90,7 @@ export function Distance() {
           {others.map((c) => (
             <figure key={c.k} className="overflow-hidden rounded-xl border border-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src(c.k)} alt={`${c.subject}, ${c.setting.toLowerCase()}, ${c.metres} m`} className="aspect-video w-full object-cover" />
+              <img src={src(c.k)} alt={`${c.subject}, ${c.setting.toLowerCase()}, ${c.metres} m`} width={1280} height={720} className="aspect-video h-auto w-full object-cover" />
               <figcaption className="px-2 py-1.5 text-[11px] text-neutral-300">
                 {c.subject} · {c.setting} · <b className="text-white">{c.metres} m</b>
               </figcaption>

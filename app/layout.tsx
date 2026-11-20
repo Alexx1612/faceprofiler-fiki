@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Wix_Madefor_Display, Wix_Madefor_Text } from "next/font/google";
 import "./globals.css";
+import { siteName, siteUrl } from "@/lib/seo";
 
 /* Body and headings in Wix Madefor (same family as the landing page); Geist Mono stays for figures and code. */
 const siteSans = Wix_Madefor_Text({
@@ -21,6 +22,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(`${siteUrl}/`),
+  applicationName: siteName,
   title: "Nau-ino",
   description:
     "Security, access control and analytics on the CCTV cameras a site already has, at a low energy cost.",

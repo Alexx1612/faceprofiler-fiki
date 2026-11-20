@@ -10,6 +10,7 @@ import { PilotForm } from "@/components/landing/pilot-form";
 import { Tour } from "@/components/landing/tour";
 import { Logo } from "@/components/site/nav";
 import { asset, team } from "@/lib/content";
+import { pageMetadata, siteUrl } from "@/lib/seo";
 import "./landing.css";
 
 /**
@@ -21,17 +22,12 @@ import "./landing.css";
 const display = Wix_Madefor_Display({ subsets: ["latin", "latin-ext"], weight: ["500", "600"], variable: "--font-wix-display" });
 const text = Wix_Madefor_Text({ subsets: ["latin", "latin-ext"], weight: ["400", "500", "600"], variable: "--font-wix-text" });
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: "/landing/",
   title: "Nau-ino · Know who walks into your school tonight",
   description: "Nau-ino watches the cameras your school already has and flags every stranger. Free 30-day pilot on your own cameras.",
-  openGraph: {
-    title: "Nau-ino · Know who walks into your school tonight",
-    description: "Nau-ino watches the cameras your school already has and flags every stranger. Free 30-day pilot on your own cameras.",
-    images: [{ url: asset("/landing/campus-dusk-1080.jpg"), width: 1080, height: 720 }],
-    type: "website",
-  },
-  twitter: { card: "summary_large_image" },
-};
+  image: { url: `${siteUrl}/landing/campus-dusk-1080.jpg`, width: 1080, height: 720, alt: "A school campus at dusk" },
+});
 
 
 const CheckIcon = () => <Check aria-hidden="true" strokeWidth={2.4} />;
@@ -68,6 +64,8 @@ export default function Landing() {
             src={asset("/landing/campus-dusk-1080.jpg")}
             srcSet={`${asset("/landing/campus-dusk-1080.jpg")} 1080w, ${asset("/landing/campus-dusk.jpg")} 1920w`}
             sizes="(orientation: portrait) 400vw, 100vw"
+            width={1080}
+            height={720}
             alt=""
             fetchPriority="high"
           />

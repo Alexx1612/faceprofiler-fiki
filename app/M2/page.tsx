@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 
+import { pageMetadata } from "@/lib/seo";
+
 import { M2Hint, M2Tabs } from "@/components/site/m2-tabs";
 import { Nav } from "@/components/site/nav";
 import { Section } from "@/components/site/section";
 import { Footer } from "@/components/site/team";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
+  path: "/M2/",
   title: "Nau-ino · M2 Validation 1",
   description: "Milestone 2: customer discovery for Nau-ino, problem first, then the solution.",
-};
+});
 
 /** Milestone 2 (Validation 1, idea): the documented customer discovery process, in tabs. */
 export default function M2() {
