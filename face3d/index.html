@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3D Face demo · Nau-ino</title>
+<meta name="description" content="Turn a face photo into a textured 3D mesh in your browser: rotate it, relight it, render it as ASCII and export it. Demo on stock faces.">
+<link rel="canonical" href="https://alexx1612.github.io/faceprofiler-fiki/face3d/">
+<meta property="og:title" content="3D Face demo · Nau-ino">
+<meta property="og:description" content="Turn a face photo into a textured 3D mesh in your browser: rotate it, relight it, render it as ASCII and export it.">
+<meta property="og:url" content="https://alexx1612.github.io/faceprofiler-fiki/face3d/">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://alexx1612.github.io/faceprofiler-fiki/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<!--
+  3D Face: one photo -> a textured 3D face mesh you can turn, light, render as ASCII and export.
+
+  Methodology (after studying ascii-face-lab with REA; no code copied, that project has no licence):
+  1. MediaPipe Face Landmarker (Apache-2.0) finds up to 10 faces and 478 3D points per face, in this
+     browser. The face to model is chosen on the photo.
+  2. Triangles come from MediaPipe's tessellation edges (edge pairs that share a vertex), turned to face
+     the camera. Each point keeps its photo position as texture coordinate, so the photo wraps exactly
+     onto the mesh.
+  3. Two rounds of subdivision (each triangle split in four at its edge midpoints) with light Laplacian
+     smoothing of the new points turn 852 facets into about 13,600 for smooth shading.
+  4. three.js (MIT) renders it with soft studio lights; styles: photo, clay, wireframe, depth colours,
+     colour ASCII (three.js AsciiEffect). Export: one .glb file with the texture inside.
+  Nothing is uploaded: the photo stays in this page. The first run downloads the face model and
+  libraries from jsDelivr and Google, so it needs internet once.
+-->
+<style>
+:root{--bg:#0b0f14;--panel:#121820;--line:#243040;--ink:#e8edf3;--mute:#9aa7b6;--acc:#f2a33a;--acc2:#7aa2ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,Segoe UI,sans-serif}
+header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--line)}
+header h1{margin:0;font-size:20px}header p{margin:0;color:var(--mute);font-size:13px}
+main{display:grid;grid-template-columns:330px minmax(0,1fr);min-height:calc(100vh - 58px)}
+@media(max-width:860px){main{grid-template-columns:1fr}}
+aside{border-right:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:14px;background:var(--panel)}
+h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:0 0 6px}
+#drop{border:2px dashed var(--line);border-radius:10px;padding:16px;text-align:center;color:var(--mute);cursor:pointer}
+#drop.on{border-color:var(--acc);color:var(--acc)}
+.samples{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.samples button{position:relative;border:1px solid var(--line);background:none;border-radius:8px;padding:2px;cursor:pointer}.samples b{position:absolute;right:3px;bottom:3px;background:var(--acc);color:#1a1204;border-radius:6px;font:700 10px/1 system-ui;padding:2px 4px}
+.shots{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.shots figure{position:relative;margin:0;width:64px}.shots img{width:64px;height:64px;object-fit:cover;border-radius:6px;display:block;cursor:pointer}.shots figcaption{font-size:10px;color:var(--mute);text-align:center}.shots figure button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:#2a3442;color:#fff;cursor:pointer;line-height:20px;padding:0}.addshot{width:64px;height:64px;border:1px dashed var(--line);border-radius:6px;background:none;color:var(--mute);font-size:11px;cursor:pointer}
+.samples img{width:52px;height:52px;object-fit:cover;border-radius:6px;display:block}
+.hint2{font-size:11px;color:var(--mute);margin:6px 0 0}
+#people{display:flex;gap:6px;flex-wrap:wrap;align-items:center}#people p{width:100%;margin:0;font-size:12px;color:var(--ink)}#people button{position:relative;border:2px solid var(--line);background:none;border-radius:8px;padding:0;cursor:pointer}#people button[aria-pressed=true]{border-color:var(--acc)}#people img{width:56px;height:56px;border-radius:6px;display:block}#people b{position:absolute;right:2px;bottom:2px;background:#1c242e;color:#fff;border-radius:6px;font:700 10px/1 system-ui;padding:2px 4px}
+#frames{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:8px 0;max-height:260px;overflow:auto}.fr{position:relative;display:block;border:2px solid transparent;border-radius:7px;cursor:pointer;opacity:.55}.fr.on{border-color:var(--acc);opacity:1}.fr input{position:absolute;top:3px;left:3px;width:14px;height:14px}.fr img{width:100%;aspect-ratio:1;border-radius:5px;display:block}.fr span{display:block;font-size:10px;color:var(--mute);text-align:center}
+.vrow{display:flex;gap:6px}.vrow .btn{padding:7px}
+#pick{position:relative;display:none}#pick img{width:100%;border-radius:8px;display:block}
+.box{position:absolute;border:2px solid #fffc;border-radius:4px;background:none;padding:0;cursor:pointer;box-shadow:0 0 0 1px #0009}
+.box.on{border-color:var(--acc);box-shadow:0 0 0 3px #000a}
+.box span{position:absolute;top:-10px;left:-10px;width:20px;height:20px;border-radius:50%;background:#1c242e;color:#fff;font:700 11px/20px system-ui;text-align:center}
+.box.on span{background:var(--acc);color:#1a1204}
+.seg{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}.seg button{border:1px solid var(--line);background:none;color:var(--mute);border-radius:8px;padding:7px 2px;font:600 12px system-ui;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#1a1204}
+label{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--ink)}input[type=range]{width:150px;accent-color:var(--acc)}
+input[type=checkbox]{accent-color:var(--acc);width:16px;height:16px}
+.btn{border:1px solid var(--acc);background:none;color:var(--acc);border-radius:9px;padding:9px;font:600 13px system-ui;cursor:pointer;width:100%}
+.btn:disabled{opacity:.4;cursor:default}
+#msg{font-size:12px;color:var(--mute);min-height:18px}
+#stage{position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 35%,#1b2533 0%,#0b0f14 70%)}
+#stage canvas{display:block}
+#ascii{position:absolute;inset:0;display:none;overflow:hidden;background:#0b0f14}
+#ascii table{margin:auto}
+#hint{position:absolute;left:14px;bottom:12px;font-size:12px;color:var(--mute);pointer-events:none}
+#empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--mute);text-align:center;padding:20px}
+.foot{font-size:11px;color:var(--mute);margin-top:auto}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body data-stock>
+<header><h1>3D Face</h1><p>Photos of a person from several angles, or a short video of them turning their head, become a 3D face you can turn, relight, render as ASCII and export. Runs in this browser; nothing is uploaded.</p></header>
+<main>
+<aside>
+  <section>
+    <h2>1. Photos</h2>
+    <div id="drop">Drop photos of one person (up to 12 angles) or a short video, or click to choose<input id="file" type="file" accept="image/*,video/*" hidden></div>
+    <div class="samples" id="samples"></div>
+    <div class="shots" id="shots"></div>
+  </section>
+  <section id="vidwrap" hidden>
+    <h2>Video frames</h2>
+    <div id="people"></div>
+    <div id="frames"></div>
+    <div class="vrow"><button class="btn" id="vauto">Pick varied angles</button><button class="btn" id="vbuild">Build</button></div>
+    <p class="hint2">Sorted from one side to the other. Ticked frames are joined into one face; the most frontal one gives the colours.</p>
+  </section>
+  <section id="pickwrap" hidden>
+    <h2>2. Face</h2>
+    <div id="pick"></div>
+  </section>
+  <section>
+    <h2>3. Look</h2>
+    <div class="seg" id="modes">
+      <button data-m="photo" aria-pressed="true">Photo</button><button data-m="clay">Clay</button><button data-m="wire">Wire</button><button data-m="depth">Depth</button><button data-m="ascii">ASCII</button>
+    </div>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <label>Depth <input type="range" id="depth" min="0.4" max="2" step="0.05" value="1"></label>
+    <label>Light angle <input type="range" id="light" min="-1" max="1" step="0.02" value="-0.35"></label>
+    <label>Smoothness <input type="range" id="smooth" min="0" max="2" step="1" value="2"></label>
+    <label>ASCII detail <input type="range" id="adetail" min="0.08" max="0.25" step="0.01" value="0.16"></label>
+    <label>Turn slowly <input type="checkbox" id="spin" checked></label>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:8px">
+    <button class="btn" id="glb" disabled>Export 3D file (.glb)</button>
+    <button class="btn" id="png" disabled>Save picture (.png)</button>
+    <div id="msg"></div>
+  </section>
+  <p class="foot">Stock faces: stills from Mixkit free stock footage, fictional names. Face points: MediaPipe Face Landmarker (Apache-2.0). Rendering: three.js (MIT). Extra photos or video frames from other angles are aligned onto the first and averaged into one shape; the first photo gives the colours (click a thumbnail to change it). Depth is estimated; the back of the head is not modelled.</p>
+</aside>
+<div id="stage"><div id="empty">Choose a photo, or tap a sample on the left.</div><div id="ascii"></div><div id="hint">Drag to turn · scroll to zoom · right-drag to move</div></div>
+</main>
+<script type="module">
+window.__face3d = {};
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { AsciiEffect } from 'three/addons/effects/AsciiEffect.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+const MP = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35';
+const MODEL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+const $ = s => document.querySelector(s);
+const stage = $('#stage'), msg = t => ($('#msg').textContent = t);
+
+/* ---------- renderer, camera, lights ---------- */
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+stage.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 100);
+camera.position.set(0, 0, 4.2);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.minDistance = 1.6; controls.maxDistance = 9;
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x1a1410, 0.55));
+const key = new THREE.DirectionalLight(0xfff1e0, 2.2); scene.add(key);
+const rim = new THREE.DirectionalLight(0x8fb2ff, 1.1); rim.position.set(1.5, 1, -2.5); scene.add(rim);
+const fill = new THREE.DirectionalLight(0xffffff, 0.35); fill.position.set(0, -1, 2); scene.add(fill);
+const ascii = new AsciiEffect(renderer, ' .:-=+*#%@', { invert: true, color: true, resolution: 0.16 });
+ascii.domElement.style.color = '#e8edf3';
+$('#ascii').appendChild(ascii.domElement);
+function setLight() { const a = +$('#light').value * Math.PI / 2; key.position.set(Math.sin(a) * 3, 1.6, Math.cos(a) * 3); }
+setLight();
+
+function resize() {
+  const w = stage.clientWidth, h = Math.max(420, innerHeight - (innerWidth < 860 ? 0 : 58));
+  stage.style.height = h + 'px'; renderer.setSize(w, h); ascii.setSize(w, h);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+/* ---------- MediaPipe ---------- */
+let landmarker = null;
+async function getLandmarker() {
+  if (landmarker) return landmarker;
+  msg('Loading the face model (first time only)…');
+  const t = await import(MP + '/vision_bundle.mjs');
+  const fs = await t.FilesetResolver.forVisionTasks(MP + '/wasm');
+  landmarker = await t.FaceLandmarker.createFromOptions(fs, { baseOptions: { modelAssetPath: MODEL }, runningMode: 'IMAGE', numFaces: 10, outputFacialTransformationMatrixes: true });
+  landmarker._tess = t.FaceLandmarker.FACE_LANDMARKS_TESSELATION;
+  return landmarker;
+}
+
+/* ---------- mesh building ---------- */
+function triangles(tess, n) {
+  const nb = Array.from({ length: n }, () => new Set());
+  for (const e of tess) { nb[e.start].add(e.end); nb[e.end].add(e.start); }
+  const out = [];
+  for (let a = 0; a < n; a++) for (const b of nb[a]) if (b > a) for (const c of nb[b]) if (c > b && nb[a].has(c)) out.push([a, b, c]);
+  return out;
+}
+/** Split each triangle in four at edge midpoints; new points are pulled a little toward their neighbours. */
+function subdivide(pos, uv, tri) {
+  const P = pos.slice(), U = uv.slice(), mid = new Map(), out = [], born = [];
+  const m = (a, b) => {
+    const k = a < b ? a + '_' + b : b + '_' + a;
+    if (mid.has(k)) return mid.get(k);
+    const i = P.length / 3;
+    for (let d = 0; d < 3; d++) P.push((P[a * 3 + d] + P[b * 3 + d]) / 2);
+    for (let d = 0; d < 2; d++) U.push((U[a * 2 + d] + U[b * 2 + d]) / 2);
+    mid.set(k, i); born.push(i); return i;
+  };
+  for (const [a, b, c] of tri) { const ab = m(a, b), bc = m(b, c), ca = m(c, a); out.push([a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]); }
+  // light Laplacian smoothing of the new points only (keeps the measured landmarks exact)
+  const nb = new Map(); for (const t of out) for (let i = 0; i < 3; i++) { const v = t[i]; if (!nb.has(v)) nb.set(v, new Set()); nb.get(v).add(t[(i + 1) % 3]); nb.get(v).add(t[(i + 2) % 3]); }
+  const Q = P.slice();
+  for (const v of born) { const ns = [...nb.get(v)]; for (let d = 0; d < 3; d++) { const avg = ns.reduce((s, n) => s + P[n * 3 + d], 0) / ns.length; Q[v * 3 + d] = P[v * 3 + d] * 0.5 + avg * 0.5; } }
+  return { pos: Q, uv: U, tri: out };
+}
+
+/**
+ * MediaPipe's tessellation leaves the eyes and the mouth open. Every boundary loop except the longest
+ * (the face outline) is closed with a fan of triangles to its centre, set slightly behind the rim so
+ * the closed eyes and lips read as recesses, not flat patches. The centre takes the average texture
+ * position, so the photo's eye or lip colour fills the hole.
+ */
+function closeHoles(pos, uv, tri) {
+  const P = pos.slice(), U = uv.slice(), T = tri.slice(), count = new Map(), next = new Map();
+  const key = (a, b) => (a < b ? a + '_' + b : b + '_' + a);
+  for (const t of tri) for (let i = 0; i < 3; i++) { const k = key(t[i], t[(i + 1) % 3]); count.set(k, (count.get(k) || 0) + 1); }
+  for (const t of tri) for (let i = 0; i < 3; i++) { const a = t[i], b = t[(i + 1) % 3]; if (count.get(key(a, b)) === 1) next.set(a, b); }
+  const seen = new Set(), loops = [];
+  for (const start of next.keys()) {
+    if (seen.has(start)) continue;
+    const loop = []; let v = start, guard = 0;
+    while (v !== undefined && !seen.has(v) && guard++ < 1000) { seen.add(v); loop.push(v); v = next.get(v); }
+    if (loop.length > 2) loops.push(loop);
+  }
+  loops.sort((a, b) => b.length - a.length);
+  for (const loop of loops.slice(1)) {
+    const c = [0, 0, 0], cu = [0, 0];
+    for (const v of loop) { for (let d = 0; d < 3; d++) c[d] += P[v * 3 + d] / loop.length; for (let d = 0; d < 2; d++) cu[d] += U[v * 2 + d] / loop.length; }
+    const span = Math.max(...loop.map(v => Math.hypot(P[v * 3] - c[0], P[v * 3 + 1] - c[1])));
+    const ci = P.length / 3; P.push(c[0], c[1], c[2] - span * 0.35); U.push(cu[0], cu[1]);
+    for (let i = 0; i < loop.length; i++) T.push([loop[i], ci, loop[(i + 1) % loop.length]]);
+  }
+  return { pos: P, uv: U, tri: T, holes: loops.length - 1 };
+}
+
+let photos = [], mesh = null, wire = null, texture = null, mode = 'photo', tess = null;
+const MAX_PHOTOS = 12;
+
+/** 468 face points of one photo as 3D [x, y, z] in image-width units, y up, z toward the camera. */
+function points3d(pts, img) {
+  const ar = img.width / img.height;
+  return pts.slice(0, 468).map(p => [p.x * ar, -p.y, -p.z * ar]);
+}
+
+/**
+ * Similarity alignment (Horn's quaternion method): rotation, scale and shift that best map `b` onto
+ * `a`. Returns the moved copy of `b` and the RMS error relative to the face's size.
+ */
+function align(a, b) {
+  const n = a.length, ca = [0, 0, 0], cb = [0, 0, 0];
+  for (let i = 0; i < n; i++) for (let d = 0; d < 3; d++) { ca[d] += a[i][d] / n; cb[d] += b[i][d] / n; }
+  const A = a.map(p => p.map((v, d) => v - ca[d])), B = b.map(p => p.map((v, d) => v - cb[d]));
+  const S = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  let na = 0, nb = 0;
+  for (let i = 0; i < n; i++) {
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) S[r][c] += B[i][r] * A[i][c];
+    na += A[i][0] ** 2 + A[i][1] ** 2 + A[i][2] ** 2; nb += B[i][0] ** 2 + B[i][1] ** 2 + B[i][2] ** 2;
+  }
+  const [[xx, xy, xz], [yx, yy, yz], [zx, zy, zz]] = S;
+  const N = [
+    [xx + yy + zz, yz - zy, zx - xz, xy - yx],
+    [yz - zy, xx - yy - zz, xy + yx, zx + xz],
+    [zx - xz, xy + yx, -xx + yy - zz, yz + zy],
+    [xy - yx, zx + xz, yz + zy, -xx - yy + zz],
+  ];
+  const shift = N.flat().reduce((s, v) => s + Math.abs(v), 0);
+  let q = [1, 0, 0, 0];
+  for (let it = 0; it < 200; it++) { // power iteration on N + shift*I: largest eigenvector of N
+    const r = N.map((row, i) => row.reduce((s, v, j) => s + v * q[j], 0) + shift * q[i]);
+    const l = Math.hypot(...r); q = r.map(v => v / l);
+  }
+  const [w, x, y, z] = q;
+  const R = [
+    [w * w + x * x - y * y - z * z, 2 * (x * y - w * z), 2 * (x * z + w * y)],
+    [2 * (x * y + w * z), w * w - x * x + y * y - z * z, 2 * (y * z - w * x)],
+    [2 * (x * z - w * y), 2 * (y * z + w * x), w * w - x * x - y * y + z * z],
+  ];
+  const s = Math.sqrt(na / (nb || 1));
+  const moved = B.map(p => [0, 1, 2].map(r => s * (R[r][0] * p[0] + R[r][1] * p[1] + R[r][2] * p[2]) + ca[r]));
+  let err = 0; for (let i = 0; i < n; i++) err += (moved[i][0] - a[i][0]) ** 2 + (moved[i][1] - a[i][1]) ** 2 + (moved[i][2] - a[i][2]) ** 2;
+  return { moved, rms: Math.sqrt(err / n) / Math.sqrt(na / n) };
+}
+
+/** The face shape: the first photo's points, averaged with every other photo aligned onto it. */
+function fusedShape() {
+  const ref = photos[0], base = points3d(ref.faces[ref.sel].p, ref.canvas);
+  const sum = base.map(p => p.map(v => v * 2)); let weight = 2, used = 1; const skipped = [], errs = [];
+  for (const ph of photos.slice(1)) {
+    const { moved, rms } = align(base, points3d(ph.faces[ph.sel].p, ph.canvas));
+    // Does not fit: probably another person. Measured on the stock samples (2026-11-17): the same
+    // person 0-8 % (one extremely turned photo 12 %), different people 9.2-15.2 %. Face shape is a weak
+    // identity signal, so this only keeps obvious mix-ups out; it is not identity verification.
+    // Video frames of one tracked person are already known to be the same face, so they only need to
+    // pass a looser check against bad landmark fits (strong turns, blur); not measured on video yet.
+    if (rms > (ph.tracked && ref.tracked ? 0.13 : 0.09)) { skipped.push(ph.name); continue; }
+    moved.forEach((p, i) => p.forEach((v, d) => (sum[i][d] += v)));
+    weight += 1; used += 1; errs.push(rms);
+  }
+  return { shape: sum.map(p => p.map(v => v / weight)), used, skipped, errs };
+}
+
+function buildMesh() {
+  if (!photos.length) return;
+  const ref = photos[0], pts = ref.faces[ref.sel].p, depth = +$('#depth').value;
+  const { shape, used, skipped, errs } = fusedShape();
+  const cx = shape.reduce((s, p) => s + p[0], 0) / shape.length, cy = shape.reduce((s, p) => s + p[1], 0) / shape.length;
+  const cz = shape.reduce((s, p) => s + p[2], 0) / shape.length;
+  const r = Math.max(...shape.map(p => Math.hypot(p[0] - cx, p[1] - cy)));
+  let pos = [], uv = [];
+  shape.forEach((p, i) => { pos.push((p[0] - cx) / r, (p[1] - cy) / r, ((p[2] - cz) / r) * depth); uv.push(pts[i].x, 1 - pts[i].y); });
+  let tri = triangles(tess, 468);
+  // face every triangle toward the viewer (+z)
+  tri = tri.map(([a, b, c]) => {
+    const A = new THREE.Vector3(pos[a * 3], pos[a * 3 + 1], pos[a * 3 + 2]), B = new THREE.Vector3(pos[b * 3], pos[b * 3 + 1], pos[b * 3 + 2]), C = new THREE.Vector3(pos[c * 3], pos[c * 3 + 1], pos[c * 3 + 2]);
+    return new THREE.Vector3().crossVectors(B.sub(A), C.sub(A)).z < 0 ? [a, c, b] : [a, b, c];
+  });
+  ({ pos, uv, tri } = closeHoles(pos, uv, tri));
+  let g = { pos, uv, tri };
+  for (let i = 0; i < +$('#smooth').value; i++) g = subdivide(g.pos, g.uv, g.tri);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(g.pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(g.uv, 2));
+  geo.setIndex(g.tri.flat());
+  geo.computeVertexNormals();
+  // depth colours: warm = near, cool = far
+  const zs = []; for (let i = 2; i < g.pos.length; i += 3) zs.push(g.pos[i]);
+  const zmin = Math.min(...zs), zmax = Math.max(...zs), col = [];
+  for (const z of zs) { const t = (z - zmin) / ((zmax - zmin) || 1); const c = new THREE.Color().setHSL(0.66 - 0.62 * t, 0.85, 0.42 + 0.18 * t); col.push(c.r, c.g, c.b); }
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  if (mesh) { scene.remove(mesh); mesh.geometry.dispose(); }
+  if (wire) { scene.remove(wire); wire.geometry.dispose(); }
+  mesh = new THREE.Mesh(geo, material()); mesh.name = 'face';
+  wire = new THREE.LineSegments(new THREE.WireframeGeometry(geo), new THREE.LineBasicMaterial({ color: 0x7aa2ff, transparent: true, opacity: 0.55 }));
+  scene.add(mesh); scene.add(wire); applyMode();
+  $('#glb').disabled = $('#png').disabled = false;
+  const fit = errs.length ? ` (alignment error ${(100 * errs.reduce((s, e) => s + e, 0) / errs.length).toFixed(1)}%)` : '';
+  msg(`${g.tri.length.toLocaleString()} triangles · shape from ${used} photo${used > 1 ? 's' : ''}${fit}.` +
+      (skipped.length ? ` Left out (does not fit this face, maybe another person): ${skipped.join(', ')}.` : ''));
+  window.__face3d.used = used; window.__face3d.skipped = skipped.length;
+}
+function material() {
+  if (mode === 'clay') return new THREE.MeshStandardMaterial({ color: 0xc9b8a6, roughness: 0.65, metalness: 0, side: THREE.DoubleSide });
+  if (mode === 'depth') return new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, side: THREE.DoubleSide });
+  if (mode === 'wire') return new THREE.MeshStandardMaterial({ color: 0x121a24, roughness: 1, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 1 });
+  return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.78, metalness: 0, side: THREE.DoubleSide });
+}
+function applyMode() {
+  if (mesh) { mesh.material.dispose(); mesh.material = material(); }
+  if (wire) wire.visible = mode === 'wire';
+  $('#ascii').style.display = mode === 'ascii' ? 'block' : 'none';
+  renderer.domElement.style.visibility = mode === 'ascii' ? 'hidden' : 'visible';
+  renderer.toneMappingExposure = mode === 'ascii' ? 2.4 : 1; // ASCII reads brightness: light the face up
+  document.querySelectorAll('#modes button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === mode));
+}
+
+/* ---------- photos and face choice ---------- */
+async function loadPhoto(src, name) {
+  const img = await new Promise((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = () => rej(new Error('This file is not a readable photo.')); i.src = src; });
+  const k = Math.min(1, 2048 / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  const lm = await getLandmarker(); tess = lm._tess;
+  const res = lm.detect(c);
+  const faces = facesOf(res).sort((a, b) => b.box[2] * b.box[3] - a.box[2] * a.box[3]);
+  return { canvas: c, faces, sel: 0, yaw: faces.length ? faces[0].yaw : 0, name, thumb: c.toDataURL('image/jpeg', 0.8) };
+}
+
+/** Replaces (reset) or extends the photo set; the first photo carries the texture and the face choice. */
+async function addPhotos(list, reset) {
+  try {
+    msg('Reading the photo…');
+    if (reset) { photos = []; $('#vidwrap').hidden = true; }
+    for (const { src, name } of list) {
+      if (photos.length >= MAX_PHOTOS) { msg(`Up to ${MAX_PHOTOS} photos of the same person.`); break; }
+      const ph = await loadPhoto(src, name);
+      if (!ph.faces.length) { msg(`No face found in ${name}. Try a clear photo.`); continue; }
+      photos.push(ph);
+    }
+    showPhotos();
+    if (photos.length && photos[0].faces.length > 1 && photos.length === 1) msg(`${photos[0].faces.length} faces found: click a numbered box to model another one.`);
+  } catch (e) { msg('Could not load: ' + e.message + ' (the first run needs internet).'); }
+}
+
+/** Uses photos[0] as colours and reference, refreshes the thumbnails and rebuilds the face. */
+function showPhotos(keepView) {
+  if (!photos.length) return;
+  if (texture) texture.dispose();
+  texture = new THREE.CanvasTexture(photos[0].canvas); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = 4;
+  renderPhotos();
+  if (!keepView) controls.reset();
+  $('#empty').style.display = 'none'; buildMesh();
+}
+
+function renderPhotos() {
+  const ref = photos[0], pick = $('#pick');
+  pick.style.display = 'block'; $('#pickwrap').hidden = false;
+  pick.innerHTML = `<img src="${ref.thumb}" alt="first photo">` + ref.faces.map((f, i) =>
+    `<button class="box${i === ref.sel ? ' on' : ''}" data-i="${i}" aria-label="Face ${i + 1}" style="left:${f.box[0] * 100}%;top:${f.box[1] * 100}%;width:${f.box[2] * 100}%;height:${f.box[3] * 100}%"><span>${i + 1}</span></button>`).join('');
+  pick.querySelectorAll('.box').forEach(b => b.onclick = () => { ref.sel = +b.dataset.i; ref.yaw = ref.faces[ref.sel].yaw; renderPhotos(); buildMesh(); });
+  const turn = y => (Math.abs(y) < 6 ? 'front' : y < 0 ? `◀ ${-y}°` : `${y}° ▶`);
+  $('#shots').innerHTML = photos.map((p, i) => `<figure><img src="${p.thumb}" alt="" data-i="${i}" title="${i ? 'Use this one for the colours' : 'Gives the colours'}"><figcaption>${i ? turn(p.yaw) : 'colours'}</figcaption>${photos.length > 1 ? `<button data-i="${i}" aria-label="Remove photo ${i + 1}">×</button>` : ''}</figure>`).join('')
+    + (photos.length < MAX_PHOTOS ? '<button class="addshot" id="addshot">+ add an angle</button>' : '');
+  $('#shots').querySelectorAll('figure button').forEach(b => b.onclick = () => { photos.splice(+b.dataset.i, 1); showPhotos(true); });
+  $('#shots').querySelectorAll('figure img').forEach(im => im.onclick = () => { const i = +im.dataset.i; if (i) { photos.unshift(...photos.splice(i, 1)); showPhotos(true); } });
+  const add = $('#addshot'); if (add) add.onclick = () => { addMode = true; file.accept = 'image/*'; file.click(); };
+}
+
+// Website copy: <body data-stock> opens the first stock face by itself. Own photos and videos work
+// there too; they are read in the browser and never sent anywhere.
+const STOCK = document.body.hasAttribute('data-stock');
+const drop = $('#drop'), file = $('#file');
+let addMode = false;
+file.multiple = true;
+const take = files => {
+  const all = [...files], video = all.find(f => f.type.startsWith('video/'));
+  if (video && !addMode) return loadVideo(video);
+  const imgs = all.filter(f => f.type.startsWith('image/'));
+  if (imgs.length) addPhotos(imgs.slice(0, MAX_PHOTOS).map(f => ({ src: URL.createObjectURL(f), name: f.name })), !addMode);
+};
+drop.onclick = () => { addMode = false; file.accept = 'image/*,video/*'; file.click(); };
+file.onchange = () => { if (file.files.length) take(file.files); file.value = ''; };
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('on'); };
+drop.ondragleave = () => drop.classList.remove('on');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('on'); addMode = false; if (e.dataTransfer.files.length) take(e.dataTransfer.files); };
+/* ---------- video: sample frames, follow each person, choose the frames ---------- */
+let vid = null; // { frames: [{canvas, faces, t}], tracks: [{items: [{fi, di, yaw}], thumb}], person, chosen: Set }
+
+/**
+ * Head turn in degrees (0 = facing the camera; the sign tells left from right).
+ * Methodology: MediaPipe also returns each face's pose as a 4x4 matrix (column-major); the turn about
+ * the vertical axis is atan2(m[8], m[10]). Without a matrix it falls back to the depth slope between
+ * the two cheek edges (points 234 and 454), which reads too small because the landmark depth is flat.
+ */
+function yawOf(res, i) {
+  const m = res.facialTransformationMatrixes?.[i]?.data;
+  if (m) return Math.round(Math.atan2(m[8], m[10]) * 180 / Math.PI);
+  const p = res.faceLandmarks[i];
+  return Math.round(Math.atan2(p[454].z - p[234].z, p[454].x - p[234].x) * 180 / Math.PI);
+}
+/** Detected faces of one picture: landmarks, box and head turn. */
+function facesOf(res) {
+  return res.faceLandmarks.map((p, i) => ({ p, box: boxOf(p), yaw: yawOf(res, i) }));
+}
+function faceCrop(canvas, box, size = 96) {
+  const [x, y, w, h] = box, s = Math.max(w * canvas.width, h * canvas.height) * 1.3;
+  const cx = (x + w / 2) * canvas.width, cy = (y + h / 2) * canvas.height;
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  c.getContext('2d').drawImage(canvas, cx - s / 2, cy - s / 2, s, s, 0, 0, size, size);
+  return c.toDataURL('image/jpeg', 0.8);
+}
+function boxOf(p) {
+  const xs = p.map(q => q.x), ys = p.map(q => q.y);
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
+}
+
+/**
+ * Reads a video in this browser, samples it into still frames and follows every face across them.
+ *
+ * Methodology: about two frames per second (8 to 40 frames) are drawn to a canvas and the face landmarker
+ * runs on each. Largest face first, a face is linked to the person whose face was nearest in the last
+ * frame where that person was seen (box centre within a fifth of the frame); otherwise it starts a new
+ * person. Each face also gets a head-turn estimate, so the frames can be sorted from one profile to the other.
+ */
+async function loadVideo(f) {
+  try {
+    const lm = await getLandmarker(); tess = lm._tess;
+    const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = URL.createObjectURL(f);
+    await new Promise((res, rej) => { v.onloadeddata = res; v.onerror = () => rej(new Error('this browser cannot read this video format')); });
+    const n = Math.max(8, Math.min(40, Math.round((v.duration || 4) * 2))), frames = [];
+    const k = Math.min(1, 960 / Math.max(v.videoWidth, v.videoHeight));
+    for (let i = 0; i < n; i++) {
+      msg(`Reading the video: frame ${i + 1} of ${n}…`);
+      v.currentTime = ((v.duration || 4) * (i + 0.5)) / n;
+      await new Promise(r => { const t = setTimeout(r, 3000); v.onseeked = () => { clearTimeout(t); r(); }; });
+      const c = document.createElement('canvas'); c.width = Math.round(v.videoWidth * k); c.height = Math.round(v.videoHeight * k);
+      c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+      const faces = facesOf(lm.detect(c));
+      if (faces.length) frames.push({ canvas: c, faces, t: v.currentTime });
+    }
+    URL.revokeObjectURL(v.src);
+    if (!frames.length) { msg('No face found in this video. Try one where the face is large and well lit.'); return; }
+    const tracks = [];
+    frames.forEach((fr, fi) => {
+      const taken = new Set();
+      fr.faces.map((f, di) => ({ f, di })).sort((a, b) => b.f.box[2] * b.f.box[3] - a.f.box[2] * a.f.box[3]).forEach(({ f, di }) => {
+        const c = [f.box[0] + f.box[2] / 2, f.box[1] + f.box[3] / 2];
+        let best = null, bd = 0.2;
+        tracks.forEach((t, ti) => { if (taken.has(ti)) return; const d = Math.hypot(t.last[0] - c[0], t.last[1] - c[1]); if (d < bd) { bd = d; best = ti; } });
+        if (best === null) { tracks.push({ last: c, items: [] }); best = tracks.length - 1; }
+        taken.add(best); tracks[best].last = c; tracks[best].items.push({ fi, di, yaw: f.yaw, area: f.box[2] * f.box[3] });
+      });
+    });
+    tracks.sort((a, b) => b.items.length - a.items.length);
+    const kept = tracks.filter((t, i) => i === 0 || t.items.length >= 2);
+    kept.forEach(t => { const big = t.items.reduce((a, b) => (b.area > a.area ? b : a)); t.thumb = faceCrop(frames[big.fi].canvas, frames[big.fi].faces[big.di].box); });
+    vid = { frames, tracks: kept, person: 0, chosen: new Set() };
+    autoPick(); renderVideo();
+    msg(`${frames.length} frames with a face. ${kept.length > 1 ? `${kept.length} people: choose one, then ` : ''}tick the frames to use and press Build.`);
+  } catch (e) { msg('Could not read the video: ' + e.message + '.'); }
+}
+
+/**
+ * Ticks up to 8 frames spread evenly over the head turns of the chosen person, always with the most
+ * frontal one. Frames within 3 degrees of an already kept turn are skipped (near repeats add nothing),
+ * unless that would leave fewer than three.
+ */
+function autoPick() {
+  const all = [...vid.tracks[vid.person].items].sort((a, b) => a.yaw - b.yaw);
+  let items = all.filter((it, i) => i === 0 || it.yaw - all[i - 1].yaw >= 3);
+  if (items.length < 3) items = all;
+  const k = Math.min(8, items.length);
+  vid.chosen = new Set();
+  for (let i = 0; i < k; i++) vid.chosen.add(items[Math.round(k > 1 ? (i * (items.length - 1)) / (k - 1) : 0)].fi);
+  vid.chosen.add(items.reduce((a, b) => (Math.abs(b.yaw) < Math.abs(a.yaw) ? b : a)).fi);
+}
+
+function vidCount() {
+  const b = $('#vbuild'); b.textContent = `Build from ${vid.chosen.size} frame${vid.chosen.size === 1 ? '' : 's'}`; b.disabled = !vid.chosen.size;
+}
+function renderVideo() {
+  $('#vidwrap').hidden = false;
+  const items = [...vid.tracks[vid.person].items].sort((a, b) => a.yaw - b.yaw);
+  $('#people').innerHTML = vid.tracks.length > 1 ? '<p>Who should become 3D?</p>' + vid.tracks.map((tr, i) =>
+    `<button data-i="${i}" aria-pressed="${i === vid.person}" title="Person ${i + 1}: in ${tr.items.length} frames"><img src="${tr.thumb}" alt="Person ${i + 1}"><b>${tr.items.length}</b></button>`).join('') : '';
+  $('#people').querySelectorAll('button').forEach(b => b.onclick = () => { vid.person = +b.dataset.i; autoPick(); renderVideo(); });
+  $('#frames').innerHTML = items.map(it => {
+    const fr = vid.frames[it.fi]; if (!it.thumb) it.thumb = faceCrop(fr.canvas, fr.faces[it.di].box, 72);
+    const turn = Math.abs(it.yaw) < 6 ? 'front' : it.yaw < 0 ? `◀ ${-it.yaw}°` : `${it.yaw}° ▶`;
+    const on = vid.chosen.has(it.fi);
+    return `<label class="fr${on ? ' on' : ''}" title="${fr.t.toFixed(1)} s into the video"><input type="checkbox" data-f="${it.fi}"${on ? ' checked' : ''}><img src="${it.thumb}" alt=""><span>${turn}</span></label>`;
+  }).join('');
+  $('#frames').querySelectorAll('input').forEach(c => c.onchange = () => {
+    const f = +c.dataset.f;
+    if (c.checked && vid.chosen.size >= MAX_PHOTOS) { c.checked = false; msg(`Up to ${MAX_PHOTOS} frames.`); return; }
+    if (c.checked) vid.chosen.add(f); else vid.chosen.delete(f);
+    c.parentElement.classList.toggle('on', c.checked); vidCount();
+  });
+  vidCount();
+}
+
+/** The ticked frames become the photo set; the most frontal one gives the colours and is the shape reference. */
+function buildFromVideo() {
+  const items = vid.tracks[vid.person].items.filter(it => vid.chosen.has(it.fi)).sort((a, b) => Math.abs(a.yaw) - Math.abs(b.yaw));
+  if (!items.length) return;
+  photos = items.map(it => { const fr = vid.frames[it.fi]; return { canvas: fr.canvas, faces: fr.faces, sel: it.di, yaw: it.yaw, tracked: true, name: `frame at ${fr.t.toFixed(1)} s`, thumb: it.thumb || faceCrop(fr.canvas, fr.faces[it.di].box, 72) }; });
+  showPhotos();
+}
+$('#vbuild').onclick = buildFromVideo;
+$('#vauto').onclick = () => { autoPick(); renderVideo(); };
+
+fetch('samples/samples.json').then(r => r.ok ? r.json() : []).then(list => {
+  const sets = list.map(s => ({ name: s.name, files: s.files || [s.file] }));
+  $('#samples').innerHTML = sets.map((s, i) => `<button title="${s.name}${s.files.length > 1 ? ' (' + s.files.length + ' angles)' : ''}" data-i="${i}"><img src="samples/${s.files[0]}" alt="${s.name}">${s.files.length > 1 ? `<b>${s.files.length}</b>` : ''}</button>`).join('');
+  const open = i => addPhotos(sets[i].files.map((f, k) => ({ src: 'samples/' + f, name: `${sets[i].name} ${k + 1}` })), true);
+  document.querySelectorAll('#samples button').forEach(b => b.onclick = () => open(+b.dataset.i));
+  if (STOCK && sets.length) open(0);
+}).catch(() => {});
+
+document.querySelectorAll('#modes button').forEach(b => b.onclick = () => { mode = b.dataset.m; applyMode(); });
+$('#depth').oninput = buildMesh; $('#smooth').oninput = buildMesh; $('#light').oninput = setLight;
+$('#adetail').onchange = () => {
+  const old = ascii.domElement; const e = new AsciiEffect(renderer, ' .:-=+*#%@', { invert: true, color: true, resolution: +$('#adetail').value });
+  e.domElement.style.color = '#e8edf3'; old.replaceWith(e.domElement); Object.assign(ascii, { render: e.render, setSize: e.setSize, domElement: e.domElement }); resize();
+};
+
+/* ---------- export ---------- */
+function download(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+$('#glb').onclick = () => {
+  const keep = mode; mode = 'photo'; applyMode();
+  new GLTFExporter().parse(mesh, glb => { download(new Blob([glb], { type: 'model/gltf-binary' }), 'face.glb'); mode = keep; applyMode(); }, e => msg('Export failed: ' + e.message), { binary: true });
+};
+$('#png').onclick = () => { renderer.render(scene, camera); renderer.domElement.toBlob(b => download(b, 'face.png')); };
+
+/* ---------- loop ---------- */
+renderer.setAnimationLoop(() => {
+  if (mesh && $('#spin').checked) mesh.rotation.y = Math.sin(performance.now() / 2600) * 0.55;
+  controls.update();
+  if (mode === 'ascii') ascii.render(scene, camera); else renderer.render(scene, camera);
+});
+Object.defineProperties(window.__face3d, { triangles: { get: () => (mesh ? mesh.geometry.index.count / 3 : 0) }, mode: { get: () => mode } });
+</script>
+</body>
+</html>

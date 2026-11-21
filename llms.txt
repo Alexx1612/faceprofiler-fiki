@@ -1,0 +1,13 @@
+# Nau-ino
+
+> Security, access control and analytics for any site, on the CCTV cameras it already has, at a low energy cost. A student project: face check of people on existing cameras, night alerts for schools, worker analytics and a local face search. Figures marked as estimates or targets on the site are assumptions, not results.
+
+## Pages
+
+- [Home](https://alexx1612.github.io/faceprofiler-fiki/): problem, product, proof (distance and mask tests), technology, team, business model.
+- [For schools](https://alexx1612.github.io/faceprofiler-fiki/landing/): customer landing page; flags strangers on a school's own cameras at night, free 30-day pilot.
+- [Pitch](https://alexx1612.github.io/faceprofiler-fiki/pitch/): problem, product, proof, customer validation, market, business model, competition, team and the ask.
+- [M2 Validation 1](https://alexx1612.github.io/faceprofiler-fiki/M2/): customer discovery, problem first, then the solution.
+- [M3 Wireframe and landing page](https://alexx1612.github.io/faceprofiler-fiki/M3/): clickable wireframe of the school console, screen map and app demos.
+- [M4 UX](https://alexx1612.github.io/faceprofiler-fiki/M4/): interviews, personas, user stories, use cases and user flows.
+- [3D Face demo](https://alexx1612.github.io/faceprofiler-fiki/face3d/): a face photo turned into a textured 3D mesh in the browser (stock faces only).
