@@ -42,7 +42,7 @@ function AppHeader({ app }: { app: AppDemo }) {
           href="../face3d/"
           className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-sky-600 px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-sky-500"
         >
-          Try the 3D face: stock faces, your photos or a video
+          Try the 3D face on stock faces
         </a>
       )}
     </div>
