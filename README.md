@@ -45,7 +45,7 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 
 Without them the forms fall back to `mailto:` and no analytics loads. In PostHog, switch on cookieless
 mode in the project settings (visitors who decline cookies are counted that way). The campaign log and
-channel numbers shown on `/M5/` are in `lib/m5.ts`; screenshots go in `public/m5/`.
+channel numbers shown on `/M5/` are in `lib/m5.ts`; screenshots go in `public/campaign/`.
 
 ## User manuals
 

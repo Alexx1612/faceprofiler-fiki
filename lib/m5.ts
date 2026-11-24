@@ -174,7 +174,7 @@ Echipa Nau-ino`,
   },
 ];
 
-/** One entry per real post. Fill `date`, `permalink`, `screenshot` (file in public/m5/) and the counts. */
+/** One entry per real post. Fill `date`, `permalink`, `screenshot` (file in public/campaign/) and the counts. */
 export type LogEntry = {
   channel: ChannelId;
   where: string;
