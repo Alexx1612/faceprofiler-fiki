@@ -10,4 +10,6 @@
 - [M2 Validation 1](https://alexx1612.github.io/faceprofiler-fiki/M2/): customer discovery, problem first, then the solution.
 - [M3 Wireframe and landing page](https://alexx1612.github.io/faceprofiler-fiki/M3/): clickable wireframe of the school console, screen map and app demos.
 - [M4 UX](https://alexx1612.github.io/faceprofiler-fiki/M4/): interviews, personas, user stories, use cases and user flows.
+- [M5 Lead generation](https://alexx1612.github.io/faceprofiler-fiki/M5/): lead forms, PostHog analytics, the campaign posts per channel and the channel comparison.
+- [User manuals](https://alexx1612.github.io/faceprofiler-fiki/manuals/): PDF manuals in English and Romanian for the camera app, Worker Analytics, the Android app and the 3D face demo.
 - [3D Face demo](https://alexx1612.github.io/faceprofiler-fiki/face3d/): a face photo turned into a textured 3D mesh in the browser (stock faces only).

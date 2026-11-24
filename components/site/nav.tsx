@@ -28,6 +28,7 @@ export const milestones = [
   { href: "/M2/", code: "M2", label: "Validation 1 (idea)" },
   { href: "/M3/", code: "M3", label: "Wireframe & landing page" },
   { href: "/M4/", code: "M4", label: "UX: interviews & personas" },
+  { href: "/M5/", code: "M5", label: "Lead generation" },
 ];
 
 /** "Milestones" drop-down: opens on click, closes on outside click or Escape. */
@@ -67,6 +68,14 @@ function MilestonesMenu() {
               {m.label}
             </Link>
           ))}
+          <Link
+            href="/manuals/"
+            onClick={() => setOpen(false)}
+            className="mt-1 flex min-h-11 items-center gap-2 rounded-lg border-t border-white/10 px-3 text-sm text-neutral-200 hover:bg-white/5"
+          >
+            <span className="rounded bg-emerald-400/15 px-1.5 py-0.5 text-xs font-semibold text-emerald-300">PDF</span>
+            User manuals
+          </Link>
       </div>
     </div>
   );

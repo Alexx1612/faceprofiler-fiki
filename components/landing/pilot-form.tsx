@@ -2,23 +2,40 @@
 
 import { useState } from "react";
 
+import { sendLead, track } from "@/lib/analytics";
 import { team } from "@/lib/content";
 
 /**
- * Pilot booking form. The site is static, so it opens the visitor's e-mail app with the answers filled in,
- * addressed to the team member who runs pilots (same approach as the M2 questionnaire).
+ * Pilot booking form. Sends the answers to Formspree when a form ID is configured (Milestone 5 leads);
+ * otherwise it opens the visitor's e-mail app with the answers filled in, addressed to the team member
+ * who runs pilots (same approach as the M2 questionnaire).
  */
 export function PilotForm() {
   const [f, setF] = useState<Record<string, string>>({});
-  const [status, setStatus] = useState("Opens your e-mail app with this filled in. Nothing is stored on this site.");
+  const [status, setStatus] = useState("Goes straight to the team. We reply within two school days.");
+  const [busy, setBusy] = useState(false);
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF((v) => ({ ...v, [k]: e.target.value }));
   const to = team[1].email;
 
-  const send = (e: React.FormEvent) => {
+  const send = async (e: React.FormEvent) => {
     e.preventDefault();
-    const body = [`School: ${f.school ?? ""}`, `Town: ${f.town ?? ""}`, `My role: ${f.role ?? ""}`, `Cameras: ${f.cameras ?? ""}`].join("\n");
-    setStatus("Your e-mail app should open now. Press send there to book the pilot.");
-    window.location.href = `mailto:${to}?subject=${encodeURIComponent("Nau-ino pilot request")}&body=${encodeURIComponent(body)}`;
+    const data = { school: f.school ?? "", town: f.town ?? "", role: f.role ?? "", cameras: f.cameras ?? "", email: f.email ?? "" };
+    setBusy(true);
+    try {
+      const how = await sendLead("pilot", data);
+      track("pilot_form_submitted", { cameras: data.cameras, via: how });
+      if (how === "mailto") {
+        const body = [`School: ${data.school}`, `Town: ${data.town}`, `My role: ${data.role}`, `Cameras: ${data.cameras}`, `E-mail: ${data.email}`].join("\n");
+        setStatus("Your e-mail app should open now. Press send there to book the pilot.");
+        window.location.href = `mailto:${to}?subject=${encodeURIComponent("Nau-ino pilot request")}&body=${encodeURIComponent(body)}`;
+      } else {
+        setStatus("Thank you. We will e-mail you within two school days.");
+      }
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : "The form could not be sent. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -26,6 +43,10 @@ export function PilotForm() {
       <label>
         School
         <input required autoComplete="organization" onChange={set("school")} />
+      </label>
+      <label>
+        Your e-mail
+        <input type="email" required autoComplete="email" onChange={set("email")} />
       </label>
       <div className="lp-form__two">
         <label>
@@ -50,8 +71,8 @@ export function PilotForm() {
           <option>Not sure</option>
         </select>
       </label>
-      <button type="submit" className="lp-btn">
-        Book a pilot
+      <button type="submit" className="lp-btn" disabled={busy}>
+        {busy ? "Sending…" : "Book a pilot"}
       </button>
       <p className="lp-form__note" role="status">
         {status}

@@ -34,6 +34,24 @@ projects. If `npm install` fails with `EALLOWSCRIPTS`, run it with a clean user 
 `$env:npm_config_userconfig="$env:TEMP\empty-npmrc"` (PowerShell) after creating that file with a
 single `cafile=C:/Users/alexandru.mirea/.m2/corp-ca-bundle.pem` line.
 
+## Lead forms and analytics (Milestone 5)
+
+The landing page forms and PostHog read public keys at build time from `.env.local` (git-ignored):
+
+```
+NEXT_PUBLIC_FORMSPREE_ID=<id from formspree.io/f/<id>>
+NEXT_PUBLIC_POSTHOG_KEY=phc_...
+```
+
+Without them the forms fall back to `mailto:` and no analytics loads. In PostHog, switch on cookieless
+mode in the project settings (visitors who decline cookies are counted that way). The campaign log and
+channel numbers shown on `/M5/` are in `lib/m5.ts`; screenshots go in `public/m5/`.
+
+## User manuals
+
+`public/manuals/` (PDFs, covers, `manifest.json`) is generated in the Nau-ino repo by
+`tools/make_manuals.py --out ../faceprofiler-fiki/public/manuals`; edit the sources there, not the PDFs.
+
 ## Publish on GitHub Pages (free)
 
 Live at https://alexx1612.github.io/faceprofiler-fiki/

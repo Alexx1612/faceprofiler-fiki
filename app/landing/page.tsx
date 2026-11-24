@@ -8,6 +8,8 @@ import { HeroCopy } from "@/components/landing/hero-copy";
 import { NightLive } from "@/components/landing/night-live";
 import { PilotForm } from "@/components/landing/pilot-form";
 import { Tour } from "@/components/landing/tour";
+import { UpdatesForm } from "@/components/landing/updates-form";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 import { Logo } from "@/components/site/nav";
 import { asset, team } from "@/lib/content";
 import { pageMetadata, siteUrl } from "@/lib/seo";
@@ -49,10 +51,11 @@ export default function Landing() {
             <a href="#demo">Demo</a>
             <a href="#modes">Day and night</a>
             <a href="#privacy">Privacy</a>
+            <a href="#updates">Updates</a>
           </nav>
-          <a href="#pilot" className="lp-btn lp-btn--sm lp-nav__cta">
+          <TrackedLink href="#pilot" event="cta_book_pilot_click" props={{ place: "nav" }} className="lp-btn lp-btn--sm lp-nav__cta">
             Book a pilot
-          </a>
+          </TrackedLink>
         </div>
       </header>
 
@@ -74,9 +77,9 @@ export default function Landing() {
             <div>
               <HeroCopy />
               <div className="lp-actions">
-                <a href="#pilot" className="lp-btn">
+                <TrackedLink href="#pilot" event="cta_book_pilot_click" props={{ place: "hero" }} className="lp-btn">
                   Book a pilot
-                </a>
+                </TrackedLink>
               </div>
               <p className="lp-hero__note">Free for 30 days, on your own cameras.</p>
             </div>
@@ -146,6 +149,26 @@ export default function Landing() {
           </div>
         </section>
 
+        <section id="updates" className="lp-section">
+          <div className="lp-wrap lp-updates">
+            <div>
+              <h2 className="lp-h2">Not ready for a pilot yet?</h2>
+              <p className="lp-sub">Leave an e-mail and we write once, when the pilot opens in your town. No spam, no sharing.</p>
+              <ul className="lp-steps">
+                <li>
+                  <CheckIcon />
+                  For parents, teachers and school staff.
+                </li>
+                <li>
+                  <CheckIcon />
+                  Phone is optional: only if you want a call back.
+                </li>
+              </ul>
+            </div>
+            <UpdatesForm />
+          </div>
+        </section>
+
         <section id="pilot" className="lp-section">
           <div className="lp-wrap lp-pilot">
             <div>
@@ -180,6 +203,7 @@ export default function Landing() {
             </span>
             <Link href="/">Project wiki</Link>
             <Link href="/M3/">Wireframe</Link>
+            <Link href="/manuals/">User manuals</Link>
             <a href={`mailto:${team[0].email}`}>{team[0].email}</a>
             <a href={`mailto:${team[1].email}`}>{team[1].email}</a>
           </div>

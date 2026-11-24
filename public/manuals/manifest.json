@@ -1,0 +1,113 @@
+{
+  "generated": "2026-11-24",
+  "manuals": [
+    {
+      "id": "camera-app",
+      "version": "Nauino 0.3.2 (Windows)",
+      "title": {
+        "en": "Nau-ino camera app",
+        "ro": "Aplicația de camere Nau-ino"
+      },
+      "summary": {
+        "en": "Recognise known people on your cameras, get alerts about strangers at night, and blur faces for privacy. Runs on one Windows computer.",
+        "ro": "Recunoaște persoanele cunoscute pe camere, te anunță noaptea despre străini și ascunde fețele pentru confidențialitate. Rulează pe un singur calculator cu Windows."
+      },
+      "files": {
+        "en": {
+          "pdf": "camera-app-en.pdf",
+          "pages": 12,
+          "bytes": 1312970
+        },
+        "ro": {
+          "pdf": "camera-app-ro.pdf",
+          "pages": 12,
+          "bytes": 1319505
+        }
+      },
+      "cover": "covers/camera-app.jpg",
+      "coverWidth": 794,
+      "coverHeight": 1123
+    },
+    {
+      "id": "worker-analytics",
+      "version": "Worker Analytics 0.1.1 (Windows)",
+      "title": {
+        "en": "Worker Analytics",
+        "ro": "Worker Analytics"
+      },
+      "summary": {
+        "en": "Turn one camera view of a work floor into shift statistics per worker: time in zone, absences, safety gear and a heat map.",
+        "ro": "Transformă imaginea unei camere de pe o hală într-un raport de tură pentru fiecare lucrător: timp în zonă, absențe, echipament de protecție și hartă de căldură."
+      },
+      "files": {
+        "en": {
+          "pdf": "worker-analytics-en.pdf",
+          "pages": 10,
+          "bytes": 1149777
+        },
+        "ro": {
+          "pdf": "worker-analytics-ro.pdf",
+          "pages": 10,
+          "bytes": 1152922
+        }
+      },
+      "cover": "covers/worker-analytics.jpg",
+      "coverWidth": 794,
+      "coverHeight": 1123
+    },
+    {
+      "id": "android",
+      "version": "All-in-one debug APK (Android)",
+      "title": {
+        "en": "Nau-ino for Android",
+        "ro": "Nau-ino pentru Android"
+      },
+      "summary": {
+        "en": "The camera app, Face Search and the Worker Analytics replay in one Android app. Recognition runs on the phone; nothing is uploaded.",
+        "ro": "Aplicația de camere, Face Search și reluarea Worker Analytics într-o singură aplicație Android. Recunoașterea rulează pe telefon; nu se încarcă nimic."
+      },
+      "files": {
+        "en": {
+          "pdf": "android-en.pdf",
+          "pages": 8,
+          "bytes": 737956
+        },
+        "ro": {
+          "pdf": "android-ro.pdf",
+          "pages": 8,
+          "bytes": 741779
+        }
+      },
+      "cover": "covers/android.jpg",
+      "coverWidth": 794,
+      "coverHeight": 1123
+    },
+    {
+      "id": "face3d",
+      "version": "3D Face (browser)",
+      "title": {
+        "en": "3D Face",
+        "ro": "Fața 3D"
+      },
+      "summary": {
+        "en": "Turn photos of one person into a 3D face you can turn, relight and export. Runs in the browser; photos are not uploaded.",
+        "ro": "Transformă pozele unei persoane într-o față 3D pe care o poți roti, lumina altfel și exporta. Rulează în browser; pozele nu se încarcă nicăieri."
+      },
+      "files": {
+        "en": {
+          "pdf": "face3d-en.pdf",
+          "pages": 5,
+          "bytes": 600073
+        },
+        "ro": {
+          "pdf": "face3d-ro.pdf",
+          "pages": 5,
+          "bytes": 602171
+        }
+      },
+      "cover": "covers/face3d.jpg",
+      "coverWidth": 794,
+      "coverHeight": 1123
+    }
+  ]
+}

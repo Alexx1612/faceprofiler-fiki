@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Wix_Madefor_Display, Wix_Madefor_Text } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@/components/analytics/analytics";
 import { siteName, siteUrl } from "@/lib/seo";
 
 /* Body and headings in Wix Madefor (same family as the landing page); Geist Mono stays for figures and code. */
@@ -40,7 +41,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`dark ${siteSans.variable} ${siteDisplay.variable} ${geistMono.variable}`}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

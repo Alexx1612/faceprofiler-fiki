@@ -11,7 +11,7 @@ export const siteName = "Nau-ino";
 export const ogImage = { url: `${siteUrl}/og.jpg`, width: 1200, height: 630, alt: "Nau-ino: face check on existing CCTV cameras" };
 
 /** Every public page, for the sitemap and llms.txt. */
-export const publicPages = ["/", "/landing/", "/pitch/", "/M2/", "/M3/", "/M4/", "/face3d/"];
+export const publicPages = ["/", "/landing/", "/pitch/", "/M2/", "/M3/", "/M4/", "/M5/", "/manuals/", "/face3d/"];
 
 /** Title, description, canonical URL, Open Graph and Twitter card for one page. */
 export function pageMetadata({ path, title, description, image = ogImage }: {
