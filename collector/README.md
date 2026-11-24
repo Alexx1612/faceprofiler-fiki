@@ -9,6 +9,14 @@ It stores:
 
 It never stores an IP address, a user-agent string or a full referrer URL.
 
+Every row also stores the source decided by the server (`source`, `medium`, `source_how`) next to the raw
+facts it came from (`referrer_host`, `utm_*`), a server receive time, and a SHA-256 hash chain in the last
+column. **How to prove the numbers are genuine** (rules, hash chain, re-checking a CSV download with
+`node collector/verify.mjs events.csv forms.csv`, known limits): see [AUTHENTICITY.md](AUTHENTICITY.md).
+
+If you deployed an older `Code.gs` (before collector 1.1), the column layout changed: rename or delete the old
+`events` and `forms` tabs once, so the script creates them again with the new headers.
+
 ## Set it up (about 5 minutes)
 
 1. Create a new Google Sheet (go to <https://sheets.new>) and name it "Nau-ino analytics".
@@ -55,4 +63,4 @@ Free-text answers (comments), e-mails and phone numbers stay in the Sheet. They 
 
 ## Tests
 
-`npm run test:collector` runs the aggregation in Node on fixture events.
+`npm run test:collector` runs the aggregation, source rules, hash chain, `verify.mjs` (on the fixture CSVs in `fixtures/`, made by `node collector/fixtures/make.mjs`) and checks that the /analytics/ code links (`lib/code-links.json`, rebuilt before every build) still point at the right functions.

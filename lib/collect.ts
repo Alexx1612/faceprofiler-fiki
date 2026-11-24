@@ -6,7 +6,7 @@
  * - Anonymous id: random, kept in sessionStorage (this tab only, so no cross-visit tracking) until the
  *   visitor accepts the consent bar; after Accept it moves to localStorage. Never derived from the device.
  * - Session id: new after 30 minutes without events. Every event carries the site version (lib/versions.ts),
- *   path, referring domain (not the full URL, and none for our own pages), utm_* from the landing URL
+ *   path, landing page of the session, referring host (not the full URL, and none for our own pages), utm_* from the landing URL
  *   (kept for the session), device bucket and browser family. No IP, no user-agent string.
  * - $pageview on load and on client-side navigation, $pageleave with time on page, $autocapture clicks
  *   on links and buttons with a stable label (data-track, else aria-label, else visible text; never input
@@ -22,7 +22,7 @@ import { siteVersion } from "@/lib/versions";
 export const collectUrl = process.env.NEXT_PUBLIC_COLLECT_URL ?? "";
 const build = process.env.NEXT_PUBLIC_SITE_BUILD ?? "";
 const SESSION_IDLE_MS = 30 * 60 * 1000;
-const K = { test: "nauino:test", anon: "nauino:aid", consent: "nauino:consent", session: "nauino:sid", seen: "nauino:seen", utm: "nauino:utm" };
+const K = { test: "nauino:test", anon: "nauino:aid", consent: "nauino:consent", session: "nauino:sid", seen: "nauino:seen", utm: "nauino:utm", landing: "nauino:land" };
 
 type Props = Record<string, unknown>;
 type Event = Record<string, unknown> & { event: string; props?: Props };
@@ -110,8 +110,17 @@ function browser(): string {
   return "other";
 }
 
-/** Referring domain of an outside page, or "" (own site, none, or hidden by the app). */
-function referrer(): string {
+// @provenance:capture:start
+/*
+ * Where the visitor came from: the browser only reports raw facts and the collector classifies them
+ * (classifySource in collector/Code.gs). Nothing here guesses a channel.
+ */
+
+/**
+ * Host of the page that sent the visitor (document.referrer), never its path or query: "l.facebook.com",
+ * "www.google.ro", "android-app://com.linkedin.android". "" for our own pages, none, or hidden by the app.
+ */
+function referrerHost(): string {
   try {
     if (!document.referrer) return "";
     const u = new URL(document.referrer);
@@ -122,7 +131,15 @@ function referrer(): string {
   }
 }
 
-/** utm_* of the URL the visitor arrived on, kept for the rest of the tab's visit. */
+/** First page of the current session (the page the visitor landed on), kept per session id. */
+function landingPath(session: string): string {
+  const saved = store.get("session", K.landing)?.split("|");
+  if (saved?.[0] === session && saved[1]) return saved[1];
+  store.set("session", K.landing, `${session}|${location.pathname}`);
+  return location.pathname;
+}
+
+/** utm_* of the URL the visitor arrived on (the tags in links we shared), kept for the rest of the tab's visit. */
 function utm(): Record<string, string> {
   const q = new URLSearchParams(location.search);
   const fresh: Record<string, string> = {};
@@ -141,21 +158,25 @@ function utm(): Record<string, string> {
   }
 }
 
+/** Fields sent with every event: raw source facts (referrer host, utm_*, landing page) plus context. */
 function base(now: number) {
+  const session = sessionId(now);
   return {
     id: rid(),
     ts: now,
     version: siteVersion,
     build,
     anon: anonId(),
-    session: sessionId(now),
+    session,
     path: location.pathname,
-    referrer: referrer(),
+    landing_path: landingPath(session),
+    referrer_host: referrerHost(),
     device: device(),
     ...utm(),
     ...(testMode() ? { test: true } : {}),
   };
 }
+// @provenance:capture:end
 
 function send(events: Event[], beacon = false) {
   if (!events.length) return;

@@ -122,7 +122,7 @@ test("forms per form and survey answers without free text", () => {
 
 test("game: plays, correct share and medians per round", () => {
   const g = C.aggregate(events, forms, T0).versions.all.game;
-  assert.deepEqual(g, [{ round: "1", people: 3, plays: 2, correct_pct: 0.5, median_human_ms: 3000, median_machine_ms: 0.03 }]);
+  assert.deepEqual(g, [{ round: "1", people: 3, plays: 2, correct_pct: 0.5, median_human_ms: 3000, best_human_ms: 2000, median_machine_ms: 0.03 }]);
 });
 
 test("per version and merged: all-time totals equal the sum of versions; duplicate ids counted once", () => {

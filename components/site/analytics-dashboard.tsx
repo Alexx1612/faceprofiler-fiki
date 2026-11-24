@@ -1,10 +1,11 @@
 "use client";
 
-import { ChevronDown, RefreshCw } from "lucide-react";
+import { ChevronDown, ExternalLink, RefreshCw, ShieldCheck, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
+import codeLinks from "@/lib/code-links.json";
 import { collectUrl } from "@/lib/collect";
 import { siteVersion, versions } from "@/lib/versions";
 import { NextArrow, TabLabel } from "./tab-hint";
@@ -15,8 +16,13 @@ import { NextArrow, TabLabel } from "./tab-hint";
  * Methodology: fetches `NEXT_PUBLIC_COLLECT_URL?stats=1`, which returns aggregates only, per site version
  * and merged ("all"). The version selector switches between them. "Where visitors come from" sits at the
  * top: one row per normalised source with visitors, sessions, sessions that sent a form or the survey and
- * the conversion rate, expandable to campaigns, utm_content and landing paths. Without a collector URL, or
- * when the fetch fails, the page shows the setup steps instead of numbers; nothing is ever made up.
+ * the conversion rate, its medium and how it was known (our UTM link, the browser's referrer, or nothing),
+ * expandable to the raw referrer hosts mapped into it, campaigns, utm_content and landing paths. The source is
+ * decided by the collector (classifySource in collector/Code.gs), not here. "How these numbers are made"
+ * links each step to the exact lines on GitHub (lib/code-links.json, generated from markers in the code) and
+ * shows the hash-chain facts, so anyone can re-check the numbers from the Sheet with collector/verify.mjs.
+ * Without a collector URL, or when the fetch fails, the page shows the setup steps instead of numbers;
+ * nothing is ever made up.
  */
 
 type Count = { key: string; count: number };
@@ -26,6 +32,12 @@ type Source = {
   sessions: number;
   conversions: number;
   conversion_rate: number;
+  /** utm_medium, else social / search / email / referral / direct */
+  mediums?: Count[];
+  /** how the source was known: "utm" (our tagged link), "referrer" (sent by the browser) or "none" */
+  how?: Count[];
+  /** raw referrer hosts mapped into this source, e.g. l.facebook.com → facebook */
+  referrer_hosts?: Count[];
   campaigns: Count[];
   contents: Count[];
   landing_pages: Count[];
@@ -43,16 +55,47 @@ type Stats = {
   funnel: { step: string; visitors: number; conversion: number }[];
   forms: Count[];
   survey: Record<string, Count[]>;
-  game: { round: string; people: number | null; plays: number; correct_pct: number; median_human_ms: number | null; median_machine_ms: number | null }[];
+  game: GameRound[];
+  game_summary?: {
+    players: number;
+    finished_all: number;
+    avg_score: number;
+    score_distribution: { score: number; players: number }[];
+    scenarios: Count[];
+  };
   daily: { date: string; pageviews: number; visitors: number }[];
 };
-type Payload = { generated: number; events: number; test_events?: number; versions: Record<string, Stats> };
+type GameRound = {
+  round: string;
+  people: number | null;
+  plays: number;
+  correct_pct: number;
+  median_human_ms: number | null;
+  best_human_ms?: number | null;
+  median_machine_ms: number | null;
+};
+type Chain = { rows: number; chain_head: string; chain_ok: boolean | null; first_broken_row?: number | null };
+type Payload = {
+  generated: number;
+  events: number;
+  test_events?: number;
+  collector?: string;
+  integrity?: { collector: string; events: Chain; forms: Chain };
+  versions: Record<string, Stats>;
+};
 
 const box = "rounded-2xl border border-white/10 bg-white/[0.03] p-4";
 const h4 = "mb-3 text-sm font-semibold text-white";
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const num = (x: number) => x.toLocaleString("en-US");
 const dur = (s: number) => (s >= 60 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${s} s`);
+const HOW: Record<string, string> = { utm: "UTM link", referrer: "referrer", none: "nothing" };
+/** "from referrer 3 + UTM link 1", or "no source sent" when the browser reported nothing. */
+const howText = (r: Source) => {
+  const h = r.how ?? [];
+  if (h.length === 1 && h[0].key === "none") return "no source sent";
+  return `from ${h.map((x) => `${HOW[x.key] ?? x.key}${h.length > 1 ? ` ${x.count}` : ""}`).join(" + ")}`;
+};
 
 export const SETUP_STEPS = [
   "Create a new Google Sheet (sheets.new) and name it “Nau-ino analytics”.",
@@ -163,7 +206,15 @@ function Sources({ s }: { s: Stats }) {
                   >
                     <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-white">
                       <ChevronDown aria-hidden className={`size-4 shrink-0 text-neutral-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-                      <span className="truncate">{r.source}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate">{r.source}</span>
+                        {r.mediums?.length || r.how?.length ? (
+                          <span className="block truncate text-xs font-normal text-neutral-400">
+                            {r.mediums?.[0]?.key}
+                            {r.how?.length ? ` · ${howText(r)}` : ""}
+                          </span>
+                        ) : null}
+                      </span>
                     </span>
                     <span className="text-right text-sm tabular-nums text-white sm:hidden">
                       {num(r.visitors)} <span className="text-neutral-400">· {pct(r.conversion_rate)}</span>
@@ -183,7 +234,11 @@ function Sources({ s }: { s: Stats }) {
                     <span className="hidden text-right text-sm tabular-nums text-emerald-300 sm:block">{pct(r.conversion_rate)}</span>
                   </button>
                   {isOpen && (
-                    <div className="grid gap-4 px-1 pb-4 pt-1 sm:grid-cols-3">
+                    <div className="grid gap-4 px-1 pb-4 pt-1 sm:grid-cols-2 lg:grid-cols-4">
+                      <div>
+                        <p className="mb-2 text-xs font-semibold text-neutral-300">Referrer hosts → {r.source}</p>
+                        <CountList items={r.referrer_hosts ?? []} empty="None (UTM link or no referrer)." />
+                      </div>
                       <div>
                         <p className="mb-2 text-xs font-semibold text-neutral-300">utm_campaign</p>
                         <CountList items={r.campaigns} empty="None (no UTM link)." />
@@ -204,6 +259,94 @@ function Sources({ s }: { s: Stats }) {
           </ul>
         </div>
       )}
+    </section>
+  );
+}
+
+const STEP_TEXT: Record<string, [string, string]> = {
+  capture: ["Capture", "The browser sends only raw facts: referrer host, utm_* tags, landing page."],
+  classify: ["Classify", "The server picks the source by fixed rules: UTM link, else referrer, else direct."],
+  store: ["Store", "Each row gets a server id, server time and a SHA-256 chain hash."],
+  aggregate: ["Count", "Test rows and duplicates out; the same code runs in verify.mjs."],
+};
+
+/** Link to the exact lines on GitHub: the deployed commit when the build was clean, else main. */
+function codeHref(file: string, from?: number, to?: number) {
+  const b = process.env.NEXT_PUBLIC_SITE_BUILD ?? "";
+  const ref = /^[0-9a-f]{7,40}$/.test(b) ? b : "main";
+  return `${codeLinks.repo}/blob/${ref}/${file}${from ? `#L${from}-L${to}` : ""}`;
+}
+
+function ChainFact({ name, c }: { name: string; c?: Chain }) {
+  if (!c) return null;
+  const ok = c.chain_ok;
+  const Icon = ok === false ? ShieldAlert : ShieldCheck;
+  return (
+    <li className="flex min-w-0 items-center gap-2">
+      <Icon aria-hidden className={`size-4 shrink-0 ${ok === false ? "text-rose-300" : ok ? "text-emerald-300" : "text-neutral-400"}`} />
+      <span className="min-w-0 truncate">
+        {name}: {num(c.rows)} rows ·{" "}
+        {ok === false ? `chain broken at Sheet row ${c.first_broken_row}` : ok ? "chain intact" : "chain not re-checked (too many rows)"}
+        {c.chain_head ? (
+          <>
+            {" "}
+            · head <code className="text-neutral-200">{c.chain_head.slice(0, 12)}</code>
+          </>
+        ) : null}
+      </span>
+    </li>
+  );
+}
+
+/** How these numbers are made: the four steps with links to the code, the chain facts and how to re-check. */
+function Provenance({ data }: { data: Payload | null }) {
+  const build = process.env.NEXT_PUBLIC_SITE_BUILD ?? "";
+  return (
+    <section className={box} aria-labelledby="prov-h">
+      <h2 id="prov-h" className="mb-3 text-base font-semibold text-white">
+        How these numbers are made
+      </h2>
+      <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {codeLinks.steps.map((st, i) => (
+          <li key={st.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-sm">
+            <p className="font-semibold text-white">
+              {i + 1}. {STEP_TEXT[st.id]?.[0] ?? st.id}
+            </p>
+            <p className="mt-1 text-xs text-neutral-400">{STEP_TEXT[st.id]?.[1]}</p>
+            <a
+              href={codeHref(st.file, st.from, st.to)}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex min-h-9 max-w-full items-center gap-1 break-all text-xs text-sky-300 underline underline-offset-2"
+            >
+              <code>
+                {st.file.split("/").pop()}#L{st.from}-{st.to}
+              </code>
+              <ExternalLink aria-hidden className="size-3 shrink-0" />
+            </a>
+          </li>
+        ))}
+      </ol>
+      <ul className="mt-3 space-y-1.5 text-xs text-neutral-300">
+        {data?.integrity ? (
+          <>
+            <ChainFact name="events" c={data.integrity.events} />
+            <ChainFact name="forms" c={data.integrity.forms} />
+          </>
+        ) : null}
+        <li>
+          Verify yourself: download the Sheet tabs as CSV, then{" "}
+          <code className="text-neutral-200">node collector/verify.mjs events.csv forms.csv</code> ·{" "}
+          <a href={codeHref("collector/AUTHENTICITY.md")} target="_blank" rel="noreferrer" className="text-sky-300 underline underline-offset-2">
+            how it works
+          </a>
+        </li>
+        <li className="text-neutral-400">
+          Site {siteVersion}
+          {build ? ` (${build})` : ""}
+          {data?.integrity?.collector || data?.collector ? ` · collector ${data?.integrity?.collector ?? data?.collector}` : ""}
+        </li>
+      </ul>
     </section>
   );
 }
@@ -316,27 +459,78 @@ function Survey({ s }: { s: Stats }) {
   );
 }
 
+const sec = (ms: number | null | undefined) => (ms === null || ms === undefined ? "–" : `${(ms / 1000).toFixed(1)} s`);
+const msx = (ms: number | null | undefined) => (ms === null || ms === undefined ? "–" : `${ms.toFixed(2)} ms`);
+
+/** Who plays "Spot the stranger" and how well: players, finishers, score 0-4, and each round vs the machine. */
 function Game({ s }: { s: Stats }) {
+  const g = s.game_summary;
   if (!s.game.length) return <p className="text-sm text-neutral-400">Nobody has played yet.</p>;
+  const maxDist = Math.max(1, ...(g?.score_distribution ?? []).map((d) => d.players));
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      {s.game.map((g) => (
-        <div key={g.round} className={box}>
-          <p className="text-xs text-neutral-400">
-            Round {g.round}
-            {g.people ? ` · ${g.people} people` : ""}
-          </p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums text-white">{num(g.plays)} plays</p>
-          <dl className="mt-2 grid grid-cols-2 gap-1 text-sm">
-            <dt className="text-neutral-400">Correct</dt>
-            <dd className="text-right tabular-nums text-white">{pct(g.correct_pct)}</dd>
-            <dt className="text-neutral-400">Visitor (median)</dt>
-            <dd className="text-right tabular-nums text-white">{g.median_human_ms === null ? "–" : `${(g.median_human_ms / 1000).toFixed(1)} s`}</dd>
-            <dt className="text-neutral-400">Machine (median)</dt>
-            <dd className="text-right tabular-nums text-emerald-300">{g.median_machine_ms === null ? "–" : `${g.median_machine_ms.toFixed(2)} ms`}</dd>
-          </dl>
+    <div className="flex flex-col gap-3">
+      {g ? (
+        <div className="grid grid-cols-3 gap-3">
+          {(
+            [
+              ["Players", num(g.players)],
+              ["Finished all 4", `${num(g.finished_all)}${g.players ? ` · ${pct(g.finished_all / g.players)}` : ""}`],
+              ["Avg. score", `${g.avg_score.toFixed(1)} / 4`],
+            ] as const
+          ).map(([k, v]) => (
+            <div key={k} className={box}>
+              <p className="text-xs text-neutral-400">{k}</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums text-white sm:text-2xl">{v}</p>
+            </div>
+          ))}
         </div>
-      ))}
+      ) : null}
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+        {g ? (
+          <div className={box}>
+            <p className={h4}>Score (rounds right per player)</p>
+            <div className="flex h-36 items-end gap-3" role="img" aria-label={`Players per score: ${g.score_distribution.map((d) => `${d.score}/4: ${d.players}`).join(", ")}`}>
+              {g.score_distribution.map((d) => (
+                <div key={d.score} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+                  <span className="text-xs tabular-nums text-neutral-200">{num(d.players)}</span>
+                  <div
+                    className={`w-full rounded-t-md ${d.score === 4 ? "bg-emerald-400" : "bg-sky-500"}`}
+                    style={{ height: `${Math.max(3, (d.players / maxDist) * 100)}%` }}
+                  />
+                  <span className="text-xs text-neutral-400">{d.score}/4</span>
+                </div>
+              ))}
+            </div>
+            {g.scenarios.length ? (
+              <>
+                <p className="mb-2 mt-4 text-xs font-semibold text-neutral-300">Scenarios</p>
+                <CountList items={g.scenarios} />
+              </>
+            ) : null}
+          </div>
+        ) : null}
+        <div className="grid gap-3 sm:grid-cols-3">
+          {s.game.map((r) => (
+            <div key={r.round} className={box}>
+              <p className="text-xs text-neutral-400">
+                Round {r.round}
+                {r.people ? ` · ${r.people} people` : ""}
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-white">{num(r.plays)} plays</p>
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                <dt className="text-neutral-400">Correct</dt>
+                <dd className="text-right tabular-nums text-white">{pct(r.correct_pct)}</dd>
+                <dt className="text-neutral-400">Median</dt>
+                <dd className="text-right tabular-nums text-white">{sec(r.median_human_ms)}</dd>
+                <dt className="text-neutral-400">Best</dt>
+                <dd className="text-right tabular-nums text-white">{sec(r.best_human_ms)}</dd>
+                <dt className="text-neutral-400">Machine</dt>
+                <dd className="text-right tabular-nums text-emerald-300">{msx(r.median_machine_ms)}</dd>
+              </dl>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -398,8 +592,19 @@ export function AnalyticsDashboard() {
     return ["all", ...known, ...other];
   }, [data]);
 
-  if (state === "off") return <NotConnected reason="No collector URL in this build, so there is nothing to show. Six steps, about 5 minutes:" />;
-  if (state === "error") return <NotConnected reason="The collector did not answer. Check the URL and that the web app is deployed for “Anyone”:" />;
+  if (state === "off" || state === "error")
+    return (
+      <div className="flex flex-col gap-4 text-left">
+        <NotConnected
+          reason={
+            state === "off"
+              ? "No collector URL in this build, so there is nothing to show. Six steps, about 5 minutes:"
+              : "The collector did not answer. Check the URL and that the web app is deployed for “Anyone”:"
+          }
+        />
+        <Provenance data={null} />
+      </div>
+    );
   if (state === "loading" || !data) return <p className="text-sm text-neutral-400">Loading…</p>;
 
   const s = data.versions[version] ?? data.versions.all;
@@ -470,6 +675,7 @@ export function AnalyticsDashboard() {
       </div>
       <Kpis s={s} />
       <Sources s={s} />
+      <Provenance data={data} />
       <DirectionAwareTabs
         tabs={tabs.map((t, i) => ({ id: i, label: <TabLabel n={i + 1} text={t.label} />, content: <div className="mt-4 text-left">{t.el}</div> }))}
         trailing={(next) => <NextArrow onClick={next} />}

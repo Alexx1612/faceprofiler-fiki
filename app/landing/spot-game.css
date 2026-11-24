@@ -297,3 +297,289 @@
     transform: none;
   }
 }
+
+/* header: back to the survey */
+.sg__bar {
+  flex-wrap: wrap;
+}
+.sg__round {
+  flex: 1 1 100%;
+}
+.sg__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-right: auto;
+  padding: 0 14px;
+  border: 1px solid var(--color-accent-2);
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--color-accent-2) 14%, transparent);
+  color: var(--color-ink);
+  font: 600 13px var(--font-body);
+  cursor: pointer;
+}
+.sg__back:hover {
+  background: color-mix(in oklab, var(--color-accent-2) 26%, transparent);
+}
+.sg__back:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.sg__back-long {
+  display: none;
+}
+
+/* CCTV alert feed over the camera image */
+.sg__feedwrap {
+  position: relative;
+  min-width: 0;
+}
+.sg__feed {
+  position: absolute;
+  top: 30px;
+  left: 8px;
+  right: 8px;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+.sg__feed li {
+  justify-self: start;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-left: 3px solid oklch(64% 0.2 25);
+  border-radius: 3px;
+  background: rgb(6 9 16 / 0.78);
+  color: #f2f4f8;
+  font: 500 11px/1.35 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  animation: sg-alert 380ms ease-out both;
+}
+.sg__feed time,
+.sg__incident time {
+  color: oklch(78% 0.13 25);
+  font-variant-numeric: tabular-nums;
+}
+@keyframes sg-alert {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* result: why the person was flagged */
+.sg__okperson {
+  color: var(--color-ink-2);
+}
+.sg__okperson b {
+  color: var(--color-accent-hi);
+}
+.sg__incident {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0;
+  padding: 10px 12px;
+  border: 1px solid oklch(55% 0.16 25 / 0.55);
+  border-radius: var(--radius-inner);
+  background: oklch(25% 0.06 25 / 0.35);
+}
+.sg__incident p {
+  margin: 0;
+}
+.sg__incident-head {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.sg__badge {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: oklch(58% 0.2 25);
+  color: #fff;
+  font: 700 12px ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+.sg__incident ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sg__incident li {
+  font: 500 12.5px/1.4 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color: var(--color-ink-2);
+}
+.sg__incident li time {
+  margin-right: 6px;
+}
+.sg__sent {
+  font-size: 13px;
+  font-weight: 600;
+  color: oklch(80% 0.12 60);
+}
+
+@media (min-width: 560px) {
+  .sg__round {
+    flex: 0 1 auto;
+  }
+  .sg__back {
+    margin-left: auto;
+    margin-right: 0;
+  }
+  .sg__back-long {
+    display: inline;
+  }
+  .sg__back-short {
+    display: none;
+  }
+  .sg__feed {
+    top: 34px;
+    left: 12px;
+    right: auto;
+    max-width: 60%;
+  }
+  .sg__feed li {
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sg__feed li {
+    animation: none;
+  }
+}
+
+/* phone: the newest two alerts only, smaller, so the people stay visible */
+@media (max-width: 559px) {
+  .sg__feed li {
+    font-size: 10px;
+  }
+  .sg__feed li:nth-last-child(n + 3) {
+    display: none;
+  }
+}
+
+/* line-up captions: role under the name */
+.sg__mug small {
+  display: block;
+  margin-top: -2px;
+  font-size: 10.5px;
+  line-height: 1.25;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+/* (i) scenario note on the camera image */
+.sg__info-btn {
+  position: absolute;
+  top: 30px;
+  right: 6px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: #eaf6ff;
+  font: italic 700 14px Georgia, "Times New Roman", serif;
+}
+.sg__info-btn::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 1.5px solid rgb(234 246 255 / 0.8);
+  border-radius: 50%;
+  background: rgb(6 9 16 / 0.55);
+}
+.sg__info-btn {
+  z-index: 1;
+}
+.sg__info-btn[aria-expanded="true"]::before {
+  background: rgb(77 208 255 / 0.35);
+}
+.sg__info-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -4px;
+}
+.sg__info-btn {
+  isolation: isolate;
+}
+.sg__info-btn::before {
+  z-index: -1;
+}
+.sg__info {
+  position: absolute;
+  top: 72px;
+  right: 8px;
+  left: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgb(6 9 16 / 0.9);
+  color: #e9f3fb;
+  font-size: 13px;
+  line-height: 1.45;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.5);
+  animation: sg-alert 240ms ease-out both;
+}
+
+/* bonus */
+.sg__bonus-title {
+  margin: 0;
+  font: 600 clamp(18px, 4.6vw, 24px) / 1.2 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  color: var(--color-ink);
+}
+.sg__bonus-intro {
+  display: grid;
+  gap: var(--space-sm);
+}
+.sg__measured {
+  font: 500 12px/1.4 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color: #ffd1d6;
+}
+.sg__review {
+  font-size: 12.5px;
+  color: var(--color-ink-2);
+}
+
+/* summary */
+.sg__summary {
+  display: grid;
+  gap: var(--space-sm);
+}
+.sg__summary ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sg__summary li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-inner);
+  background: color-mix(in oklab, var(--color-shade) 60%, transparent);
+  box-shadow: inset 0 0 0 1px var(--color-rule);
+  font-size: 14px;
+}
+.sg__summary b {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 560px) {
+  .sg__info {
+    left: auto;
+    max-width: 52%;
+  }
+}

@@ -9,20 +9,40 @@
  *   are created on first use). No IP address is ever read or stored (Apps Script does not expose it).
  * - Forms behave like Formspree: a filled `_gotcha` honeypot is accepted silently and dropped;
  *   success is {ok:true}, failure {errors:[{message}]} (Apps Script cannot set HTTP status codes).
+ * - Source of a visit (who sent the visitor): the browser only reports raw facts, the referring host
+ *   (never the full URL) and the utm_* tags of the landing URL. The server decides the channel with one
+ *   pure function, classifySource(), and stores both the raw facts and the result in each row, so every
+ *   number can be traced back to the row and the rule that produced it. A session's source is the source
+ *   of its first event (first touch).
+ * - Tamper evidence: every stored row gets a server row id, the server receive time and a hash chain
+ *   value, chain = SHA-256(previous chain + "\n" + JSON of the row's other cells). Changing, deleting or
+ *   inserting any row in the Sheet breaks the chain from that row on. All cells are stored as text, so a
+ *   CSV download of the Sheet hashes to exactly the same values (collector/verify.mjs checks it).
  * - doGet?stats=1 returns aggregates only (never raw rows, e-mails or free text), per site version and
- *   for all versions merged ("all"). Metric definitions follow PostHog: visitors = distinct anonymous
- *   ids, session = events of one visitor with gaps under 30 minutes, at most 24 h (the client also sends
- *   its session id), bounce = a session that is not engaged (engaged: more than one pageview, any click or
- *   custom event, or over 10 s), funnel = ordered steps per visitor within 14 days of step 1. Clicks are
- *   counted by a stable label (data-track, else aria-label or text), so totals add up across versions.
+ *   for all versions merged ("all"), plus the chain facts (rows, head, intact or not). Metric definitions
+ *   follow PostHog: visitors = distinct anonymous ids, session = events of one visitor with gaps under
+ *   30 minutes, at most 24 h (the client also sends its session id), bounce = a session that is not
+ *   engaged (engaged: more than one pageview, any click or custom event, or over 10 s), funnel = ordered
+ *   steps per visitor within 14 days of step 1. Clicks are counted by a stable label (data-track, else
+ *   aria-label or text), so totals add up across versions.
  * - Rows marked test (the owner's PC, localhost, automated browsers) are stored but excluded from all
  *   stats; only their count comes back as `test_events`.
  * - Rows carry the client event id; duplicates (a retried batch) are dropped when aggregating.
- * - The aggregation functions are pure and exported for Node tests (aggregate.test.mjs).
+ * - The pure functions are exported for Node: aggregate.test.mjs and verify.mjs run the same code as the
+ *   web app. The "@provenance" markers delimit the code that the /analytics/ page links to.
  */
 
-var EVENT_HEADERS = ["id", "ts", "version", "build", "anon", "session", "event", "path", "referrer", "utm_source", "utm_medium", "utm_campaign", "utm_content", "device", "label", "props", "test"];
-var FORM_HEADERS = ["ts", "version", "form", "anon", "path", "data", "test"];
+var COLLECTOR_VERSION = "1.1";
+/** Sheet columns, in order. "chain" is always last; every other cell of the row is hashed into it. */
+var EVENT_HEADERS = [
+  "row_id", "received_at", "id", "ts", "version", "build", "anon", "session", "event", "path", "landing_path",
+  "referrer_host", "utm_source", "utm_medium", "utm_campaign", "utm_content", "source", "medium", "source_how",
+  "device", "label", "props", "test", "chain",
+];
+var FORM_HEADERS = ["row_id", "received_at", "version", "form", "anon", "path", "data", "test", "chain"];
+var GENESIS = "nau-ino:genesis";
+/** Above this many rows the stats endpoint skips re-checking the chain (time limit); verify.mjs still can. */
+var CHAIN_CHECK_MAX = 50000;
 var MAX_BODY = 64 * 1024;
 var MAX_EVENTS = 50;
 var RATE_PER_MINUTE = 120;
@@ -32,6 +52,11 @@ var ENGAGED_MS = 10 * 1000;
 var FUNNEL_WINDOW_MS = 14 * 86400 * 1000;
 /** Form fields never summarised in stats (personal or free text). */
 var PRIVATE_FIELDS = { email: 1, phone: 1, name: 1, message: 1, comment: 1, school: 1, page: 1, _gotcha: 1 };
+
+/** Free-text survey fields ("comment", "<question>_other", "<question>_note"): stats only count them. */
+function isFreeText(k) {
+  return k === "comment" || /_(other|note)$/.test(k);
+}
 var FUNNEL = [
   { name: "Landing page", match: function (e) { return e.event === "$pageview" && String(e.path).indexOf("/landing") === 0; } },
   { name: "Book a pilot or survey opened", match: function (e) { return e.event === "cta_book_pilot_click" || e.event === "survey_opened"; } },
@@ -40,6 +65,8 @@ var FUNNEL = [
 
 /* ---------------- web app entry points (Apps Script only) ---------------- */
 
+// @provenance:store:start
+/** Receive a batch of events or one form, clean it, classify the source and append it, hash-chained. */
 function doPost(e) {
   try {
     var body = (e && e.postData && e.postData.contents) || "";
@@ -53,13 +80,54 @@ function doPost(e) {
   }
 }
 
+function storeEvents_(events) {
+  var now = new Date().getTime();
+  var clean = cleanEvents(events, now);
+  if (!clean.length) return { errors: [{ message: "No valid events." }] };
+  if (!rateOk_(clean[0].anon, clean.length)) return { errors: [{ message: "Slow down." }] };
+  append_("events", EVENT_HEADERS, clean.map(function (ev) { return eventRow(ev, Utilities.getUuid(), now); }));
+  return { ok: true, stored: clean.length };
+}
+
+function storeForm_(msg) {
+  var now = new Date().getTime();
+  var f = cleanForm(msg, now);
+  if (f.error) return { errors: [{ message: f.error }] };
+  if (f.spam) return { ok: true };
+  if (!rateOk_(f.anon || "form", 5)) return { errors: [{ message: "Slow down." }] };
+  append_("forms", FORM_HEADERS, [formRow(f, Utilities.getUuid(), now)]);
+  return { ok: true };
+}
+
+/** Append rows under the script lock; the chain continues from the last row already in the sheet. */
+function append_(name, headers, rows) {
+  if (!rows.length) return;
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var sh = sheet_(name, headers);
+    var last = sh.getLastRow();
+    var prev = last >= 2 ? String(sh.getRange(last, headers.length).getValue()) : GENESIS;
+    var chained = chainRows(prev, rows);
+    var range = sh.getRange(last + 1, 1, chained.length, headers.length);
+    range.setNumberFormat("@"); // plain text: a CSV download then holds exactly the hashed strings
+    range.setValues(chained);
+  } finally {
+    lock.releaseLock();
+  }
+}
+// @provenance:store:end
+
 function doGet(e) {
-  if (!e || !e.parameter || e.parameter.stats !== "1") return json_({ ok: true, service: "nau-ino collector" });
+  if (!e || !e.parameter || e.parameter.stats !== "1") return json_({ ok: true, service: "nau-ino collector", version: COLLECTOR_VERSION });
   var cache = CacheService.getScriptCache();
   var hit = cache.get("stats");
   if (hit) return ContentService.createTextOutput(hit).setMimeType(ContentService.MimeType.JSON);
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var stats = aggregate(readRows_(ss, "events", EVENT_HEADERS), readRows_(ss, "forms", FORM_HEADERS), new Date().getTime());
+  var ev = readSheet_(ss, "events", EVENT_HEADERS);
+  var fo = readSheet_(ss, "forms", FORM_HEADERS);
+  var stats = aggregate(rowsToObjects(EVENT_HEADERS, ev), rowsToObjects(FORM_HEADERS, fo), new Date().getTime());
+  stats.integrity = { collector: COLLECTOR_VERSION, events: chainSummary(ev), forms: chainSummary(fo) };
   var out = JSON.stringify(stats);
   try { cache.put("stats", out, 300); } catch (err) { /* over 100 KB: serve uncached */ }
   return ContentService.createTextOutput(out).setMimeType(ContentService.MimeType.JSON);
@@ -72,7 +140,10 @@ function json_(o) {
 function sheet_(name, headers) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(name) || ss.insertSheet(name);
-  if (sh.getLastRow() === 0) sh.appendRow(headers);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1, 1, 1, headers.length).setNumberFormat("@").setValues([headers]);
+    sh.setFrozenRows(1);
+  }
   return sh;
 }
 
@@ -84,53 +155,16 @@ function rateOk_(anon, n) {
   return used <= RATE_PER_MINUTE;
 }
 
-function append_(name, headers, rows) {
-  if (!rows.length) return;
-  var lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
-    var sh = sheet_(name, headers);
-    sh.getRange(sh.getLastRow() + 1, 1, rows.length, headers.length).setValues(rows);
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function storeEvents_(events) {
-  var clean = cleanEvents(events, new Date().getTime());
-  if (!clean.length) return { errors: [{ message: "No valid events." }] };
-  if (!rateOk_(clean[0].anon, clean.length)) return { errors: [{ message: "Slow down." }] };
-  append_("events", EVENT_HEADERS, clean.map(function (ev) {
-    return EVENT_HEADERS.map(function (h) { return h === "props" ? JSON.stringify(ev.props) : ev[h]; });
-  }));
-  return { ok: true, stored: clean.length };
-}
-
-function storeForm_(msg) {
-  var f = cleanForm(msg, new Date().getTime());
-  if (f.error) return { errors: [{ message: f.error }] };
-  if (f.spam) return { ok: true };
-  if (!rateOk_(f.anon || "form", 5)) return { errors: [{ message: "Slow down." }] };
-  append_("forms", FORM_HEADERS, [[f.ts, f.version, f.form, f.anon, f.path, JSON.stringify(f.data), f.test]]);
-  return { ok: true };
-}
-
-function readRows_(ss, name, headers) {
+/** All data rows of a sheet as arrays of strings (header row skipped). */
+function readSheet_(ss, name, headers) {
   var sh = ss.getSheetByName(name);
   if (!sh || sh.getLastRow() < 2) return [];
-  var values = sh.getRange(2, 1, sh.getLastRow() - 1, headers.length).getValues();
-  return values.map(function (r) {
-    var o = {};
-    headers.forEach(function (h, i) { o[h] = r[i]; });
-    try { o.props = o.props ? JSON.parse(o.props) : {}; } catch (err) { o.props = {}; }
-    try { o.data = o.data ? JSON.parse(o.data) : {}; } catch (err) { o.data = {}; }
-    o.ts = Number(o.ts);
-    o.test = isTest(o.test);
-    return o;
+  return sh.getRange(2, 1, sh.getLastRow() - 1, headers.length).getValues().map(function (r) {
+    return r.map(function (v) { return String(v); });
   });
 }
 
-/* ---------------- pure functions (also run in Node tests) ---------------- */
+/* ---------------- pure functions (also run in Node: tests and verify.mjs) ---------------- */
 
 /** Test traffic (owner's PC, localhost, automated browsers): stored, but left out of every number. */
 function isTest(v) {
@@ -139,6 +173,100 @@ function isTest(v) {
 
 function cut(v, n) {
   return v === undefined || v === null ? "" : String(v).slice(0, n);
+}
+
+/** A sheet cell as text. A leading = + @ gets a space so Sheets never runs it as a formula. */
+function cell(v) {
+  var s = v === undefined || v === null ? "" : typeof v === "boolean" ? (v ? "true" : "false") : String(v);
+  return /^[=+@]/.test(s) ? " " + s : s;
+}
+
+/** The exact string hashed for one row: JSON of its cells (all text), without the chain cell. */
+function canonical(cells) {
+  return JSON.stringify(cells.map(cell));
+}
+
+/** Lower-case hex SHA-256 of a UTF-8 string, in Apps Script or in Node. */
+function sha256Hex(str) {
+  if (typeof Utilities !== "undefined") {
+    var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, str, Utilities.Charset.UTF_8);
+    return bytes.map(function (b) { return ((b & 0xff) + 0x100).toString(16).slice(1); }).join("");
+  }
+  return require("crypto").createHash("sha256").update(str, "utf8").digest("hex");
+}
+
+/** Append the chain cell to each row: chain = SHA-256(previous chain + "\n" + canonical(row)). */
+function chainRows(prev, rows) {
+  return rows.map(function (r) {
+    var cells = r.map(cell);
+    prev = sha256Hex(prev + "\n" + canonical(cells));
+    return cells.concat([prev]);
+  });
+}
+
+/**
+ * Re-check a chain from the stored cells (arrays of strings, chain last). Returns the number of rows, the
+ * last chain value and the first row (0-based) whose chain does not match, or -1 when all match.
+ */
+function verifyChain(rows) {
+  var prev = GENESIS;
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    var want = sha256Hex(prev + "\n" + canonical(r.slice(0, -1)));
+    if (want !== r[r.length - 1]) return { rows: rows.length, head: rows[rows.length - 1][r.length - 1], broken: i };
+    prev = want;
+  }
+  return { rows: rows.length, head: rows.length ? prev : "", broken: -1 };
+}
+
+/** Chain facts for the stats endpoint: rows, head and whether the chain still holds. */
+function chainSummary(rows) {
+  if (!rows.length) return { rows: 0, chain_head: "", chain_ok: true, first_broken_row: null };
+  if (rows.length > CHAIN_CHECK_MAX) return { rows: rows.length, chain_head: rows[rows.length - 1][rows[0].length - 1], chain_ok: null, first_broken_row: null };
+  var v = verifyChain(rows);
+  // first_broken_row is the Sheet row number (row 1 is the header)
+  return { rows: v.rows, chain_head: v.head, chain_ok: v.broken === -1, first_broken_row: v.broken === -1 ? null : v.broken + 2 };
+}
+
+/** One events-sheet row (without chain) for a cleaned event; the source is classified here, on the server. */
+function eventRow(ev, rowId, receivedAt) {
+  var c = classifySource(ev);
+  var o = {};
+  Object.keys(ev).forEach(function (k) { o[k] = ev[k]; });
+  o.row_id = rowId;
+  o.received_at = receivedAt;
+  o.source = c.source;
+  o.medium = c.medium;
+  o.source_how = c.how;
+  o.props = JSON.stringify(ev.props || {});
+  return EVENT_HEADERS.slice(0, -1).map(function (h) { return o[h]; });
+}
+
+/** One forms-sheet row (without chain). */
+function formRow(f, rowId, receivedAt) {
+  var o = { row_id: rowId, received_at: receivedAt, version: f.version, form: f.form, anon: f.anon, path: f.path, data: JSON.stringify(f.data), test: f.test };
+  return FORM_HEADERS.slice(0, -1).map(function (h) { return o[h]; });
+}
+
+/** Stored rows (arrays of strings, as in the Sheet or its CSV export) back to event / form objects. */
+function rowsToObjects(headers, rows) {
+  return rows.map(function (r) {
+    var o = {};
+    headers.forEach(function (h, i) { o[h] = r[i] === undefined ? "" : String(r[i]); });
+    try { o.props = o.props ? JSON.parse(o.props) : {}; } catch (err) { o.props = {}; }
+    try { o.data = o.data ? JSON.parse(o.data) : {}; } catch (err) { o.data = {}; }
+    o.ts = Number(o.ts || o.received_at);
+    o.test = isTest(o.test);
+    return o;
+  });
+}
+
+/** Host part only of a referrer ("https://l.facebook.com/l.php?u=…" → "l.facebook.com"); app ids kept. */
+function hostOnly(v) {
+  var s = String(v || "").trim().toLowerCase();
+  var app = /^android-app:\/\/([^/?#]+)/.exec(s);
+  if (app) return "android-app://" + app[1].slice(0, 60);
+  return s.replace(/^[a-z][a-z0-9+.-]*:\/\//, "").replace(/[/?#].*$/, "").replace(/:\d+$/, "").slice(0, 80);
 }
 
 /** Validate and trim a batch of client events; drops anything malformed. */
@@ -165,7 +293,8 @@ function cleanEvents(events, now) {
       session: cut(e.session, 40),
       event: cut(e.event, 40),
       path: cut(e.path, 120),
-      referrer: cut(e.referrer, 80),
+      landing_path: cut(e.landing_path, 120),
+      referrer_host: hostOnly(e.referrer_host || e.referrer),
       utm_source: cut(e.utm_source, 60),
       utm_medium: cut(e.utm_medium, 60),
       utm_campaign: cut(e.utm_campaign, 60),
@@ -238,27 +367,32 @@ function sessionize(events) {
 
 var SUBMIT_EVENTS = { pilot_form_submitted: 1, updates_form_submitted: 1, survey_submitted: 1 };
 var DIRECT = "direct / unknown";
-/** Known referrer hosts and app ids mapped to one channel name. Checked in order, by suffix or prefix. */
+
+// @provenance:classify:start
+/**
+ * Known referrer hosts and app ids → [pattern, channel, kind]. Checked in order; a host matches by its
+ * end ("l.facebook.com" ends in "facebook.com"), an Android app id by its start ("com.linkedin.android").
+ */
 var SOURCE_RULES = [
-  [/(^|\.)facebook\.com$|^fb\.me$|^com\.facebook\./, "facebook"],
-  [/(^|\.)instagram\.com$|^com\.instagram\./, "instagram"],
-  [/^t\.co$|(^|\.)twitter\.com$|(^|\.)x\.com$/, "x / twitter"],
-  [/(^|\.)reddit\.com$|^redd\.it$|^com\.reddit\./, "reddit"],
-  [/(^|\.)linkedin\.com$|^lnkd\.in$|^com\.linkedin\./, "linkedin"],
-  [/(^|\.)whatsapp\.com$|^wa\.me$|^com\.whatsapp/, "whatsapp"],
-  [/^com\.google\.android\.gm$|^mail\.google\.com$/, "gmail"],
-  [/(^|\.)google\.[a-z.]+$|^com\.google\.android\.googlequicksearchbox$/, "google"],
-  [/(^|\.)bing\.com$/, "bing"],
-  [/(^|\.)duckduckgo\.com$/, "duckduckgo"],
-  [/(^|\.)yahoo\.com$/, "yahoo"],
-  [/(^|\.)youtube\.com$|^youtu\.be$/, "youtube"],
-  [/(^|\.)tiktok\.com$/, "tiktok"],
-  [/(^|\.)discord(app)?\.com$|^discord\.gg$/, "discord"],
-  [/^teams\.microsoft\.com$|(^|\.)outlook\.(live|office)\.com$/, "microsoft (teams / outlook)"],
-  [/(^|\.)github\.com$|(^|\.)github\.io$/, "github"],
+  [/(^|\.)facebook\.com$|^fb\.me$|^com\.facebook\./, "facebook", "social"],
+  [/(^|\.)instagram\.com$|^com\.instagram\./, "instagram", "social"],
+  [/^t\.co$|(^|\.)twitter\.com$|(^|\.)x\.com$/, "x / twitter", "social"],
+  [/(^|\.)reddit\.com$|^redd\.it$|^com\.reddit\./, "reddit", "social"],
+  [/(^|\.)linkedin\.com$|^lnkd\.in$|^com\.linkedin\./, "linkedin", "social"],
+  [/(^|\.)whatsapp\.com$|^wa\.me$|^com\.whatsapp/, "whatsapp", "social"],
+  [/^com\.google\.android\.gm$|^mail\.google\.com$/, "gmail", "email"],
+  [/(^|\.)google\.[a-z.]+$|^com\.google\.android\.googlequicksearchbox$/, "google", "search"],
+  [/(^|\.)bing\.com$/, "bing", "search"],
+  [/(^|\.)duckduckgo\.com$/, "duckduckgo", "search"],
+  [/(^|\.)yahoo\.com$/, "yahoo", "search"],
+  [/(^|\.)youtube\.com$|^youtu\.be$/, "youtube", "social"],
+  [/(^|\.)tiktok\.com$/, "tiktok", "social"],
+  [/(^|\.)discord(app)?\.com$|^discord\.gg$/, "discord", "social"],
+  [/^teams\.microsoft\.com$|(^|\.)outlook\.(live|office)\.com$/, "microsoft (teams / outlook)", "email"],
+  [/(^|\.)github\.com$|(^|\.)github\.io$/, "github", "referral"],
 ];
 
-/** One channel name for a raw utm_source or referrer ("l.facebook.com", "android-app://com.linkedin.android"). */
+/** Channel name for a raw utm_source or referrer host ("l.facebook.com", "android-app://com.linkedin.android"). */
 function normalizeSource(raw) {
   var s = String(raw || "").trim().toLowerCase();
   if (!s) return DIRECT;
@@ -268,24 +402,52 @@ function normalizeSource(raw) {
   return s;
 }
 
-function source(e) {
-  return normalizeSource(e.utm_source || e.referrer);
+/** social / search / email for a known channel, else referral. */
+function kindOf(channel) {
+  for (var i = 0; i < SOURCE_RULES.length; i++) if (SOURCE_RULES[i][1] === channel) return SOURCE_RULES[i][2];
+  return "referral";
 }
 
-/** Per source: visitors, sessions, sessions that sent a form or the survey, campaigns and landing paths. */
+/**
+ * Who sent this visit. Rules, in order:
+ * 1. utm_source in the landing URL (a link we shared) → source = that tag, normalised; medium = utm_medium,
+ *    else the kind of channel; how = "utm".
+ * 2. else a referring host reported by the browser → source = host mapped by SOURCE_RULES (or the host
+ *    itself); medium = social / search / email / referral; how = "referrer".
+ * 3. else → "direct / unknown", medium "direct", how "none".
+ */
+function classifySource(e) {
+  var tag = String(e.utm_source || "").trim();
+  if (tag) {
+    var src = normalizeSource(tag);
+    return { source: src, medium: String(e.utm_medium || "").trim().toLowerCase() || kindOf(src), how: "utm" };
+  }
+  var host = hostOnly(e.referrer_host || e.referrer);
+  if (host) {
+    var ch = normalizeSource(host);
+    return { source: ch, medium: kindOf(ch), how: "referrer" };
+  }
+  return { source: DIRECT, medium: "direct", how: "none" };
+}
+// @provenance:classify:end
+
+/** Per source: visitors, sessions, conversions, medium, how it was known, referrer hosts, campaigns, landings. */
 function referrals(sessions) {
   var by = {};
   sessions.forEach(function (s) {
-    var first = s.events[0];
-    var src = source(first);
-    var r = by[src] = by[src] || { source: src, anons: {}, sessions: 0, conversions: 0, campaigns: {}, contents: {}, landing: {} };
+    var first = s.events[0]; // first touch: the session's first event decides its source
+    var c = classifySource(first);
+    var r = by[c.source] = by[c.source] || { source: c.source, anons: {}, sessions: 0, conversions: 0, campaigns: {}, contents: {}, landing: {}, mediums: {}, how: {}, hosts: {} };
     r.anons[s.anon] = 1;
     r.sessions++;
     if (s.events.some(function (e) { return SUBMIT_EVENTS[e.event]; })) r.conversions++;
     bump(r.campaigns, first.utm_campaign);
     bump(r.contents, first.utm_content);
-    var land = s.events.filter(function (e) { return e.event === "$pageview"; })[0] || first;
-    bump(r.landing, land.path);
+    bump(r.mediums, c.medium);
+    bump(r.how, c.how);
+    bump(r.hosts, hostOnly(first.referrer_host || first.referrer));
+    var land = first.landing_path || (s.events.filter(function (e) { return e.event === "$pageview"; })[0] || first).path;
+    bump(r.landing, land);
   });
   return Object.keys(by)
     .map(function (k) {
@@ -296,12 +458,73 @@ function referrals(sessions) {
         sessions: r.sessions,
         conversions: r.conversions,
         conversion_rate: r.sessions ? r.conversions / r.sessions : 0,
+        mediums: top(r.mediums, 4),
+        how: top(r.how, 3),
+        referrer_hosts: top(r.hosts, 8),
         campaigns: top(r.campaigns, 8),
         contents: top(r.contents, 8),
         landing_pages: top(r.landing, 5),
       };
     })
     .sort(function (a, b) { return b.visitors - a.visitors || b.sessions - a.sessions || (a.source < b.source ? -1 : 1); });
+}
+
+var GAME_ROUNDS = ["1", "2", "3", "4"]; // 2, 5 and 20 people, then the bonus round
+
+/**
+ * "Spot the stranger" game, from game_round_finished events.
+ * Per round: plays, correct share, median human time (all plays), best human time (fastest correct play)
+ * and median machine time. Per player (anonymous id): score = how many of the 3 rounds they got right at
+ * least once (0-3); "finished all" = played all 3 rounds. Scenario is a short id chosen by the game; only
+ * ids like "yard-night" are counted, anything else is dropped (no free text).
+ */
+function gameStats(events) {
+  var rounds = {}, players = {}, scenarios = {};
+  events.forEach(function (e) {
+    if (e.event !== "game_round_finished") return;
+    var p = e.props || {};
+    var r = String(p.round || "?");
+    var ok = p.correct === true || p.correct === "true";
+    var human = Number(p.human_ms), machine = Number(p.machine_ms);
+    var g = rounds[r] = rounds[r] || { round: r, people: p.people || null, plays: 0, correct: 0, human: [], best: null, machine: [] };
+    g.plays++;
+    if (ok) g.correct++;
+    if (p.human_ms !== "" && p.human_ms !== undefined && isFinite(human)) {
+      g.human.push(human);
+      if (ok && (g.best === null || human < g.best)) g.best = human;
+    }
+    if (p.machine_ms !== "" && p.machine_ms !== undefined && isFinite(machine)) g.machine.push(machine);
+    var pl = players[e.anon] = players[e.anon] || { played: {}, won: {} };
+    pl.played[r] = 1;
+    if (ok) pl.won[r] = 1;
+    var sc = String(p.scenario || "");
+    if (/^[a-z0-9][a-z0-9_-]{0,39}$/i.test(sc)) bump(scenarios, sc.toLowerCase());
+  });
+  var list = Object.keys(players).map(function (a) { return players[a]; });
+  var dist = GAME_ROUNDS.map(function () { return 0; }).concat([0]);
+  var finished = 0, total = 0;
+  list.forEach(function (pl) {
+    var score = GAME_ROUNDS.filter(function (r) { return pl.won[r]; }).length;
+    dist[score]++;
+    total += score;
+    if (GAME_ROUNDS.every(function (r) { return pl.played[r]; })) finished++;
+  });
+  return {
+    rounds: Object.keys(rounds).sort().map(function (k) {
+      var g = rounds[k];
+      return {
+        round: g.round, people: g.people, plays: g.plays, correct_pct: g.plays ? g.correct / g.plays : 0,
+        median_human_ms: median(g.human), best_human_ms: g.best, median_machine_ms: median(g.machine),
+      };
+    }),
+    summary: {
+      players: list.length,
+      finished_all: finished,
+      avg_score: list.length ? total / list.length : 0,
+      score_distribution: dist.map(function (n, i) { return { score: i, players: n }; }),
+      scenarios: top(scenarios, 10),
+    },
+  };
 }
 
 /** All metrics for one set of events and form rows. */
@@ -347,21 +570,24 @@ function statsFor(events, forms) {
       }
       best = Math.max(best, step);
     }
-    var step = best;
-    for (var i = 0; i < step; i++) reached[i]++;
+    for (var i = 0; i < best; i++) reached[i]++;
   });
   var funnel = FUNNEL.map(function (f, i) {
     return { step: f.name, visitors: reached[i], conversion: i === 0 || !reached[0] ? (i === 0 ? 1 : 0) : reached[i] / reached[0] };
   });
 
-  // forms and survey answers (closed questions only)
-  var formCounts = {}, survey = {};
+  // forms and survey answers: closed questions as counts per answer; free text only as "how many wrote one"
+  var formCounts = {}, survey = {}, freeText = {};
   forms.forEach(function (f) {
     bump(formCounts, f.form);
     if (f.form !== "survey") return;
     Object.keys(f.data || {}).forEach(function (k) {
+      var v = String(f.data[k]).trim();
+      if (isFreeText(k)) {
+        if (v) bump(freeText, k);
+        return;
+      }
       if (PRIVATE_FIELDS[k] || /^game_r/.test(k)) return;
-      var v = String(f.data[k]);
       if (!v || v.length > 60) return;
       survey[k] = survey[k] || {};
       bump(survey[k], v);
@@ -370,21 +596,7 @@ function statsFor(events, forms) {
   var surveyOut = {};
   Object.keys(survey).forEach(function (k) { surveyOut[k] = top(survey[k], 12); });
 
-  // game
-  var rounds = {};
-  events.forEach(function (e) {
-    if (e.event !== "game_round_finished") return;
-    var r = String(e.props.round || "?");
-    var g = rounds[r] = rounds[r] || { round: r, people: e.props.people || null, plays: 0, correct: 0, human: [], machine: [] };
-    g.plays++;
-    if (e.props.correct === true || e.props.correct === "true") g.correct++;
-    if (isFinite(Number(e.props.human_ms))) g.human.push(Number(e.props.human_ms));
-    if (isFinite(Number(e.props.machine_ms))) g.machine.push(Number(e.props.machine_ms));
-  });
-  var game = Object.keys(rounds).sort().map(function (k) {
-    var g = rounds[k];
-    return { round: g.round, people: g.people, plays: g.plays, correct_pct: g.plays ? g.correct / g.plays : 0, median_human_ms: median(g.human), median_machine_ms: median(g.machine) };
-  });
+  var gameOut = gameStats(events);
 
   return {
     visitors: Object.keys(anons).length,
@@ -399,14 +611,17 @@ function statsFor(events, forms) {
     funnel: funnel,
     forms: top(formCounts, 10),
     survey: surveyOut,
-    game: game,
+    survey_free_text: top(freeText, 30),
+    game: gameOut.rounds,
+    game_summary: gameOut.summary,
     daily: Object.keys(daily).sort().map(function (k) {
       return { date: k, pageviews: daily[k].pageviews, visitors: Object.keys(daily[k].v).length };
     }),
   };
 }
 
-/** Stats for all versions merged ("all") and for each version on its own. */
+// @provenance:aggregate:start
+/** Stats for all versions merged ("all") and for each version on its own. Test rows and duplicate ids out. */
 function aggregate(events, forms, now) {
   var testEvents = events.filter(function (e) { return isTest(e.test); }).length + forms.filter(function (f) { return isTest(f.test); }).length;
   events = events.filter(function (e) { return !isTest(e.test); });
@@ -420,7 +635,7 @@ function aggregate(events, forms, now) {
   var versions = {};
   events.forEach(function (e) { versions[e.version || "unknown"] = 1; });
   forms.forEach(function (f) { versions[f.version || "unknown"] = 1; });
-  var out = { generated: now, events: events.length, test_events: testEvents, versions: {} };
+  var out = { generated: now, collector: COLLECTOR_VERSION, events: events.length, test_events: testEvents, versions: {} };
   out.versions.all = statsFor(events, forms);
   Object.keys(versions).forEach(function (v) {
     out.versions[v] = statsFor(
@@ -430,7 +645,14 @@ function aggregate(events, forms, now) {
   });
   return out;
 }
+// @provenance:aggregate:end
 
 if (typeof module !== "undefined") {
-  module.exports = { isTest: isTest, cleanEvents: cleanEvents, cleanForm: cleanForm, normalizeSource: normalizeSource, referrals: referrals, sessionize: sessionize, statsFor: statsFor, aggregate: aggregate, median: median };
+  module.exports = {
+    COLLECTOR_VERSION: COLLECTOR_VERSION, EVENT_HEADERS: EVENT_HEADERS, FORM_HEADERS: FORM_HEADERS, GENESIS: GENESIS,
+    isTest: isTest, cleanEvents: cleanEvents, cleanForm: cleanForm, normalizeSource: normalizeSource, classifySource: classifySource,
+    hostOnly: hostOnly, cell: cell, canonical: canonical, sha256Hex: sha256Hex, chainRows: chainRows, verifyChain: verifyChain,
+    chainSummary: chainSummary, eventRow: eventRow, formRow: formRow, rowsToObjects: rowsToObjects,
+    referrals: referrals, sessionize: sessionize, statsFor: statsFor, gameStats: gameStats, aggregate: aggregate, median: median,
+  };
 }

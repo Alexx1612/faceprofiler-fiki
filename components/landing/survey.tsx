@@ -9,6 +9,8 @@ import { roles, ui, visibleQuestions, type Question, type Role } from "@/lib/sur
 
 const SCALE = [0, 1, 2, 3, 4, 5];
 const GAME_KEY = "nauino-game";
+/** Rounds in "Spot the stranger": 2, 5 and 20 people, then the bonus round. */
+const GAME_ROUNDS = 4;
 
 type GameRound = { round: number; people: number; human_ms: number; machine_ms: number; correct: boolean };
 
@@ -87,22 +89,34 @@ export function SurveyButton() {
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (new FormData(e.currentTarget).get("_gotcha")) return;
-    const need = [...(role ? [] : ["role"]), ...shown.filter((q) => q.required && !answers[q.id]).map((q) => q.id)];
+    const need = [
+      ...(role ? [] : ["role"]),
+      ...shown
+        .filter((q) => (q.required && !answers[q.id]) || (answers[q.id] === "Other" && !answers[`${q.id}_other`]?.trim()))
+        .map((q) => q.id),
+    ];
     setMissing(need);
     if (need.length) {
       e.currentTarget.querySelector(`[data-q="${need[0]}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     const data: Record<string, string> = { lang, role: roles.find((r) => r.id === role)?.label[0] ?? role };
-    for (const q of shown) if (answers[q.id]) data[q.id] = answers[q.id];
+    for (const q of shown) {
+      if (answers[q.id]) data[q.id] = answers[q.id];
+      for (const extra of [`${q.id}_other`, `${q.id}_note`]) {
+        const v = answers[extra]?.trim();
+        if (v && (extra.endsWith("_note") || answers[q.id] === "Other")) data[extra] = v;
+      }
+    }
     for (const g of game) {
       data[`game_r${g.round}`] = `${g.people} people · you ${(g.human_ms / 1000).toFixed(1)} s · machine ${g.machine_ms.toFixed(2)} ms · ${g.correct ? "correct" : "wrong"}`;
     }
     setState("sending");
     try {
       const how = await sendLead("survey", data, surveyFormId);
-      const { comment, ...closed } = data;
-      track("survey_submitted", { ...closed, has_comment: Boolean(comment), played_game: game.length > 0, via: how });
+      const closed = Object.fromEntries(Object.entries(data).filter(([k]) => k !== "comment" && !/_(other|note)$/.test(k)));
+      const texts = Object.keys(data).filter((k) => k === "comment" || /_(other|note)$/.test(k)).length;
+      track("survey_submitted", { ...closed, free_texts: texts, played_game: game.length > 0, via: how });
       if (how === "mailto") {
         const body = Object.entries(data).map(([k, v]) => `${k}: ${v}`).join("\n");
         window.location.href = `mailto:${team[1].email}?subject=${encodeURIComponent("Nau-ino quick survey")}&body=${encodeURIComponent(body)}`;
@@ -140,7 +154,29 @@ export function SurveyButton() {
             <h2>{ui.title[L]}</h2>
             <p>{ui.intro[L]}</p>
             {game.length > 0 ? (
-              <p className="gf__game gf__game--done">✓ {ui.gameDone[L]}</p>
+              <div className="gf__progress">
+                <div className="gf__progress-row">
+                  <span>
+                    {ui.gameProgress[L]}: {game.length}/{GAME_ROUNDS}
+                  </span>
+                  <ol className="gf__rounds" aria-label={ui.gameProgress[L]}>
+                    {Array.from({ length: GAME_ROUNDS }, (_, i) => {
+                      const g = game.find((r) => r.round === i + 1);
+                      return (
+                        <li key={i} className={g ? (g.correct ? "is-ok" : "is-bad") : ""} title={g ? `${(g.human_ms / 1000).toFixed(1)} s` : ""}>
+                          {g ? (g.correct ? "✓" : "✗") : i + 1 === GAME_ROUNDS ? "★" : i + 1}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+                <p>{ui.gameDone[L]}</p>
+                {game.length < GAME_ROUNDS && (
+                  <a className="gf__game" href="#game-resume" onClick={() => dialog.current?.close()}>
+                    ▶ {ui.gameResume[L]}
+                  </a>
+                )}
+              </div>
             ) : (
               <a className="gf__game" href="#game" onClick={() => dialog.current?.close()}>
                 ▶ {ui.game[L]}
@@ -188,7 +224,7 @@ export function SurveyButton() {
               </Card>
               {shown.map((q) => (
                 <Card key={q.id} id={q.id} title={q.title[L]} required={q.required} missing={missing.includes(q.id)} missText={ui.missingOne[L]}>
-                  <Field q={q} L={L} value={answers[q.id] ?? ""} onChange={(v) => set(q.id, v)} />
+                  <Field q={q} L={L} answers={answers} onChange={set} />
                 </Card>
               ))}
               {missing.length > 0 && (
@@ -244,20 +280,88 @@ function Card({
   );
 }
 
-function Field({ q, L, value, onChange }: { q: Question; L: 0 | 1; value: string; onChange: (v: string) => void }) {
+const OTHER = "Other";
+
+function Field({
+  q,
+  L,
+  answers,
+  onChange,
+}: {
+  q: Question;
+  L: 0 | 1;
+  answers: Record<string, string>;
+  onChange: (id: string, v: string) => void;
+}) {
+  const value = answers[q.id] ?? "";
   if (q.kind === "select")
     return (
-      <select className="gf__select" value={value} onChange={(e) => onChange(e.target.value)} aria-label={q.title[L]}>
-        <option value="">{ui.choose[L]}</option>
-        {q.options!.map((o) => (
-          <option key={o[0]} value={o[0]}>
-            {o[L]}
-          </option>
-        ))}
-      </select>
+      <>
+        <select className="gf__select" value={value} onChange={(e) => onChange(q.id, e.target.value)} aria-label={q.title[L]}>
+          <option value="">{ui.choose[L]}</option>
+          {q.options!.map((o) => (
+            <option key={o[0]} value={o[0]}>
+              {o[L]}
+            </option>
+          ))}
+          <option value={OTHER}>{ui.other[L]}</option>
+        </select>
+        {value === OTHER && (
+          <input
+            className="gf__text"
+            autoFocus
+            value={answers[`${q.id}_other`] ?? ""}
+            maxLength={200}
+            placeholder={ui.otherText[L]}
+            aria-label={`${q.title[L]}: ${ui.otherText[L]}`}
+            onChange={(e) => onChange(`${q.id}_other`, e.target.value)}
+          />
+        )}
+      </>
     );
   if (q.kind === "scale")
     return (
+      <>
+        <Scale q={q} L={L} value={value} onChange={(v) => onChange(q.id, v)} />
+        <Note id={`${q.id}_note`} L={L} label={q.title[L]} value={answers[`${q.id}_note`] ?? ""} onChange={onChange} />
+      </>
+    );
+  return (
+    <input
+      className="gf__text"
+      value={value}
+      maxLength={300}
+      placeholder={ui.answer[L]}
+      aria-label={q.title[L]}
+      onChange={(e) => onChange(q.id, e.target.value)}
+    />
+  );
+}
+
+/** Optional free-text comment under a scale, hidden behind "+ Add a comment" until used. */
+function Note({ id, L, label, value, onChange }: { id: string; L: 0 | 1; label: string; value: string; onChange: (id: string, v: string) => void }) {
+  const [open, setOpen] = useState(Boolean(value));
+  if (!open)
+    return (
+      <button type="button" className="gf__note-btn" onClick={() => setOpen(true)}>
+        {ui.addNote[L]}
+      </button>
+    );
+  return (
+    <input
+      className="gf__text"
+      autoFocus={!value}
+      value={value}
+      maxLength={200}
+      placeholder={ui.otherText[L]}
+      aria-label={`${label}: ${ui.otherText[L]}`}
+      onChange={(e) => onChange(id, e.target.value)}
+    />
+  );
+}
+
+function Scale({ q, L, value, onChange }: { q: Question; L: 0 | 1; value: string; onChange: (v: string) => void }) {
+  return (
       <div className="gf__scale">
         <div className="gf__dots" role="radiogroup" aria-label={q.title[L]}>
           {SCALE.map((n) => (
@@ -272,15 +376,5 @@ function Field({ q, L, value, onChange }: { q: Question; L: 0 | 1; value: string
           <span>{q.ends?.[1][L]}</span>
         </div>
       </div>
-    );
-  return (
-    <input
-      className="gf__text"
-      value={value}
-      maxLength={300}
-      placeholder={ui.answer[L]}
-      aria-label={q.title[L]}
-      onChange={(e) => onChange(e.target.value)}
-    />
   );
 }

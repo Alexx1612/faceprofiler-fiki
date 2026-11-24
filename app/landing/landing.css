@@ -1686,3 +1686,17 @@
   .gf__card--head h2 { font-size: 28px; }
   .gf__select { max-width: 360px; }
 }
+.gf__note-btn { justify-self: start; min-height: 36px; padding: 0 4px; border: 0; background: none; color: var(--gf-muted); font: 500 13px var(--font-body); cursor: pointer; }
+.gf__note-btn:hover { color: var(--gf-accent); }
+.gf__q .gf__text { margin-top: -4px; }
+.gf__progress { display: grid; gap: 8px; margin-top: 12px; padding: 12px; border-radius: 8px; background: #e6f4ea; }
+.gf__progress p { margin: 0 !important; color: #188038 !important; font-size: 13px !important; }
+.gf__progress .gf__game { margin-top: 0; }
+.gf__progress-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-weight: 600; font-size: 14px; color: #137333; }
+.gf__rounds { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.gf__rounds li {
+  display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+  background: #fff; border: 1px solid var(--gf-rule); color: var(--gf-muted); font-size: 13px; font-weight: 700;
+}
+.gf__rounds li.is-ok { background: #188038; border-color: #188038; color: #fff; }
+.gf__rounds li.is-bad { background: #fce8e6; border-color: var(--gf-red); color: var(--gf-red); }

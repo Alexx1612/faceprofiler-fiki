@@ -1,0 +1,33 @@
+{
+  "repo": "https://github.com/Alexx1612/faceprofiler-fiki",
+  "steps": [
+    {
+      "id": "capture",
+      "file": "lib/collect.ts",
+      "fn": "referrerHost",
+      "from": 114,
+      "to": 178
+    },
+    {
+      "id": "classify",
+      "file": "collector/Code.gs",
+      "fn": "classifySource",
+      "from": 372,
+      "to": 431
+    },
+    {
+      "id": "store",
+      "file": "collector/Code.gs",
+      "fn": "doPost",
+      "from": 69,
+      "to": 118
+    },
+    {
+      "id": "aggregate",
+      "file": "collector/Code.gs",
+      "fn": "aggregate",
+      "from": 624,
+      "to": 647
+    }
+  ]
+}
