@@ -13,6 +13,8 @@ import type { PostHog } from "posthog-js";
 export const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "";
 export const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com";
 export const formspreeId = process.env.NEXT_PUBLIC_FORMSPREE_ID ?? "";
+/** Separate Formspree form for the quick survey (its own inbox and CSV); falls back to the main form. */
+export const surveyFormId = process.env.NEXT_PUBLIC_FORMSPREE_SURVEY_ID || formspreeId;
 
 let client: PostHog | null = null;
 let loading: Promise<PostHog | null> | null = null;
@@ -62,9 +64,9 @@ export async function setConsent(accept: boolean) {
  * Send a lead to Formspree. Returns "sent", "mailto" (no form configured: caller opens the mail app)
  * or throws with a short message the form can show.
  */
-export async function sendLead(form: string, data: Record<string, string>): Promise<"sent" | "mailto"> {
-  if (!formspreeId) return "mailto";
-  const res = await fetch(`https://formspree.io/f/${formspreeId}`, {
+export async function sendLead(form: string, data: Record<string, string>, id = formspreeId): Promise<"sent" | "mailto"> {
+  if (!id) return "mailto";
+  const res = await fetch(`https://formspree.io/f/${id}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify({ form, page: typeof location === "undefined" ? "" : location.pathname + location.search, ...data }),

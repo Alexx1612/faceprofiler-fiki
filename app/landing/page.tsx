@@ -7,7 +7,9 @@ import { DemoReel } from "@/components/landing/demo-reel";
 import { HeroCopy } from "@/components/landing/hero-copy";
 import { NightLive } from "@/components/landing/night-live";
 import { PilotForm } from "@/components/landing/pilot-form";
+import { SpotGame } from "@/components/landing/spot-game";
 import { Tour } from "@/components/landing/tour";
+import { SurveyButton } from "@/components/landing/survey";
 import { UpdatesForm } from "@/components/landing/updates-form";
 import { TrackedLink } from "@/components/analytics/tracked-link";
 import { Logo } from "@/components/site/nav";
@@ -49,10 +51,12 @@ export default function Landing() {
           <nav className="lp-nav__links" aria-label="Sections">
             <a href="#how">How it works</a>
             <a href="#demo">Demo</a>
+            <a href="#game">Game</a>
             <a href="#modes">Day and night</a>
             <a href="#privacy">Privacy</a>
             <a href="#updates">Updates</a>
           </nav>
+          <SurveyButton />
           <TrackedLink href="#pilot" event="cta_book_pilot_click" props={{ place: "nav" }} className="lp-btn lp-btn--sm lp-nav__cta">
             Book a pilot
           </TrackedLink>
@@ -105,6 +109,14 @@ export default function Landing() {
             <h2 className="lp-h2">Watch it work on real cameras.</h2>
             <p className="lp-sub">Faces at a door, workers on a floor, people in a shop aisle: the same cameras, three uses.</p>
             <DemoReel />
+          </div>
+        </section>
+
+        <section id="game" className="lp-section">
+          <div className="lp-wrap">
+            <h2 className="lp-h2">Faster than a guard?</h2>
+            <p className="lp-sub">Spot the one new face. You against the machine.</p>
+            <SpotGame />
           </div>
         </section>
 

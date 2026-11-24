@@ -40,6 +40,7 @@ The landing page forms and PostHog read public keys at build time from `.env.loc
 
 ```
 NEXT_PUBLIC_FORMSPREE_ID=<id from formspree.io/f/<id>>
+NEXT_PUBLIC_FORMSPREE_SURVEY_ID=<optional: a second Formspree form only for the landing quick survey; falls back to FORMSPREE_ID>
 NEXT_PUBLIC_POSTHOG_KEY=phc_...
 ```
 
