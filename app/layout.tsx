@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Wix_Madefor_Display, Wix_Madefor_Text } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@/components/analytics/analytics";
+import { TestPill } from "@/components/analytics/test-pill";
 import { siteName, siteUrl } from "@/lib/seo";
 
 /* Body and headings in Wix Madefor (same family as the landing page); Geist Mono stays for figures and code. */
@@ -44,6 +45,7 @@ export default function RootLayout({
       <body className="antialiased">
         {children}
         <Analytics />
+        <TestPill />
       </body>
     </html>
   );

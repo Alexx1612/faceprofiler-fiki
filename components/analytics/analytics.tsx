@@ -2,17 +2,19 @@
 
 import { useEffect, useState } from "react";
 
-import { consentStatus, initAnalytics, posthogKey, setConsent } from "@/lib/analytics";
+import { analyticsOn, consentStatus, initAnalytics, setConsent } from "@/lib/analytics";
+import { testMode } from "@/lib/collect";
 
 /**
- * Starts PostHog (when a key is configured) and shows a small consent bar until the visitor chooses.
+ * Starts PostHog and/or our own collector (when configured) and shows a small consent bar until the visitor chooses.
  * Without a choice, or after "Decline", visits are still counted but without cookies (cookieless mode).
  */
 export function Analytics() {
   const [ask, setAsk] = useState(false);
   useEffect(() => {
-    if (!posthogKey) return;
-    initAnalytics().then(() => consentStatus().then((s) => setAsk(s === "pending")));
+    if (!analyticsOn) return;
+    // the team's own browsers (test mode) are not counted, so they are not asked either
+    initAnalytics().then(() => consentStatus().then((s) => setAsk(s === "pending" && !testMode())));
   }, []);
   if (!ask) return null;
   const choose = (accept: boolean) => {

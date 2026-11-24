@@ -2,13 +2,13 @@
  * "Spot the stranger" results, shared with the quick survey.
  *
  * Methodology: sessionStorage key "nauino-game" holds a JSON array with the latest result per round
- * (round 1 and round 2). Reads and writes are wrapped in try/catch: private windows and blocked storage
+ * (rounds 1-3: 2, 5 and 20 remembered people). Reads and writes are wrapped in try/catch: private windows and blocked storage
  * must not break the page. After saving, `nauino:game-result` is dispatched on window so a mounted
  * listener (the survey dialog) re-reads the key without polling.
  */
 
 export type GameResult = {
-  round: 1 | 2;
+  round: 1 | 2 | 3;
   people: number;
   human_ms: number;
   machine_ms: number;

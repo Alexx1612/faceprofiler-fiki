@@ -76,6 +76,14 @@ function MilestonesMenu() {
             <span className="rounded bg-emerald-400/15 px-1.5 py-0.5 text-xs font-semibold text-emerald-300">PDF</span>
             User manuals
           </Link>
+          <Link
+            href="/analytics/"
+            onClick={() => setOpen(false)}
+            className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm text-neutral-200 hover:bg-white/5"
+          >
+            <span className="rounded bg-amber-400/15 px-1.5 py-0.5 text-xs font-semibold text-amber-300">LIVE</span>
+            Site analytics
+          </Link>
       </div>
     </div>
   );

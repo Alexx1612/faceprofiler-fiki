@@ -42,11 +42,24 @@ The landing page forms and PostHog read public keys at build time from `.env.loc
 NEXT_PUBLIC_FORMSPREE_ID=<id from formspree.io/f/<id>>
 NEXT_PUBLIC_FORMSPREE_SURVEY_ID=<optional: a second Formspree form only for the landing quick survey; falls back to FORMSPREE_ID>
 NEXT_PUBLIC_POSTHOG_KEY=phc_...
+NEXT_PUBLIC_COLLECT_URL=<optional: our own collector, see collector/README.md>
 ```
 
 Without them the forms fall back to `mailto:` and no analytics loads. In PostHog, switch on cookieless
 mode in the project settings (visitors who decline cookies are counted that way). The campaign log and
 channel numbers shown on `/M5/` are in `lib/m5.ts`; screenshots go in `public/campaign/`.
+
+## Own analytics and versions
+
+`collector/` is our own small Formspree + PostHog: a Google Apps Script web app on a Google Sheet
+(setup: [collector/README.md](collector/README.md)). With `NEXT_PUBLIC_COLLECT_URL` set, every page sends
+pageviews, clicks and the site's events, and the forms send their answers there first. `/analytics/`
+(not indexed, linked from the Milestones menu) shows visitors, where they come from, clicks, the funnel,
+survey answers and game results, per site version or all versions merged.
+
+**Bump `lib/versions.ts` on every deploy:** add an entry at the top (version, date, what changed).
+`npm run deploy` builds with that version and the git commit, so numbers can be split by version.
+Tests for the collector: `npm run test:collector`.
 
 ## User manuals
 

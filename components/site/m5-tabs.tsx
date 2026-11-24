@@ -98,6 +98,12 @@ function Leads() {
 function AnalyticsTab() {
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-sky-400/30 bg-sky-400/[0.06] p-4">
+        <p className="min-w-0 flex-1 basis-60 text-sm text-sky-50">Live numbers from our own collector: sources, clicks, funnel, survey and game, per site version.</p>
+        <Link href="/analytics/" className="rounded-full bg-sky-600 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-sky-500">
+          Open site analytics
+        </Link>
+      </div>
       <div className="grid gap-4 md:grid-cols-3">
         {m5Analytics.parts.map((p) => (
           <div key={p.name} className={box}>

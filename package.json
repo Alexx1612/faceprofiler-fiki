@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "deploy": "node scripts/deploy-pages.mjs"
+    "deploy": "node scripts/deploy-pages.mjs",
+    "test:collector": "node --test collector/aggregate.test.mjs"
   },
   "dependencies": {
     "@paper-design/shaders-react": "^0.0.81",
