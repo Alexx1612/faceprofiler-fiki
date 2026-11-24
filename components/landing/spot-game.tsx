@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { track } from "@/lib/analytics";
-import { loadGameResults, loadProgress, saveGameResult, saveProgress, type GameResult } from "@/lib/game-result";
+import { loadGameResults, loadProgress, resetGame, saveGameResult, saveProgress, type GameResult } from "@/lib/game-result";
 import { NEUTRAL, distance, drawCharacter, type Pose } from "@/components/landing/spot-cast";
 import { allScenarios, pickScenario, scenarioById, type Member, type Scenario } from "@/components/landing/spot-scenarios";
 import { SpotScene, type SceneResult } from "@/components/landing/spot-scene";
@@ -64,6 +64,7 @@ const T = {
   yourTurn: ["Your turn", "Rândul tău"],
   survey: ["Answer the 1-min survey", "Completează chestionarul (1 minut)"],
   back: ["Back to the survey", "Înapoi la chestionar"],
+  restart: ["Start over", "De la început"],
   backShort: ["Survey", "Chestionar"],
   feed: ["Alerts", "Alerte"],
   info: ["About this scene", "Despre această scenă"],
@@ -220,9 +221,26 @@ export function SpotGame() {
     scene.current?.setLang(lang);
   }, [lang]);
 
-  // resume from the survey: #game-resume jumps to the round the player is on
+  /** Start over: forget every round and play from round 1 (not a single level again). */
+  const restart = useCallback(
+    (from: string) => {
+      resetGame();
+      setResults([]);
+      start(0);
+      track("game_restarted", { from });
+    },
+    [start],
+  );
+
+  // from the survey: #game-resume jumps to the round the player is on, #game-restart starts over
   useEffect(() => {
     const resume = () => {
+      if (location.hash === "#game-restart") {
+        document.getElementById("game")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        restart("survey");
+        history.replaceState(null, "", `${location.pathname}${location.search}#game`);
+        return;
+      }
       if (location.hash !== "#game-resume") return;
       document.getElementById("game")?.scrollIntoView({ behavior: "smooth", block: "start" });
       const p = loadProgress();
@@ -235,7 +253,7 @@ export function SpotGame() {
     resume();
     window.addEventListener("hashchange", resume);
     return () => window.removeEventListener("hashchange", resume);
-  }, [start, showSummary]);
+  }, [start, showSummary, restart]);
 
   // the scene lives while the phase is "scene"; a new seed rebuilds it
   useEffect(() => {
@@ -324,8 +342,13 @@ export function SpotGame() {
     <div className="lp-glass sg">
       <div className="sg__bar">
         <span className="sg__round">
-          {phase === "summary" ? t("done") : bonus ? `${t("bonus")} · ${ROUNDS[LAST]} ${t("people")}` : `${t("round")} ${round + 1}/3 · ${ROUNDS[round]} ${t("known")}`}
+          {phase === "summary" ? t("done") : bonus ? `${t("round")} ${ROUNDS.length}/${ROUNDS.length} · ${t("bonus")} · ${ROUNDS[LAST]} ${t("people")}` : `${t("round")} ${round + 1}/${ROUNDS.length} · ${ROUNDS[round]} ${t("known")}`}
         </span>
+        {phase !== "intro" && (
+          <button type="button" className="sg__restart" onClick={() => restart("header")} aria-label={t("restart")} title={t("restart")}>
+            ↺ <span className="sg__restart-text">{t("restart")}</span>
+          </button>
+        )}
         <button type="button" className="sg__back" onClick={() => openSurvey("header")} aria-label={t("back")}>
           ← <span className="sg__back-long">{t("back")}</span>
           <span className="sg__back-short" aria-hidden>
@@ -536,7 +559,7 @@ export function SpotGame() {
             })}
           </ul>
           <div className="sg__actions">
-            <button type="button" className="lp-btn" onClick={() => start(0)}>
+            <button type="button" className="lp-btn" onClick={() => restart("summary")}>
               {t("again")}
             </button>
           </div>

@@ -1700,3 +1700,6 @@
 }
 .gf__rounds li.is-ok { background: #188038; border-color: #188038; color: #fff; }
 .gf__rounds li.is-bad { background: #fce8e6; border-color: var(--gf-red); color: var(--gf-red); }
+.gf__game-actions { display: grid; gap: 8px; }
+.gf__game--restart { background: #fff; border: 1px solid var(--gf-rule); color: var(--gf-ink-2) !important; }
+@media (min-width: 640px) { .gf__game-actions { grid-template-columns: 1fr auto; } }

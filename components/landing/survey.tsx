@@ -171,11 +171,16 @@ export function SurveyButton() {
                   </ol>
                 </div>
                 <p>{ui.gameDone[L]}</p>
-                {game.length < GAME_ROUNDS && (
-                  <a className="gf__game" href="#game-resume" onClick={() => dialog.current?.close()}>
-                    ▶ {ui.gameResume[L]}
+                <div className="gf__game-actions">
+                  {game.length < GAME_ROUNDS && (
+                    <a className="gf__game" href="#game-resume" onClick={() => dialog.current?.close()}>
+                      ▶ {ui.gameResume[L]}
+                    </a>
+                  )}
+                  <a className="gf__game gf__game--restart" href="#game-restart" onClick={() => dialog.current?.close()}>
+                    ↺ {ui.gameRestart[L]}
                   </a>
-                )}
+                </div>
               </div>
             ) : (
               <a className="gf__game" href="#game" onClick={() => dialog.current?.close()}>

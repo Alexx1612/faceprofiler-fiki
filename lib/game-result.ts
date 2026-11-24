@@ -62,3 +62,14 @@ export function saveProgress(round: number) {
   }
   window.dispatchEvent(new CustomEvent(GAME_EVENT));
 }
+
+/** Forget all rounds and the saved position, so the game starts again from round 1. */
+export function resetGame() {
+  try {
+    sessionStorage.removeItem(GAME_KEY);
+    sessionStorage.removeItem(PROGRESS_KEY);
+  } catch {
+    /* storage blocked: nothing to clear */
+  }
+  window.dispatchEvent(new CustomEvent(GAME_EVENT));
+}

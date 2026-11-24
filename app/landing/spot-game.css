@@ -583,3 +583,29 @@
     max-width: 52%;
   }
 }
+
+/* start the whole game over (all rounds), next to "Back to the survey" */
+.sg__restart {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-ink-2);
+  font: 600 13px var(--font-body);
+  cursor: pointer;
+}
+.sg__restart:hover { border-color: var(--color-accent); color: var(--color-ink); }
+.sg__restart:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.sg__restart-text { display: none; }
+@media (min-width: 640px) { .sg__restart-text { display: inline; } }
+/* keep "Start over" next to "Back to the survey" on the right */
+@media (min-width: 560px) {
+  .sg__restart { margin-left: auto; }
+  .sg__restart + .sg__back { margin-left: 0; }
+}
