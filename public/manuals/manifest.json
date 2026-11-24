@@ -16,12 +16,12 @@
         "en": {
           "pdf": "camera-app-en.pdf",
           "pages": 12,
-          "bytes": 1312970
+          "bytes": 1233303
         },
         "ro": {
           "pdf": "camera-app-ro.pdf",
           "pages": 12,
-          "bytes": 1319505
+          "bytes": 1238653
         }
       },
       "cover": "covers/camera-app.jpg",
@@ -42,13 +42,13 @@
       "files": {
         "en": {
           "pdf": "worker-analytics-en.pdf",
-          "pages": 10,
-          "bytes": 1149777
+          "pages": 9,
+          "bytes": 1135327
         },
         "ro": {
           "pdf": "worker-analytics-ro.pdf",
-          "pages": 10,
-          "bytes": 1152922
+          "pages": 9,
+          "bytes": 1138333
         }
       },
       "cover": "covers/worker-analytics.jpg",
@@ -69,13 +69,13 @@
       "files": {
         "en": {
           "pdf": "android-en.pdf",
-          "pages": 8,
-          "bytes": 737956
+          "pages": 7,
+          "bytes": 661485
         },
         "ro": {
           "pdf": "android-ro.pdf",
           "pages": 8,
-          "bytes": 741779
+          "bytes": 666894
         }
       },
       "cover": "covers/android.jpg",
@@ -97,12 +97,12 @@
         "en": {
           "pdf": "face3d-en.pdf",
           "pages": 5,
-          "bytes": 600073
+          "bytes": 576024
         },
         "ro": {
           "pdf": "face3d-ro.pdf",
           "pages": 5,
-          "bytes": 602171
+          "bytes": 578109
         }
       },
       "cover": "covers/face3d.jpg",

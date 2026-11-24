@@ -71,12 +71,12 @@ input[type=checkbox]{accent-color:var(--acc);width:16px;height:16px}
 </script>
 </head>
 <body data-stock>
-<header><h1>3D Face</h1><p>Photos of a person from several angles, or a short video of them turning their head, become a 3D face you can turn, relight, render as ASCII and export. Runs in this browser; nothing is uploaded.</p></header>
+<header><h1>3D Face</h1><p>Photos or video → textured 3D face mesh. Runs in the browser; nothing is uploaded.</p></header>
 <main>
 <aside>
   <section>
     <h2>1. Photos</h2>
-    <div id="drop">Drop photos of one person (up to 12 angles) or a short video, or click to choose<input id="file" type="file" accept="image/*,video/*" hidden></div>
+    <div id="drop">Drop or choose photos (max 12, one person) or a video<input id="file" type="file" accept="image/*,video/*" hidden></div>
     <div class="samples" id="samples"></div>
     <div class="shots" id="shots"></div>
   </section>
@@ -84,8 +84,8 @@ input[type=checkbox]{accent-color:var(--acc);width:16px;height:16px}
     <h2>Video frames</h2>
     <div id="people"></div>
     <div id="frames"></div>
-    <div class="vrow"><button class="btn" id="vauto">Pick varied angles</button><button class="btn" id="vbuild">Build</button></div>
-    <p class="hint2">Sorted from one side to the other. Ticked frames are joined into one face; the most frontal one gives the colours.</p>
+    <div class="vrow"><button class="btn" id="vauto">Auto-pick</button><button class="btn" id="vbuild">Build</button></div>
+    <p class="hint2">Sorted by angle. Ticked frames are merged; the most frontal gives the texture.</p>
   </section>
   <section id="pickwrap" hidden>
     <h2>2. Face</h2>
@@ -99,19 +99,19 @@ input[type=checkbox]{accent-color:var(--acc);width:16px;height:16px}
   </section>
   <section style="display:flex;flex-direction:column;gap:10px">
     <label>Depth <input type="range" id="depth" min="0.4" max="2" step="0.05" value="1"></label>
-    <label>Light angle <input type="range" id="light" min="-1" max="1" step="0.02" value="-0.35"></label>
+    <label>Light <input type="range" id="light" min="-1" max="1" step="0.02" value="-0.35"></label>
     <label>Smoothness <input type="range" id="smooth" min="0" max="2" step="1" value="2"></label>
     <label>ASCII detail <input type="range" id="adetail" min="0.08" max="0.25" step="0.01" value="0.16"></label>
-    <label>Turn slowly <input type="checkbox" id="spin" checked></label>
+    <label>Auto-rotate <input type="checkbox" id="spin" checked></label>
   </section>
   <section style="display:flex;flex-direction:column;gap:8px">
-    <button class="btn" id="glb" disabled>Export 3D file (.glb)</button>
-    <button class="btn" id="png" disabled>Save picture (.png)</button>
+    <button class="btn" id="glb" disabled>Export .glb</button>
+    <button class="btn" id="png" disabled>Save .png</button>
     <div id="msg"></div>
   </section>
-  <p class="foot">Stock faces: stills from Mixkit free stock footage, fictional names. Face points: MediaPipe Face Landmarker (Apache-2.0). Rendering: three.js (MIT). Extra photos or video frames from other angles are aligned onto the first and averaged into one shape; the first photo gives the colours (click a thumbnail to change it). Depth is estimated; the back of the head is not modelled.</p>
+  <p class="foot">Stock faces: Mixkit stills, fictional names. MediaPipe Face Landmarker (Apache-2.0) · three.js (MIT). Extra angles are aligned and averaged; the first photo is the texture (click a thumbnail to change). Depth is estimated; no back of head.</p>
 </aside>
-<div id="stage"><div id="empty">Choose a photo, or tap a sample on the left.</div><div id="ascii"></div><div id="hint">Drag to turn · scroll to zoom · right-drag to move</div></div>
+<div id="stage"><div id="empty">Choose a photo or a sample.</div><div id="ascii"></div><div id="hint">Drag: rotate · Scroll: zoom · Right-drag: pan</div></div>
 </main>
 <script type="module">
 window.__face3d = {};
@@ -157,7 +157,7 @@ addEventListener('resize', resize); resize();
 let landmarker = null;
 async function getLandmarker() {
   if (landmarker) return landmarker;
-  msg('Loading the face model (first time only)…');
+  msg('Loading face model…');
   const t = await import(MP + '/vision_bundle.mjs');
   const fs = await t.FilesetResolver.forVisionTasks(MP + '/wasm');
   landmarker = await t.FaceLandmarker.createFromOptions(fs, { baseOptions: { modelAssetPath: MODEL }, runningMode: 'IMAGE', numFaces: 10, outputFacialTransformationMatrixes: true });
@@ -321,9 +321,9 @@ function buildMesh() {
   wire = new THREE.LineSegments(new THREE.WireframeGeometry(geo), new THREE.LineBasicMaterial({ color: 0x7aa2ff, transparent: true, opacity: 0.55 }));
   scene.add(mesh); scene.add(wire); applyMode();
   $('#glb').disabled = $('#png').disabled = false;
-  const fit = errs.length ? ` (alignment error ${(100 * errs.reduce((s, e) => s + e, 0) / errs.length).toFixed(1)}%)` : '';
-  msg(`${g.tri.length.toLocaleString()} triangles · shape from ${used} photo${used > 1 ? 's' : ''}${fit}.` +
-      (skipped.length ? ` Left out (does not fit this face, maybe another person): ${skipped.join(', ')}.` : ''));
+  const fit = errs.length ? ` · fit error ${(100 * errs.reduce((s, e) => s + e, 0) / errs.length).toFixed(1)}%` : '';
+  msg(`${g.tri.length.toLocaleString()} triangles · shape from ${used} photo${used > 1 ? 's' : ''}${fit}` +
+      (skipped.length ? ` · skipped (other face?): ${skipped.join(', ')}` : ''));
   window.__face3d.used = used; window.__face3d.skipped = skipped.length;
 }
 function material() {
@@ -356,17 +356,17 @@ async function loadPhoto(src, name) {
 /** Replaces (reset) or extends the photo set; the first photo carries the texture and the face choice. */
 async function addPhotos(list, reset) {
   try {
-    msg('Reading the photo…');
+    msg('Reading photo…');
     if (reset) { photos = []; $('#vidwrap').hidden = true; }
     for (const { src, name } of list) {
-      if (photos.length >= MAX_PHOTOS) { msg(`Up to ${MAX_PHOTOS} photos of the same person.`); break; }
+      if (photos.length >= MAX_PHOTOS) { msg(`Max ${MAX_PHOTOS} photos.`); break; }
       const ph = await loadPhoto(src, name);
-      if (!ph.faces.length) { msg(`No face found in ${name}. Try a clear photo.`); continue; }
+      if (!ph.faces.length) { msg(`No face in ${name}.`); continue; }
       photos.push(ph);
     }
     showPhotos();
-    if (photos.length && photos[0].faces.length > 1 && photos.length === 1) msg(`${photos[0].faces.length} faces found: click a numbered box to model another one.`);
-  } catch (e) { msg('Could not load: ' + e.message + ' (the first run needs internet).'); }
+    if (photos.length && photos[0].faces.length > 1 && photos.length === 1) msg(`${photos[0].faces.length} faces: click a box to switch.`);
+  } catch (e) { msg('Could not load: ' + e.message + ' (first run needs internet).'); }
 }
 
 /** Uses photos[0] as colours and reference, refreshes the thumbnails and rebuilds the face. */
@@ -386,8 +386,8 @@ function renderPhotos() {
     `<button class="box${i === ref.sel ? ' on' : ''}" data-i="${i}" aria-label="Face ${i + 1}" style="left:${f.box[0] * 100}%;top:${f.box[1] * 100}%;width:${f.box[2] * 100}%;height:${f.box[3] * 100}%"><span>${i + 1}</span></button>`).join('');
   pick.querySelectorAll('.box').forEach(b => b.onclick = () => { ref.sel = +b.dataset.i; ref.yaw = ref.faces[ref.sel].yaw; renderPhotos(); buildMesh(); });
   const turn = y => (Math.abs(y) < 6 ? 'front' : y < 0 ? `◀ ${-y}°` : `${y}° ▶`);
-  $('#shots').innerHTML = photos.map((p, i) => `<figure><img src="${p.thumb}" alt="" data-i="${i}" title="${i ? 'Use this one for the colours' : 'Gives the colours'}"><figcaption>${i ? turn(p.yaw) : 'colours'}</figcaption>${photos.length > 1 ? `<button data-i="${i}" aria-label="Remove photo ${i + 1}">×</button>` : ''}</figure>`).join('')
-    + (photos.length < MAX_PHOTOS ? '<button class="addshot" id="addshot">+ add an angle</button>' : '');
+  $('#shots').innerHTML = photos.map((p, i) => `<figure><img src="${p.thumb}" alt="" data-i="${i}" title="${i ? 'Use as texture' : 'Texture'}"><figcaption>${i ? turn(p.yaw) : 'texture'}</figcaption>${photos.length > 1 ? `<button data-i="${i}" aria-label="Remove photo ${i + 1}">×</button>` : ''}</figure>`).join('')
+    + (photos.length < MAX_PHOTOS ? '<button class="addshot" id="addshot">+ angle</button>' : '');
   $('#shots').querySelectorAll('figure button').forEach(b => b.onclick = () => { photos.splice(+b.dataset.i, 1); showPhotos(true); });
   $('#shots').querySelectorAll('figure img').forEach(im => im.onclick = () => { const i = +im.dataset.i; if (i) { photos.unshift(...photos.splice(i, 1)); showPhotos(true); } });
   const add = $('#addshot'); if (add) add.onclick = () => { addMode = true; file.accept = 'image/*'; file.click(); };
@@ -457,7 +457,7 @@ async function loadVideo(f) {
     const n = Math.max(8, Math.min(40, Math.round((v.duration || 4) * 2))), frames = [];
     const k = Math.min(1, 960 / Math.max(v.videoWidth, v.videoHeight));
     for (let i = 0; i < n; i++) {
-      msg(`Reading the video: frame ${i + 1} of ${n}…`);
+      msg(`Reading video: ${i + 1}/${n}…`);
       v.currentTime = ((v.duration || 4) * (i + 0.5)) / n;
       await new Promise(r => { const t = setTimeout(r, 3000); v.onseeked = () => { clearTimeout(t); r(); }; });
       const c = document.createElement('canvas'); c.width = Math.round(v.videoWidth * k); c.height = Math.round(v.videoHeight * k);
@@ -466,7 +466,7 @@ async function loadVideo(f) {
       if (faces.length) frames.push({ canvas: c, faces, t: v.currentTime });
     }
     URL.revokeObjectURL(v.src);
-    if (!frames.length) { msg('No face found in this video. Try one where the face is large and well lit.'); return; }
+    if (!frames.length) { msg('No face in this video (needs a large, well-lit face).'); return; }
     const tracks = [];
     frames.forEach((fr, fi) => {
       const taken = new Set();
@@ -483,8 +483,8 @@ async function loadVideo(f) {
     kept.forEach(t => { const big = t.items.reduce((a, b) => (b.area > a.area ? b : a)); t.thumb = faceCrop(frames[big.fi].canvas, frames[big.fi].faces[big.di].box); });
     vid = { frames, tracks: kept, person: 0, chosen: new Set() };
     autoPick(); renderVideo();
-    msg(`${frames.length} frames with a face. ${kept.length > 1 ? `${kept.length} people: choose one, then ` : ''}tick the frames to use and press Build.`);
-  } catch (e) { msg('Could not read the video: ' + e.message + '.'); }
+    msg(`${frames.length} frames with a face. ${kept.length > 1 ? `${kept.length} people: pick one, ` : ''}tick frames, then Build.`);
+  } catch (e) { msg('Could not read video: ' + e.message); }
 }
 
 /**
@@ -508,7 +508,7 @@ function vidCount() {
 function renderVideo() {
   $('#vidwrap').hidden = false;
   const items = [...vid.tracks[vid.person].items].sort((a, b) => a.yaw - b.yaw);
-  $('#people').innerHTML = vid.tracks.length > 1 ? '<p>Who should become 3D?</p>' + vid.tracks.map((tr, i) =>
+  $('#people').innerHTML = vid.tracks.length > 1 ? '<p>Person:</p>' + vid.tracks.map((tr, i) =>
     `<button data-i="${i}" aria-pressed="${i === vid.person}" title="Person ${i + 1}: in ${tr.items.length} frames"><img src="${tr.thumb}" alt="Person ${i + 1}"><b>${tr.items.length}</b></button>`).join('') : '';
   $('#people').querySelectorAll('button').forEach(b => b.onclick = () => { vid.person = +b.dataset.i; autoPick(); renderVideo(); });
   $('#frames').innerHTML = items.map(it => {
