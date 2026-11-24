@@ -1,10 +1,12 @@
 /**
  * Quick survey on the landing page: short, anonymous, role-based questions, in English and Romanian.
  *
- * Methodology: a simpler, closed-answer version of the M4 interview guide (docs/M4_INTERVIEW_KIT.md
- * in the main repo): the same topics (feeling of safety after hours, last incident, how people are
- * checked, what would make someone refuse, who must be told, who decides) as dropdowns or 0-5 scales,
- * so answers can be counted. Every option is an [English, Romanian] pair; the English text is what is
+ * Methodology: a closed-answer version of parts 1 and 3 of the M4 interview guide (lib/m4.ts), written
+ * to pass The Mom Test: only facts about the recent past and what happens today (who guards the school,
+ * incidents in the last 3 months, how and how late they were noticed, how they were resolved, who finds out
+ * at night today, how staff learnt of a daytime incident, past refusals, who
+ * decided), never opinions about our idea or "would you" questions, so the answers can be trusted and
+ * counted. Every option is an [English, Romanian] pair; the English text is what is
  * stored, whichever language the visitor used, so answers from both languages add up. `for` limits a
  * question to some roles; `when` shows it only after a given answer; `game` only after the visitor
  * played the "Spot the stranger" game. Every dropdown also offers "Other…" with a free-text answer
@@ -71,16 +73,23 @@ export const roles: { id: Role; label: T }[] = [
 ];
 
 const DONT_KNOW: T = ["I don't know", "Nu știu"];
-const USEFUL: [T, T] = [["Not at all", "Deloc"], ["A lot", "Foarte mult"]];
 
 const INCIDENT_YES = ["Yes, once", "Yes, more than once"];
+const AFTER_INCIDENT = [{ id: "incident_night", in: INCIDENT_YES }, { id: "incident_day", in: INCIDENT_YES }];
 
 export const questions: Question[] = [
   {
     id: "guarded",
-    title: ["How well is your school guarded after hours?", "Cât de bine e păzită școala după terminarea orelor?"],
-    kind: "scale",
-    ends: [["Not at all", "Deloc"], ["Very well", "Foarte bine"]],
+    title: ["Who guards your school after classes end?", "Cine păzește școala după terminarea orelor?"],
+    kind: "select",
+    options: [
+      ["A guard on site", "Un paznic, la fața locului"],
+      ["A security company (patrol or alarm response)", "O firmă de pază (patrulă sau intervenție la alarmă)"],
+      ["Cameras only", "Doar camere"],
+      ["An alarm only", "Doar alarmă"],
+      ["Nobody", "Nimeni"],
+      DONT_KNOW,
+    ],
     required: true,
   },
   {
@@ -105,124 +114,87 @@ export const questions: Question[] = [
   },
   {
     id: "noticed",
-    title: ["How quickly was the incident noticed?", "Cât de repede a fost observat incidentul?"],
+    title: ["The last time, how was it noticed, and how late?", "Ultima dată, cum s-a sesizat incidentul și cât de târziu?"],
     kind: "select",
     options: [
       ["On the spot, by a guard or teacher", "Pe loc, de paznic sau de un profesor"],
       ["On the spot, by cameras or an alarm", "Pe loc, de camere sau de alarmă"],
-      ["A few hours later", "După câteva ore"],
+      ["A pupil or parent reported it later", "L-a semnalat mai târziu un elev sau un părinte"],
       ["The next day", "A doua zi"],
       ["Days later", "După câteva zile"],
       DONT_KNOW,
     ],
     required: true,
-    when: [{ id: "incident_night", in: INCIDENT_YES }, { id: "incident_day", in: INCIDENT_YES }],
+    when: AFTER_INCIDENT,
   },
   {
     id: "resolved",
-    title: ["Was it resolved in time?", "S-a rezolvat la timp?"],
+    title: ["How was it resolved?", "Cum s-a rezolvat?"],
     kind: "select",
     options: [
-      ["Yes, right away", "Da, imediat"],
-      ["Yes, but late", "Da, dar cu întârziere"],
-      ["No, it wasn't resolved", "Nu, nu s-a rezolvat"],
+      ["Right away, by the guard or staff", "Imediat, de paznic sau de personal"],
+      ["The police or a security company came", "A venit poliția sau firma de pază"],
+      ["Resolved, but late", "S-a rezolvat, dar cu întârziere"],
+      ["It was not resolved", "Nu s-a rezolvat"],
       DONT_KNOW,
     ],
     required: true,
-    when: [{ id: "incident_night", in: INCIDENT_YES }, { id: "incident_day", in: INCIDENT_YES }],
+    when: AFTER_INCIDENT,
   },
   {
-    id: "who_inside",
-    title: ["After hours, how does the school check who comes in?", "După terminarea orelor, cum se verifică cine intră în școală?"],
+    id: "alert_night",
+    title: ["Today, if someone gets into the school at night, who finds out and how?", "Azi, dacă intră cineva noaptea în școală, cine află și cum?"],
     kind: "select",
     options: [
-      ["A guard checks", "Verifică paznicul"],
-      ["Key cards or codes", "Cu cartelă sau cod de acces"],
-      ["Someone watches the cameras", "Cineva urmărește camerele"],
-      ["Nobody checks", "Nu verifică nimeni"],
+      ["The alarm calls the security company", "Alarma anunță firma de pază"],
+      ["The guard calls the principal", "Paznicul îl sună pe director"],
+      ["Nobody, until the morning", "Nimeni, până dimineață"],
       DONT_KNOW,
     ],
     required: true,
   },
   {
-    id: "comfort",
-    title: [
-      "How acceptable is a camera system that recognises only school staff and never stores pupils' faces?",
-      "Cât de acceptabil ți se pare un sistem de camere care recunoaște doar personalul școlii și nu salvează fețele elevilor?",
-    ],
-    kind: "scale",
-    ends: [["Not at all", "Deloc"], ["Fully", "Pe deplin"]],
-    required: true,
-  },
-  {
-    id: "alert_useful",
-    title: [
-      "How much would a phone alert help when an unknown person enters the school at night?",
-      "Cât te-ar ajuta o alertă pe telefon când o persoană necunoscută intră noaptea în școală?",
-    ],
-    kind: "scale",
-    ends: USEFUL,
-    required: true,
-    for: ["teacher", "staff", "parent", "other"],
-  },
-  {
-    id: "day_alert_useful",
-    title: [
-      "How much would an alert help for daytime incidents too (fights, strangers in the yard)?",
-      "Cât te-ar ajuta o alertă și pentru incidentele din timpul zilei (bătăi, persoane străine în curte)?",
-    ],
-    kind: "scale",
-    ends: USEFUL,
-    required: true,
-    for: ["teacher", "staff", "parent", "other"],
-  },
-  {
-    id: "morning_useful",
-    title: ["How much would a short summary of the night, every morning, help?", "Cât te-ar ajuta un scurt rezumat al nopții, primit în fiecare dimineață?"],
-    kind: "scale",
-    ends: USEFUL,
-    required: true,
-    for: ["teacher", "staff"],
-  },
-  {
-    id: "game_trust",
-    title: ["After the game: would you trust an automatic system to spot strangers?", "După ce ai jucat: ai avea încredere într-un sistem automat care observă persoanele străine?"],
-    kind: "scale",
-    ends: [["Not at all", "Deloc"], ["Fully", "Pe deplin"]],
-    required: true,
-    game: true,
-  },
-  {
-    id: "refuse",
-    title: ["Main reason you would refuse such a system? (optional)", "Care ar fi principalul motiv pentru care ai refuza un astfel de sistem? (opțional)"],
+    id: "alert_day",
+    title: ["At the last daytime incident (e.g. a fight), how did the staff find out?", "La ultimul incident din timpul zilei (de exemplu o bătaie), cum a aflat personalul?"],
     kind: "select",
     options: [
-      ["Pupils' privacy", "Intimitatea elevilor"],
-      ["False alarms", "Alarmele false"],
-      ["Cost", "Costul"],
-      ["Hard to use", "E greu de folosit"],
-      ["Nothing", "Nimic, l-aș accepta"],
+      ["A teacher or the guard saw it", "L-a văzut un profesor sau paznicul"],
+      ["A pupil told a teacher", "Un elev i-a spus unui profesor"],
+      ["From the cameras", "Din camere"],
+      ["Later, from parents", "Mai târziu, de la părinți"],
+      ["There was no such incident", "Nu a fost un astfel de incident"],
+      DONT_KNOW,
+    ],
+    required: true,
+  },
+  {
+    id: "refused",
+    title: [
+      "Has your school ever turned down a security or camera solution? Why? (optional)",
+      "A renunțat vreodată școala la o soluție de pază sau la camere? De ce? (opțional)",
+    ],
+    kind: "select",
+    options: [
+      ["Too expensive", "Prea scump"],
+      ["Parents or staff objected (privacy)", "S-au opus părinții sau personalul (intimitate)"],
+      ["Too many false alarms", "Prea multe alarme false"],
+      ["Too hard to use", "Prea greu de folosit"],
+      ["Never turned one down", "Nu a renunțat niciodată"],
+      DONT_KNOW,
     ],
     for: ["teacher"],
   },
   {
-    id: "tell",
-    title: ["Who should be informed before the system starts?", "Cine ar trebui informat înainte ca sistemul să fie pus în funcțiune?"],
+    id: "decided",
+    title: ["Who decided the last spending on guarding or cameras?", "Cine a decis ultima cheltuială pentru pază sau camere?"],
     kind: "select",
     options: [
-      ["Everyone, in writing", "Toată lumea, în scris"],
-      ["Parents, who must agree first", "Părinții, care trebuie să-și dea acordul"],
-      ["School staff only", "Doar personalul școlii"],
-      ["No need", "Nu e nevoie"],
-      ["Not sure", "Nu sunt sigur(ă)"],
+      ["The principal", "Directorul"],
+      ["The school board", "Consiliul de administrație"],
+      ["The city hall", "Primăria"],
+      ["The parents' association", "Asociația de părinți"],
+      DONT_KNOW,
     ],
-    required: true,
-  },
-  {
-    id: "decides",
-    title: ["Who would decide to buy such a system?", "Cine ar decide achiziția unui astfel de sistem?"],
-    kind: "select",
-    options: [["The principal", "Directorul"], ["The school board", "Consiliul de administrație"], ["The city hall", "Primăria"], DONT_KNOW],
     required: true,
     for: ["teacher", "staff"],
   },
