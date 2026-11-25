@@ -889,8 +889,12 @@ function Game({ s }: { s: Stats }) {
                 <dd className="text-right tabular-nums text-white">{pct(r.correct_pct)}</dd>
                 <dt className="text-neutral-400">Median</dt>
                 <dd className="text-right tabular-nums text-white">{sec(r.median_human_ms)}</dd>
-                <dt className="text-neutral-400">Best</dt>
-                <dd className="text-right tabular-nums text-white">{sec(r.best_human_ms)}</dd>
+                {r.best_human_ms != null && (
+                  <>
+                    <dt className="text-neutral-400">Best</dt>
+                    <dd className="text-right tabular-nums text-white">{sec(r.best_human_ms)}</dd>
+                  </>
+                )}
                 <dt className="text-neutral-400">System</dt>
                 <dd className="text-right tabular-nums text-neutral-200">{sec(r.median_machine_ms)}</dd>
               </dl>
