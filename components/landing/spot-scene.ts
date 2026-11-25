@@ -1,15 +1,23 @@
 /**
  * Canvas engine for the "Spot the stranger" game: a CCTV view where an authored cast moves, and the
- * visitor taps the stranger (rounds 1-3) or the person about to cause harm (bonus round).
+ * visitor taps the unknown person (rounds 1-2) or the person about to cause harm (rounds 3-5).
  *
  * Methodology:
  * - Scenarios (spot-scenarios.ts) give the place, the time, the cast and each person's behaviour. This
- *   file runs those behaviours (patrol, work, wait, cross, play, chat, sit, pace, visit, and for the bonus:
- *   follow, dealer/buyer hand-offs, aggressor escalation, play-fighting, a parent rushing, dancing), eases
+ *   file runs those behaviours (patrol, work, wait, cross, play, chat, sit, pace, and for the harmful rounds:
+ *   prowling door to door, follow, dealer/buyer hand-offs, aggressor escalation, play-fighting, a parent
+ *   rushing, dancing), eases
  *   faces between expressions, and projects everyone into the view (spot-settings.ts) back to front.
- * - Rounds' "machine" is honest and small: every frame it turns each visible person into a feature vector
- *   (colours and shape traits, spot-cast.ts), finds the nearest remembered person and calls anyone
- *   farther than THRESH "Unknown_1". Its time per frame is measured over PASSES repeats and averaged.
+ * - System time is MODELLED on Nau-ino's own measurements, on the same basis as the visitor's time:
+ *   the camera is analysed at 5 frames/s at most; an analysed frame costs FACE_S per visible face
+ *   (0.3.2 self-check: 17.4 s for 405 photos on a laptop CPU), so a crowded view is analysed less often;
+ *   a frame starts when the previous one is done. Rounds 1-2: the unknown person is flagged after
+ *   CONFIRM consecutive analysed frames in which they are visible; the time runs from their first
+ *   appearance. Rounds 3-5: the culprit's behaviour cues add up (weights in the scenario) and the alert
+ *   is raised when they reach ALERT_SCORE, plus the same CONFIRM-frame latency. When the visitor taps
+ *   before the system (or before the harmful act), a copy of the scene is run ahead off-screen to find
+ *   when it would have happened; those times are marked as estimated.
+ * - A small colour matcher still labels the boxes (names / Unknown_1) for the demo and the reveal.
  * - The bonus "machine" only uses OBSERVABLE BEHAVIOUR measured from the tracks: speed, approach speed
  *   towards the nearest person, closest distance, contacts, hand-offs, pushes, kicks, following the same
  *   person, reciprocity (play-fighting goes both ways). It never reads faces or emotions; expressions are
@@ -23,7 +31,7 @@ import {
   AGE_H, AGE_SPEED, NEUTRAL, drawCharacter, features, headOf, layoutOf,
   type Act, type Expr, type Mood, type Pose,
 } from "@/components/landing/spot-cast";
-import { type Beh, type Line, type Member, type Prop, type Scenario } from "@/components/landing/spot-scenarios";
+import { ALERT_SCORE, type Beh, type Line, type Member, type Prop, type Scenario } from "@/components/landing/spot-scenarios";
 import { SETTINGS, projector, seeded, type Projector, type Setting } from "@/components/landing/spot-settings";
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
@@ -36,21 +44,37 @@ const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const MX = 20;
 const MZ = 14;
 const THRESH = 0.35;
-const PASSES = 10;
+const PASSES = 4;
+/** Nau-ino measurements (laptop CPU): seconds per face per analysed frame, shortest frame, frames to confirm. */
+export const FACE_S = 0.043;
+export const FRAME_S = 0.2;
+export const CONFIRM = 3;
 const CYAN = "#4dd0ff";
 const RED = "#ff4d5e";
 const AMBER = "#ffb347";
 
 export type SceneMode = "connecting" | "countdown" | "live" | "result" | "demo";
 export type Lang = "en" | "ro";
+export type CueEvent = { id: string; clock: number; line: Line; projected: boolean };
 export type SceneResult = {
   correct: boolean;
   picked: string;
   pickedRole: Line;
   pickedReadout: Line;
   targetReadout: Line;
+  /** Epoch ms of scene clock 0 (to print clock times). */
+  t0: number;
+  liveClock: number;
+  tapClock: number;
+  /** Rounds 1-2: when the unknown person was first visible; rounds 3-5: liveClock. */
+  baseClock: number;
+  sysClock: number;
+  sysProjected: boolean;
   human_ms: number;
   machine_ms: number;
+  /** Rounds 3-5 only. */
+  cues: CueEvent[];
+  act: CueEvent | null;
 };
 
 type Options = {
@@ -62,6 +86,8 @@ type Options = {
   onResult?: (r: SceneResult) => void;
   onSelect?: (index: number, total: number) => void;
   onMachine?: (ms: number) => void;
+  /** A line for the live alert feed, with its scene-clock time. */
+  onFeed?: (line: Line, clock: number, kind: "info" | "cue" | "alert") => void;
 };
 
 type Stats = {
@@ -151,7 +177,19 @@ export class SpotScene {
   private far: HTMLCanvasElement | null = null;
   private grain: HTMLCanvasElement[] = [];
   private actors: Actor[] = [];
-  private props: (Prop & { hidden: boolean; wob: number })[] = [];
+  private props: (Prop & { wob: number })[] = [];
+  // system model
+  private liveClock = -1;
+  private firstSeen = -1;
+  private aNext = 0;
+  private aQueue: { done: number; v: boolean }[] = [];
+  private consec = 0;
+  private sysClock = -1;
+  private score = 0;
+  private events: CueEvent[] = [];
+  private ff = false;
+  private sysFed = false;
+  private demoFed = false;
   private knownF: number[][] = [];
   private knownIdx: number[] = [];
   mode: SceneMode;
@@ -182,7 +220,7 @@ export class SpotScene {
     this.lang = o.lang;
     this.sc = o.scenario;
     this.set = SETTINGS[this.sc.setting];
-    this.bonus = this.sc.round === 3;
+    this.bonus = this.sc.pool === 2;
     this.mode = o.demo ? "demo" : "connecting";
     this.blurOk = "filter" in this.ctx;
     const t = new Date();
@@ -193,7 +231,21 @@ export class SpotScene {
       this.knownIdx = this.sc.cast.map((_, i) => i).filter((i) => i !== this.sc.target);
       this.knownF = this.knownIdx.map((i) => features(this.sc.cast[i]));
     }
-    this.props = (this.sc.props ?? []).map((p) => ({ ...p, hidden: p.kind === "backpack", wob: 0 }));
+    this.props = (this.sc.props ?? []).map((p) => ({ ...p, wob: 0 }));
+    if (o.demo) {
+      this.liveClock = 0;
+      this.aNext = 0;
+    }
+    if (this.bonus) {
+      // the culprit's story starts when the round goes live, not during "connecting" and the countdown
+      const off = o.demo ? 0 : o.reduce ? 2.5 : 3.3;
+      for (const a of this.actors) {
+        const b = a.beh;
+        if (b.k === "buyer" || b.k === "prowl") a.timer += off;
+        if (b.k === "aggressor") a.t = -off;
+        if (b.k === "follow") a.bT = -off;
+      }
+    }
     this.ro = new ResizeObserver(() => this.resize());
     this.ro.observe(canvas);
     this.io = new IntersectionObserver(([e]) => {
@@ -209,6 +261,11 @@ export class SpotScene {
   /** The CCTV clock (advances only while the scene runs). */
   sceneTime(): Date {
     return new Date(this.stamp + this.clock * 1000);
+  }
+
+  /** The CCTV date and time of a scene-clock moment. */
+  at(clock: number): Date {
+    return new Date(this.stamp + clock * 1000);
   }
 
   setLang(l: Lang) {
@@ -337,11 +394,11 @@ export class SpotScene {
         a.bState = "out";
         break;
       }
-      case "visit":
+      case "prowl":
       case "buyer":
       case "rush":
         a.state = "away";
-        a.timer = b.k === "visit" ? rand(0.2, 0.9) : b.k === "buyer" ? b.delay : rand(1, 4);
+        a.timer = b.k === "prowl" ? rand(0.2, 0.9) : b.k === "buyer" ? b.delay : rand(1, 4);
         a.x = -1;
         break;
       case "follow": {
@@ -354,13 +411,14 @@ export class SpotScene {
         [a.x, a.z] = this.inArea(b.area);
         this.idle(a, rand(2, 4), "phone");
         a.bState = "calm";
+        a.t = 0;
         break;
       default:
         break;
     }
   }
 
-  /** Re-enter from a gate (used by visit, buyer, rush, cross). */
+  /** Re-enter from a gate (used by prowl, buyer, rush, cross). */
   private enterFrom(a: Actor, gate: string) {
     const [gx, gz] = this.gatePos(gate);
     a.x = gx;
@@ -398,9 +456,19 @@ export class SpotScene {
         } else if (b.from === b.to) this.walkTo(a, ...this.gatePos(b.to));
         else this.walkTo(a, ...this.gatePos(b.to));
         break;
-      case "visit": {
-        const act = b.acts?.[a.step] ?? "none";
-        this.idle(a, rand(1.8, 3.2), act);
+      case "prowl": {
+        const act = b.acts[a.step] ?? "none";
+        if (act === "handle") {
+          a.other += 1;
+          this.emit(a, "handle" + (a.other + 1));
+          if (a.carry === "crowbar" && a.other === 0) this.emit(a, "tool");
+        }
+        if (act === "shove") {
+          a.burst = 0;
+          a.toward = a.x < 0.5 ? 1 : -1;
+          this.emit(a, "force");
+        }
+        this.idle(a, act === "shove" ? 1.4 : rand(1.8, 3), act);
         break;
       }
       case "buyer": {
@@ -416,6 +484,7 @@ export class SpotScene {
             d.bState = "deal";
             this.idle(d, 2, "exchange");
             d.st.handoffs++;
+            this.emit(d, "handoff" + d.st.handoffs);
           }
           a.st.handoffs++;
         } else if (a.bState === "leaving") {
@@ -435,11 +504,13 @@ export class SpotScene {
           this.idle(a, 0.7, "kick");
           a.burst = 0;
           a.st.kicks++;
+          this.emit(a, "kick");
           const bin = this.props.find((p) => p.kind === "bin");
           if (bin) bin.wob = 1;
         } else if (a.bState === "close") {
           this.idle(a, rand(2.5, 3.5), "fists");
           a.bState = "square";
+          this.emit(a, "square");
         } else this.idle(a, rand(0.5, 1.4), a.lv > 0.3 ? "fists" : "none");
         break;
       default:
@@ -474,22 +545,15 @@ export class SpotScene {
         a.act = b.act ?? "none";
         break;
       }
-      case "visit": {
-        if (a.step === 0 && a.carry === "backpack") {
-          const bp = this.props.find((p) => p.kind === "backpack");
-          if (bp) {
-            bp.hidden = false;
-            a.carry = "none";
-          }
-        }
+      case "prowl":
         a.step = (a.step + 1) % b.pts.length;
         this.walkTo(a, ...b.pts[a.step]);
         break;
-      }
       case "dealer":
         if (a.bState === "deal") {
           a.bState = "count";
           this.idle(a, 2.4, "count");
+          this.emit(a, "count");
           return;
         }
         a.bState = "";
@@ -527,6 +591,7 @@ export class SpotScene {
       a.burst = 0;
       this.idle(a, 0.8, "shove");
       a.st.pushes++;
+      this.emit(a, "push");
       if (v) {
         v.x = clamp(v.x + Math.sign(v.x - a.x || 1) * 0.04, 0.04, 0.96);
         v.lv = 1;
@@ -548,10 +613,12 @@ export class SpotScene {
         a.toward = 1;
       } else {
         a.bState = "restless";
+        this.emit(a, "restless");
         this.walkTo(a, ...this.inArea(b.area));
       }
     } else if (v) {
       a.bState = "close";
+      this.emit(a, "close");
       const side = a.x < v.x ? -1 : 1;
       this.walkTo(a, v.x + side * 0.035, v.z + 0.005, 1);
     }
@@ -563,8 +630,9 @@ export class SpotScene {
     if (a.state === "away") {
       a.timer -= dt;
       if (a.timer <= 0) {
-        if (b.k === "visit") {
+        if (b.k === "prowl") {
           this.enterFrom(a, b.from);
+          a.other = -1;
           this.walkTo(a, ...b.pts[a.step]);
         } else if (b.k === "buyer") {
           const d = this.actors[b.dealer];
@@ -592,12 +660,26 @@ export class SpotScene {
     if (b.k === "follow") {
       const t = this.actors[b.target];
       if (t && t.state !== "away") {
-        const gap = b.gap ?? 0.08;
+        a.bT += dt;
+        if (a.bT >= 10) this.emit(a, "follow10");
+        if (a.bT >= 20) this.emit(a, "follow20");
+        const grabbing = a.bT >= 25 && a.bState !== "grabbed";
+        if (grabbing && Math.hypot((t.x - a.x) * MX, (t.z - a.z) * MZ) < 0.9 && a.state !== "idle") {
+          a.bState = "grabbed";
+          a.toward = t.x >= a.x ? 1 : -1;
+          this.idle(a, 1.4, "push");
+          this.emit(a, "grab");
+          t.lv = 1;
+          return;
+        }
+        const gap = grabbing ? 0.03 : b.gap ?? 0.08;
         const dir = Math.sign(t.facing) || 1;
         a.tx = clamp(t.x - dir * gap, 0.03, 0.97);
         a.tz = clamp(t.z - 0.02, 0.05, 0.95);
-        a.state = "walk";
-        a.run = t.run * 0.6;
+        if (a.state !== "idle") {
+          a.state = "walk";
+          a.run = grabbing ? 0.6 : t.run * 0.6;
+        }
         a.toward = t.x >= a.x ? 1 : -1;
       }
     }
@@ -633,7 +715,12 @@ export class SpotScene {
     a.z += ((dz / dist) * step) / 0.75;
     a.phase += step * (52 - runK * 12) / Math.max(0.6, AGE_H[a.m.age]);
     a.facing += (dx / dist - a.facing) * Math.min(1, dt * 6);
-    const away = dz < 0 && -dz > Math.abs(dx) * 0.7 ? 1 : 0;
+    const hiding = b.k === "prowl" && a.m.acc === "hood" && a.z < 0.24;
+    if (hiding) {
+      a.bT += dt;
+      if (a.bT >= 3) this.emit(a, "avoid");
+    }
+    const away = hiding || (dz < 0 && -dz > Math.abs(dx) * 0.7) ? 1 : 0;
     a.back += (away - a.back) * Math.min(1, dt * 5);
     a.st.moved += Math.hypot((dx / dist) * step * MX, ((dz / dist) * step) / 0.75 * MZ);
     if (runK > 0.5) a.st.fast += dt;
@@ -884,7 +971,8 @@ export class SpotScene {
       parts.push([`approach ${e} m/s`, `apropiere ${r} m/s`]);
     }
     if (s.minDist < 1.2 && !play) {
-      const [e, r] = num(s.minDist);
+      // bodies are never closer than ~0.3 m (shoulder to shoulder); avoid a meaningless "0.0 m"
+      const [e, r] = num(Math.max(0.3, s.minDist));
       parts.push([`proximity ${e} m`, `distanță ${r} m`]);
     }
     if (s.dance > 2) parts.push(["rhythmic movement", "mișcare ritmică"]);
@@ -901,7 +989,110 @@ export class SpotScene {
   private setMode(m: SceneMode) {
     this.mode = m;
     this.modeT = 0;
-    if (m === "live") this.o.onLive?.();
+    if (m === "live") {
+      this.liveClock = this.clock;
+      this.aNext = this.clock;
+      this.o.onLive?.();
+      const cam = this.set.cam.split(" · ")[0];
+      const n = this.actors.filter((a) => a.visible).length;
+      this.o.onFeed?.(
+        this.bonus ? [`${cam} · ${n} people in view`, `${cam} · ${n} persoane în cadru`] : [`${cam} · scanning ${n} faces`, `${cam} · analizez ${n} fețe`],
+        this.clock,
+        "info",
+      );
+    }
+  }
+
+  /** Processing latency to confirm: CONFIRM analysed frames with the faces now in view. */
+  private latency() {
+    const n = this.actors.filter((a) => a.visible).length;
+    return CONFIRM * Math.max(FRAME_S, n * FACE_S);
+  }
+
+  /** A behaviour cue or the harmful act, seen on the culprit (harmful rounds only). */
+  private emit(a: Actor, id: string) {
+    if (!a.target || !this.bonus) return;
+    if (this.events.some((e) => e.id === id)) return;
+    const cue = this.sc.cues?.[id];
+    const act = this.sc.act?.id === id ? this.sc.act : null;
+    if (!cue && !act) return;
+    this.events.push({ id, clock: this.clock, line: cue ? cue.line : act!.noun, projected: this.ff });
+    if (cue && this.sysClock < 0) {
+      this.score += cue.w;
+      if (this.score >= ALERT_SCORE - 1e-6) this.sysClock = this.clock + this.latency();
+    }
+    if (cue && !this.ff) this.o.onFeed?.(cue.line, this.clock, "cue");
+  }
+
+  /**
+   * The modelled system. Rounds 1-2: frames are captured no faster than FRAME_S and each takes
+   * faces x FACE_S; CONFIRM consecutive frames with the unknown person in view raise the alert.
+   * Rounds 3-5: the alert time is set in emit() when the cue weights reach ALERT_SCORE.
+   */
+  private sysModel() {
+    if (this.liveClock < 0) return;
+    const s = this.actors[this.sc.target];
+    if (this.firstSeen < 0 && s.visible) this.firstSeen = this.clock;
+    if (!this.bonus) {
+      while (this.aNext <= this.clock) {
+        const n = this.actors.filter((a) => a.visible).length;
+        this.aQueue.push({ done: this.aNext + n * FACE_S, v: s.visible });
+        this.aNext += Math.max(FRAME_S, n * FACE_S);
+      }
+      while (this.aQueue.length && this.aQueue[0].done <= this.clock) {
+        const f = this.aQueue.shift()!;
+        this.consec = f.v ? this.consec + 1 : 0;
+        if (this.consec >= CONFIRM && this.sysClock < 0) this.sysClock = f.done;
+      }
+    }
+    if (this.ff || this.sysClock < 0 || this.clock < this.sysClock) return;
+    if (this.mode === "demo" && !this.demoFed) {
+      this.demoFed = true;
+      this.o.onMachine?.((this.sysClock - Math.max(0, this.firstSeen)) * 1000);
+    }
+    if (!this.sysFed && this.mode === "live") {
+      this.sysFed = true;
+      const cam = this.set.cam.split(" · ")[0];
+      this.o.onFeed?.(
+        this.bonus
+          ? ["ALERT · guard on duty + principal", "ALERTĂ · paznicul de serviciu + directorul"]
+          : [`Unknown person in view · ${cam} · guard alerted`, `Persoană necunoscută în cadru · ${cam} · paznicul alertat`],
+        this.sysClock,
+        "alert",
+      );
+    }
+  }
+
+  /**
+   * Runs a copy of the scene ahead off-screen (no drawing, no callbacks) to find when the system alert
+   * and, in harmful rounds, the harmful act would happen. Used when the visitor taps first.
+   */
+  private runAhead() {
+    const keep = {
+      actors: this.actors, props: this.props, clock: this.clock, aNext: this.aNext, aQueue: this.aQueue, consec: this.consec,
+      sysClock: this.sysClock, score: this.score, events: this.events, firstSeen: this.firstSeen,
+    };
+    this.actors = structuredClone(this.actors);
+    this.props = structuredClone(this.props);
+    this.aQueue = [...this.aQueue];
+    this.events = [...this.events];
+    this.ff = true;
+    const dt = 1 / 30;
+    const actId = this.sc.act?.id;
+    for (let i = 0; i < 70 * 30; i++) {
+      this.clock += dt;
+      for (const a of this.actors) {
+        this.move(a, dt);
+        this.project(a);
+      }
+      this.sysModel();
+      const actDone = !this.bonus || this.events.some((e) => e.id === actId);
+      if (this.sysClock >= 0 && this.clock >= this.sysClock && actDone) break;
+    }
+    const out = { sys: this.sysClock, events: this.events, first: this.firstSeen };
+    Object.assign(this, keep);
+    this.ff = false;
+    return out;
   }
 
   private step(dt: number) {
@@ -923,7 +1114,7 @@ export class SpotScene {
     for (const p of this.props) p.wob = Math.max(0, p.wob - dt * 0.8);
     const vis = this.actors.filter((a) => a.visible);
     this.runMachine(vis, this.mode === "result" ? 0 : sdt);
-    if (this.mode === "demo" && this.frame % 30 === 0) this.o.onMachine?.(this.machineMs());
+    if (this.mode === "live" || this.mode === "demo") this.sysModel();
     if (this.miss) {
       this.miss.t += dt;
       if (this.miss.t > 0.5) this.miss = null;
@@ -989,7 +1180,14 @@ export class SpotScene {
 
   private choose(a: Actor) {
     this.clicked = a;
-    const human = this.humanMs;
+    const tap = this.clock;
+    const actId = this.sc.act?.id;
+    const needAhead = this.sysClock < 0 || (this.bonus && !this.events.some((e) => e.id === actId));
+    const ahead = needAhead ? this.runAhead() : null;
+    const sysClock = ahead && this.sysClock < 0 ? ahead.sys : this.sysClock;
+    const events = ahead ? ahead.events : this.events;
+    const first = this.firstSeen >= 0 ? this.firstSeen : ahead && ahead.first >= 0 ? ahead.first : tap;
+    const base = this.bonus ? this.liveClock : first;
     this.setMode("result");
     const s = this.actors[this.sc.target];
     s.back = 0;
@@ -1006,8 +1204,16 @@ export class SpotScene {
       pickedRole: a.m.role,
       pickedReadout: this.bonus ? this.readout(a) : ["", ""],
       targetReadout: this.bonus ? this.readout(s) : ["", ""],
-      human_ms: human,
-      machine_ms: this.machineMs(),
+      t0: this.stamp,
+      liveClock: this.liveClock,
+      tapClock: tap,
+      baseClock: base,
+      sysClock,
+      sysProjected: this.sysClock < 0,
+      human_ms: Math.max(0, (tap - base) * 1000),
+      machine_ms: Math.max(0, (sysClock - base) * 1000),
+      cues: events.filter((e) => e.id !== actId),
+      act: events.find((e) => e.id === actId) ?? null,
     });
   }
 
@@ -1185,7 +1391,7 @@ export class SpotScene {
         },
       });
     }
-    for (const p of this.props) if (!p.hidden) items.push({ z: p.at[1], draw: (c) => this.drawProp(c, p) });
+    for (const p of this.props) items.push({ z: p.at[1], draw: (c) => this.drawProp(c, p) });
     items.sort((a, b) => a.z - b.z);
     const farZ = 0.26;
     const farItems = items.filter((i) => i.z < farZ);

@@ -1,20 +1,22 @@
 /**
- * Hand-authored scenarios for "Spot the stranger": who is in the scene, what each person does, where, at
- * what time, and what the cameras report.
+ * Hand-authored scenarios for "Spot the stranger": who is in the scene, what each person does, where and
+ * at what time.
  *
  * Methodology:
- * - Rounds 1-3 (2, 5, 20 remembered people): each scenario has a fixed cast with roles and ages, scripted
- *   behaviours (patrol, work, wait, cross, play, chat, sit, pace, visit) and one stranger, who is never
- *   in the line-up and whose actions match the alert texts. One scenario per round is picked per play.
- * - Bonus (10 people): spot the person about to cause harm from OBSERVABLE BEHAVIOUR only (closing in,
- *   fists, shoving, kicking, repeated hand-offs, following someone, hiding an object). Decoys show
- *   similar single cues (play-fighting, a parent running, a coach shouting, someone pacing on the phone,
- *   a teen dancing). Who the culprit is varies in age and look across scenarios, so appearance is never
- *   a cue. Facial expression is animation only; the system's readouts describe behaviour, not emotions.
+ * - Pool 0 (round 1: 3 remembered people) and pool 1 (round 2: 14 remembered people): an ordinary scene
+ *   and one ordinary person who is simply not in the remembered list. No tools, no hoods, no suspicious
+ *   behaviour: the point is how hard one unknown face gets to spot as the crowd grows.
+ * - Pool 2 (rounds 3-5, about 10 people): spot the person about to cause harm from OBSERVABLE BEHAVIOUR
+ *   (closing in, fists, a push, a kick, repeated hand-offs, following someone, trying doors, avoiding the
+ *   cameras). Each scenario lists the behaviour cues the system can see (`cues`, with a weight) and the
+ *   harmful act (`act`); the system alerts when the weights add up to ALERT_SCORE. Decoys show similar
+ *   single cues (play-fighting, a parent rushing, a coach shouting, someone pacing on the phone, a teen
+ *   dancing, a teen with the hood up), and who the culprit is varies in age and look, so appearance is
+ *   never the cue. Expressions are animation only; the readouts describe behaviour, not emotions.
  * - Positions are world coordinates [x, z] (x across, z from the back 0 to the camera 1).
  */
 
-import { HAIR, SKIN, type Act, type Age, type Carry, type HairStyle, type Mood, type Outfit, type Person, type Acc } from "@/components/landing/spot-cast";
+import { HAIR, SKIN, type Acc, type Act, type Age, type Carry, type HairStyle, type Mood, type Outfit, type Person } from "@/components/landing/spot-cast";
 
 export type Line = [en: string, ro: string];
 export type P2 = [number, number];
@@ -29,8 +31,8 @@ export type Beh =
   | { k: "chat"; at: P2; with: number }
   | { k: "sit"; seat: number; act?: Act }
   | { k: "pace"; a: P2; b: P2; act?: Act }
-  | { k: "visit"; from: string; pts: P2[]; acts?: Act[] }
-  // bonus behaviours
+  // harmful-action rounds
+  | { k: "prowl"; from: string; pts: P2[]; acts: Act[] }
   | { k: "follow"; target: number; gap?: number }
   | { k: "dealer"; at: P2 }
   | { k: "buyer"; dealer: number; delay: number; from: string; to: string }
@@ -39,26 +41,35 @@ export type Beh =
   | { k: "rush"; from: string; to: number }
   | { k: "dance"; at: P2 };
 
-export type Member = Person & { beh: Beh; mood?: Mood; away?: number };
+export type Member = Person & { beh: Beh; mood?: Mood };
 
-export type Prop = { kind: "bin" | "backpack"; at: P2 };
+export type Prop = { kind: "bin"; at: P2 };
+
+/**
+ * Behaviour events the scene reports for the culprit: restless, kick, close, square, push (aggressor);
+ * handoff1..3, count (dealer); follow10, follow20, grab (follower); handle1..3, tool, avoid, force (prowler).
+ */
+export type Cue = { line: Line; w: number };
 
 export type Scenario = {
   id: string;
-  /** 0, 1, 2 = rounds of 2, 5, 20 remembered people; 3 = bonus. */
-  round: 0 | 1 | 2 | 3;
+  /** 0 = round 1 (3 remembered), 1 = round 2 (14 remembered), 2 = harmful-action pool (rounds 3-5). */
+  pool: 0 | 1 | 2;
   setting: string;
   scale?: number;
   clock: [number, number];
   info: Line;
   cast: Member[];
-  /** Index of the person to find: the stranger (rounds) or the culprit (bonus). Rounds: always the last. */
+  /** Index of the person to find: the unknown person (pools 0-1, always the last) or the culprit. */
   target: number;
-  alerts: [Line, Line, Line];
-  /** Bonus: what the culprit did, for the result card. */
-  story?: Line[];
+  /** Harmful rounds: cues the system sees, by event id, and the harmful act (event id + noun). */
+  cues?: Record<string, Cue>;
+  act?: { id: string; noun: Line };
   props?: Prop[];
 };
+
+/** Sum of cue weights at which the system raises its alert. */
+export const ALERT_SCORE = 2;
 
 /* ------------------------------------------------------------------ building people */
 
@@ -77,8 +88,8 @@ type Look = {
 };
 
 let nextId = 0;
-function M(name: string, role: Line, age: Age, look: Look, beh: Beh, mood: Mood = "calm", away?: number): Member {
-  return { id: nextId++, name, role, age, outfit: "casual", ...look, beh, mood, away };
+function M(name: string, role: Line, age: Age, look: Look, beh: Beh, mood: Mood = "calm"): Member {
+  return { id: nextId++, name, role, age, outfit: "casual", ...look, beh, mood };
 }
 
 const S = SKIN;
@@ -100,129 +111,9 @@ const R_CLEANER: Line = ["Cleaner", "Îngrijitoare"];
 const R_PARENT: Line = ["Parent", "Părinte"];
 const R_GRANDPA: Line = ["Grandfather", "Bunic"];
 const R_GRANDMA: Line = ["Grandmother", "Bunică"];
-const STRANGER: Line = ["Not in the list", "Nu e pe listă"];
+const UNKNOWN: Line = ["Not in the list", "Nu e pe listă"];
 
-/* ------------------------------------------------------------------ rounds 1-3 */
-
-function r1Fence(): Scenario {
-  return {
-    id: "r1-fence", round: 0, setting: "yard-night", clock: [22, 10],
-    info: ["Friday 22:10, back yard. The guard and the cleaner do their rounds; someone comes over the side fence.", "Vineri, 22:10, curtea din spate. Paznicul și îngrijitoarea își fac turele; cineva sare gardul lateral."],
-    cast: [
-      GUARD("Ion", S.light, H.dark, { k: "patrol", pts: [[0.15, 0.3], [0.5, 0.6], [0.85, 0.35], [0.5, 0.15]], pause: 2.5 }),
-      M("Maria", R_CLEANER, "adult", { skin: S.fair, hair: H.auburn, style: "bun", top: "#9b6fb0", bottom: "#3a3550", outfit: "cleaner", carry: "mop" }, { k: "work", area: [0.15, 0.6, 0.2, 0.7], act: "mop" }),
-      M("?", STRANGER, "adult", { skin: S.tan, hair: H.black, style: "short", top: "#2b2f3a", bottom: BLACK, outfit: "hoodie", acc: "hood" }, { k: "visit", from: "rightBack", pts: [[0.8, 0.25], [0.25, 0.1], [0.6, 0.45]], acts: ["none", "handle", "none"] }, "furtive"),
-    ],
-    target: 2,
-    alerts: [
-      ["Motion at the side fence", "Mișcare la gardul lateral"],
-      ["A person climbed over the fence", "O persoană a sărit gardul"],
-      ["Tried the handle of the back door", "A încercat clanța ușii din spate"],
-    ],
-  };
-}
-
-function r1Corridor(): Scenario {
-  return {
-    id: "r1-corridor", round: 0, setting: "corridor-night", clock: [22, 5],
-    info: ["Tuesday 22:05, ground-floor corridor. The caretaker and a cleaner finish late; a third person checks the classroom doors.", "Marți, 22:05, holul de la parter. Administratorul și o îngrijitoare termină târziu; o a treia persoană verifică ușile claselor."],
-    cast: [
-      M("Gheorghe", ["Caretaker", "Administrator"], "senior", { skin: S.light, hair: H.grey, style: "bald", top: "#3d5a6b", bottom: "#3d5a6b", outfit: "worker", acc: "beanie", beard: "moustache" }, { k: "patrol", pts: [[0.2, 0.5], [0.8, 0.55]], pause: 3 }),
-      M("Elena", R_CLEANER, "adult", { skin: S.tan, hair: H.black, style: "ponytail", top: "#4f8f6f", bottom: "#2c3340", outfit: "cleaner", carry: "mop" }, { k: "work", area: [0.5, 0.9, 0.3, 0.8], act: "mop" }),
-      M("?", STRANGER, "adult", { skin: S.fair, hair: H.blond, style: "buzz", top: "#4a4f2f", bottom: GREY, outfit: "casual", carry: "crowbar", beard: "stubble" }, { k: "visit", from: "left", pts: [[0.15, 0.06], [0.5, 0.06], [0.85, 0.08]], acts: ["handle", "handle", "handle"] }, "furtive"),
-    ],
-    target: 2,
-    alerts: [
-      ["Unknown person entered via the side exit", "Persoană necunoscută a intrat pe ieșirea laterală"],
-      ["Object detected: crowbar", "Obiect detectat: rangă"],
-      ["Tried 3 classroom door handles", "A încercat clanțele a 3 săli de clasă"],
-    ],
-  };
-}
-
-function r1Gate(): Scenario {
-  return {
-    id: "r1-gate", round: 0, setting: "gate-morning", clock: [7, 40],
-    info: ["Monday 07:40, main gate, before classes. A teacher arrives early; someone says they have a delivery.", "Luni, 07:40, poarta principală, înainte de ore. O profesoară vine devreme; cineva spune că are o livrare."],
-    cast: [
-      M("Andreea", R_TEACHER_F, "adult", { skin: S.fair, hair: H.brown, style: "long", top: "#c0563f", bottom: NAVY, outfit: "teacher", carry: "folder" }, { k: "cross", from: "gate", to: "right", gap: [1, 3] }),
-      GUARD("Vasile", S.tan, H.grey, { k: "wait", at: [0.42, 0.25], roam: 0.08 }, "moustache", "senior"),
-      M("?", STRANGER, "adult", { skin: S.brown, hair: H.black, style: "short", top: "#e0a830", bottom: BLACK, outfit: "courier", acc: "cap", carry: "box" }, { k: "visit", from: "gate", pts: [[0.55, 0.3], [0.3, 0.55], [0.15, 0.2]], acts: ["none", "none", "none"] }, "furtive"),
-    ],
-    target: 2,
-    alerts: [
-      ["Unannounced “delivery” at the gate", "„Livrare” neanunțată la poartă"],
-      ["Asked to be let into the staff room", "A cerut să intre în cancelarie"],
-      ["No delivery on today's list", "Nicio livrare pe lista de azi"],
-    ],
-  };
-}
-
-function r2Pickup(): Scenario {
-  return {
-    id: "r2-pickup", round: 1, setting: "gate-afternoon", clock: [15, 30],
-    info: ["Thursday 15:30, pick-up time at the gate. Parents and a grandfather wait; someone stays by the bicycle stand.", "Joi, 15:30, ora de plecare acasă. Părinții și un bunic așteaptă; cineva stă lângă rastelul de biciclete."],
-    cast: [
-      M("Nicolae", R_GRANDPA, "senior", { skin: S.fair, hair: H.white, style: "bald", top: "#6b5a44", bottom: "#4a4136", outfit: "coat", acc: "glasses", carry: "cane", beard: "moustache" }, { k: "wait", at: [0.35, 0.4], roam: 0.04 }),
-      M("Ioana", R_PARENT, "adult", { skin: S.light, hair: H.blond, style: "long", top: "#a8c6df", bottom: JEANS, outfit: "coat", carry: "bag" }, { k: "chat", at: [0.58, 0.45], with: 3 }),
-      M("Luca", R_PUPIL, "child", { skin: S.light, hair: H.brown, style: "short", top: "#e85d4a", bottom: JEANS, outfit: "pupil", carry: "backpack" }, { k: "play", area: [0.25, 0.7, 0.4, 0.8] }, "happy"),
-      M("Mihaela", R_TEACHER_F, "adult", { skin: S.tan, hair: H.dark, style: "bun", top: "#3f7f6f", bottom: BLACK, outfit: "teacher", acc: "glasses" }, { k: "chat", at: [0.64, 0.42], with: 1 }),
-      GUARD("Vasile", S.tan, H.grey, { k: "patrol", pts: [[0.4, 0.2], [0.6, 0.2]], pause: 3 }, "moustache", "senior"),
-      M("?", STRANGER, "adult", { skin: S.light, hair: H.red, style: "short", top: "#3b3b3b", bottom: "#56503f", outfit: "worker", acc: "beanie", carry: "boltcutter", beard: "beard" }, { k: "visit", from: "rightBack", pts: [[0.86, 0.26], [0.8, 0.32], [0.88, 0.3]], acts: ["handle", "none", "handle"] }, "furtive"),
-    ],
-    target: 5,
-    alerts: [
-      ["Unknown person at the bicycle stand", "Persoană necunoscută la rastelul de biciclete"],
-      ["Stayed 6 min, checking the locks", "A stat 6 minute și a verificat lacătele"],
-      ["Object detected: bolt cutter", "Obiect detectat: clește de tăiat lacăte"],
-    ],
-  };
-}
-
-function r2Gym(): Scenario {
-  return {
-    id: "r2-gym", round: 1, setting: "yard-gym", clock: [19, 20],
-    info: ["Wednesday 19:20, outside the gym after handball practice. Someone leaves a backpack by the gym door.", "Miercuri, 19:20, în fața sălii de sport, după antrenamentul de handbal. Cineva lasă un rucsac lângă ușa sălii."],
-    cast: [
-      M("Radu", ["PE coach", "Antrenor"], "adult", { skin: S.light, hair: H.black, style: "buzz", top: "#2a5fa8", bottom: "#2a5fa8", outfit: "sport" }, { k: "chat", at: [0.4, 0.3], with: 3 }),
-      M("Ana", R_PUPIL_F, "teen", { skin: S.fair, hair: H.blond, style: "ponytail", top: "#d3436b", bottom: BLACK, outfit: "sport", carry: "sportsbag" }, { k: "cross", from: "doorR", to: "left", gap: [2, 4] }),
-      M("Tudor", R_PUPIL, "teen", { skin: S.tan, hair: H.dark, style: "curly", top: "#f0a33a", bottom: GREY, outfit: "sport", carry: "sportsbag" }, { k: "cross", from: "doorR", to: "right", gap: [2, 5] }),
-      M("Cristian", R_PARENT, "adult", { skin: S.light, hair: H.brown, style: "short", top: "#5b4a3a", bottom: JEANS, outfit: "coat", beard: "stubble" }, { k: "chat", at: [0.46, 0.33], with: 0 }),
-      M("Doina", R_CLEANER, "adult", { skin: S.light, hair: H.dark, style: "bun", top: "#8b6fae", bottom: "#3a3550", outfit: "cleaner", carry: "mop" }, { k: "work", area: [0.6, 0.9, 0.3, 0.7], act: "mop" }),
-      M("?", STRANGER, "teen", { skin: S.brown, hair: H.black, style: "short", top: "#3c6b3f", bottom: BLACK, outfit: "hoodie", acc: "headphones", carry: "backpack" }, { k: "visit", from: "left", pts: [[0.47, 0.08], [0.2, 0.5], [0.75, 0.6]], acts: ["none", "none", "none"] }, "furtive"),
-    ],
-    target: 5,
-    props: [{ kind: "backpack", at: [0.53, 0.05] }],
-    alerts: [
-      ["Unknown person near the gym entrance", "Persoană necunoscută lângă intrarea în sala de sport"],
-      ["Backpack left by the gym door", "Rucsac lăsat lângă ușa sălii de sport"],
-      ["Person walked away without it", "Persoana a plecat fără el"],
-    ],
-  };
-}
-
-function r2Meeting(): Scenario {
-  return {
-    id: "r2-meeting", round: 1, setting: "corridor-evening", clock: [18, 50],
-    info: ["Tuesday 18:50, parents' evening in the main corridor. Someone photographs the exits and the cameras.", "Marți, 18:50, ședința cu părinții, pe holul principal. Cineva fotografiază ieșirile și camerele."],
-    cast: [
-      M("Corina", R_TEACHER_F, "adult", { skin: S.fair, hair: H.red, style: "long", top: "#2f6d8f", bottom: BLACK, outfit: "teacher", carry: "folder" }, { k: "chat", at: [0.35, 0.4], with: 1 }),
-      M("Alin", R_PARENT, "adult", { skin: S.light, hair: H.black, style: "short", top: "#7a8a5a", bottom: JEANS, outfit: "coat", beard: "beard" }, { k: "chat", at: [0.42, 0.42], with: 0 }),
-      M("Simona", R_PARENT, "adult", { skin: S.tan, hair: H.dark, style: "curly", top: "#c45a8a", bottom: NAVY, outfit: "casual", skirt: true, carry: "bag" }, { k: "wait", at: [0.66, 0.35], act: "phone", roam: 0.03 }, "focused"),
-      M("Dan", ["Principal", "Director"], "adult", { skin: S.light, hair: H.grey, style: "short", top: "#2b2f3a", bottom: "#2b2f3a", outfit: "suit", acc: "glasses" }, { k: "patrol", pts: [[0.2, 0.55], [0.75, 0.55]], pause: 2.5 }),
-      M("Rodica", R_CLEANER, "senior", { skin: S.fair, hair: H.white, style: "bun", top: "#6f8fae", bottom: "#3a3550", outfit: "cleaner", carry: "mop" }, { k: "work", area: [0.6, 0.9, 0.55, 0.85], act: "mop" }),
-      M("?", STRANGER, "adult", { skin: S.deep, hair: H.black, style: "buzz", top: "#8f3a2f", bottom: GREY, outfit: "casual", acc: "glasses", carry: "camera" }, { k: "visit", from: "right", pts: [[0.85, 0.1], [0.15, 0.12], [0.5, 0.2]], acts: ["photo", "photo", "none"] }, "furtive"),
-    ],
-    target: 5,
-    alerts: [
-      ["Unknown person at the side exit", "Persoană necunoscută la ieșirea laterală"],
-      ["Photographing the exits and the camera positions", "Fotografiază ieșirile și pozițiile camerelor"],
-      ["Came back to the same spot twice", "S-a întors de două ori în același loc"],
-    ],
-  };
-}
-
-/* crowds for round 3: designed people, varied by age, look and role */
+/* crowds: designed people, varied by age, look and role */
 
 const KIDS: [string, Age, Look, boolean][] = [
   ["Matei", "child", { skin: S.fair, hair: H.blond, style: "short", top: "#e85d4a", bottom: JEANS, outfit: "pupil", carry: "backpack" }, false],
@@ -241,120 +132,135 @@ const KIDS: [string, Age, Look, boolean][] = [
   ["Irina", "child", { skin: S.light, hair: H.dark, style: "long", top: "#7fb3e0", bottom: GREY, outfit: "pupil" }, true],
 ];
 
-function kid(i: number, beh: Beh, mood: Mood = "happy"): Member {
-  const [name, age, look, girl] = KIDS[i % KIDS.length];
-  return M(name, girl ? R_PUPIL_F : R_PUPIL, age, look, beh, mood);
+function kid(i: number, beh: Beh, mood: Mood = "happy", look: Partial<Look> = {}): Member {
+  const [name, age, base, girl] = KIDS[i % KIDS.length];
+  return M(name, girl ? R_PUPIL_F : R_PUPIL, age, { ...base, ...look }, beh, mood);
 }
 
-function r3Break(): Scenario {
+/* ------------------------------------------------------------------ round 1: 3 remembered + 1 unknown */
+
+function r1Yard(): Scenario {
+  const cast: Member[] = [
+    GUARD("Ion", S.light, H.dark, { k: "patrol", pts: [[0.15, 0.3], [0.5, 0.6], [0.85, 0.35], [0.5, 0.15]], pause: 2.5 }),
+    M("Maria", R_CLEANER, "adult", { skin: S.fair, hair: H.auburn, style: "bun", top: "#9b6fb0", bottom: "#3a3550", outfit: "cleaner", carry: "mop" }, { k: "work", area: [0.15, 0.6, 0.2, 0.7], act: "mop" }),
+    M("Gheorghe", ["Caretaker", "Administrator"], "senior", { skin: S.light, hair: H.grey, style: "bald", top: "#3d5a6b", bottom: "#3d5a6b", outfit: "worker", acc: "beanie", beard: "moustache" }, { k: "cross", from: "doorL", to: "doorR", gap: [2, 4] }),
+    M("?", UNKNOWN, "adult", { skin: S.tan, hair: H.black, style: "short", top: "#7a5a3a", bottom: JEANS, outfit: "coat", beard: "stubble" }, { k: "pace", a: [0.62, 0.45], b: [0.8, 0.6] }),
+  ];
+  return {
+    id: "r1-yard", pool: 0, setting: "yard-night", clock: [21, 40], cast, target: cast.length - 1,
+    info: ["Friday 21:40, the school yard after the evening clean-up. The guard, the cleaner and the caretaker — and one person not on the list.", "Vineri, 21:40, curtea școlii după curățenia de seară. Paznicul, îngrijitoarea și administratorul — și o persoană care nu e pe listă."],
+  };
+}
+
+function r1Corridor(): Scenario {
+  const cast: Member[] = [
+    M("Elena", R_CLEANER, "adult", { skin: S.tan, hair: H.black, style: "ponytail", top: "#4f8f6f", bottom: "#2c3340", outfit: "cleaner", carry: "mop" }, { k: "work", area: [0.5, 0.9, 0.3, 0.8], act: "mop" }),
+    M("Sorin", R_TEACHER, "adult", { skin: S.light, hair: H.dark, style: "short", top: "#3e6f5a", bottom: GREY, outfit: "teacher", beard: "beard", carry: "folder" }, { k: "cross", from: "doorM", to: "right", gap: [2, 4] }),
+    M("Gheorghe", ["Caretaker", "Administrator"], "senior", { skin: S.light, hair: H.grey, style: "bald", top: "#3d5a6b", bottom: "#3d5a6b", outfit: "worker", acc: "beanie", beard: "moustache" }, { k: "patrol", pts: [[0.2, 0.5], [0.8, 0.55]], pause: 3 }),
+    M("?", UNKNOWN, "adult", { skin: S.fair, hair: H.blond, style: "long", top: "#c45a5a", bottom: NAVY, outfit: "coat", carry: "bag" }, { k: "wait", at: [0.3, 0.35], act: "phone", roam: 0.04 }, "focused"),
+  ];
+  return {
+    id: "r1-corridor", pool: 0, setting: "corridor-evening", clock: [19, 10], cast, target: cast.length - 1,
+    info: ["Tuesday 19:10, the ground-floor corridor after classes. A teacher leaves late, the cleaner and the caretaker are working — and one person is not on the list.", "Marți, 19:10, holul de la parter după ore. Un profesor pleacă târziu, îngrijitoarea și administratorul lucrează — și o persoană nu e pe listă."],
+  };
+}
+
+function r1Gate(): Scenario {
+  const cast: Member[] = [
+    M("Andreea", R_TEACHER_F, "adult", { skin: S.fair, hair: H.brown, style: "long", top: "#c0563f", bottom: NAVY, outfit: "teacher", carry: "folder" }, { k: "cross", from: "gate", to: "right", gap: [1, 3] }),
+    GUARD("Vasile", S.tan, H.grey, { k: "wait", at: [0.42, 0.25], roam: 0.08 }, "moustache", "senior"),
+    M("Ioana", R_PARENT, "adult", { skin: S.light, hair: H.blond, style: "long", top: "#a8c6df", bottom: JEANS, outfit: "coat", carry: "bag" }, { k: "cross", from: "gate", to: "gate", gap: [1, 2] }),
+    M("?", UNKNOWN, "adult", { skin: S.brown, hair: H.black, style: "short", top: "#4b6a8f", bottom: BLACK, outfit: "suit", carry: "briefcase" }, { k: "cross", from: "left", to: "gate", gap: [1, 2] }),
+  ];
+  return {
+    id: "r1-gate", pool: 0, setting: "gate-morning", clock: [7, 40], cast, target: cast.length - 1,
+    info: ["Monday 07:40, the main gate before classes. A teacher, the guard and a parent — and one person not on the list.", "Luni, 07:40, poarta principală înainte de ore. O profesoară, paznicul și un părinte — și o persoană care nu e pe listă."],
+  };
+}
+
+/* ------------------------------------------------------------------ round 2: 14 remembered + 1 unknown */
+
+function r2Break(): Scenario {
   const cast: Member[] = [
     kid(0, { k: "play", area: [0.15, 0.55, 0.45, 0.9] }),
     kid(1, { k: "play", area: [0.15, 0.55, 0.45, 0.9] }),
     kid(2, { k: "play", area: [0.5, 0.9, 0.5, 0.9] }),
     kid(3, { k: "chat", at: [0.7, 0.3], with: 4 }),
     kid(5, { k: "chat", at: [0.76, 0.32], with: 3 }),
-    kid(4, { k: "play", area: [0.5, 0.9, 0.5, 0.9] }),
     kid(6, { k: "wait", at: [0.2, 0.3], act: "phone", roam: 0.03 }, "focused"),
-    kid(7, { k: "chat", at: [0.35, 0.22], with: 8 }),
-    kid(8, { k: "chat", at: [0.42, 0.24], with: 7 }),
-    kid(9, { k: "cross", from: "doorL", to: "doorR", gap: [1, 3] }),
-    kid(10, { k: "cross", from: "doorR", to: "left", gap: [2, 4] }),
-    kid(11, { k: "wait", at: [0.6, 0.62], act: "phone", roam: 0.02 }, "focused"),
+    kid(7, { k: "chat", at: [0.35, 0.22], with: 7 }),
+    kid(8, { k: "chat", at: [0.42, 0.24], with: 6 }),
     kid(12, { k: "play", area: [0.3, 0.7, 0.6, 0.92] }),
-    kid(13, { k: "chat", at: [0.85, 0.6], with: 14 }),
-    M("Gabriela", R_TEACHER_F, "adult", { skin: S.fair, hair: H.brown, style: "bun", top: "#7a4f8f", bottom: BLACK, outfit: "teacher", acc: "glasses" }, { k: "chat", at: [0.9, 0.62], with: 13 }),
+    M("Gabriela", R_TEACHER_F, "adult", { skin: S.fair, hair: H.brown, style: "bun", top: "#7a4f8f", bottom: BLACK, outfit: "teacher", acc: "glasses" }, { k: "wait", at: [0.88, 0.62], roam: 0.03 }),
     M("Sorin", R_TEACHER, "adult", { skin: S.light, hair: H.dark, style: "short", top: "#3e6f5a", bottom: GREY, outfit: "teacher", beard: "beard", carry: "folder" }, { k: "patrol", pts: [[0.2, 0.5], [0.8, 0.45]], pause: 3 }),
-    M("Florica", ["Teacher (retired, volunteer)", "Profesoară pensionară, voluntar"], "senior", { skin: S.fair, hair: H.white, style: "bun", top: "#a85a5a", bottom: "#4a4136", outfit: "coat", acc: "glasses" }, { k: "wait", at: [0.12, 0.6], roam: 0.02 }),
+    M("Florica", ["Retired teacher, volunteer", "Profesoară pensionară, voluntar"], "senior", { skin: S.fair, hair: H.white, style: "bun", top: "#a85a5a", bottom: "#4a4136", outfit: "coat", acc: "glasses" }, { k: "wait", at: [0.12, 0.6], roam: 0.02 }),
     GUARD("Ion", S.light, H.dark, { k: "patrol", pts: [[0.1, 0.2], [0.9, 0.2]], pause: 2 }),
     M("Maria", R_CLEANER, "adult", { skin: S.fair, hair: H.auburn, style: "bun", top: "#9b6fb0", bottom: "#3a3550", outfit: "cleaner", carry: "mop" }, { k: "work", area: [0.6, 0.9, 0.15, 0.3], act: "mop" }),
-    M("Petru", ["School nurse", "Asistent medical"], "adult", { skin: S.tan, hair: H.black, style: "short", top: "#3fa5a0", bottom: "#3fa5a0", outfit: "nurse" }, { k: "cross", from: "doorL", to: "doorR", gap: [3, 6] }),
-    M("?", STRANGER, "adult", { skin: S.light, hair: H.dark, style: "short", top: "#4b4f57", bottom: BLACK, outfit: "hoodie", acc: "hood", beard: "stubble" }, { k: "visit", from: "leftBack", pts: [[0.1, 0.15], [0.5, 0.12], [0.88, 0.25]], acts: ["none", "none", "none"] }, "furtive"),
+    M("?", UNKNOWN, "adult", { skin: S.tan, hair: H.dark, style: "curly", top: "#d08a3a", bottom: JEANS, outfit: "casual", carry: "bag" }, { k: "patrol", pts: [[0.3, 0.4], [0.6, 0.55], [0.45, 0.7]], pause: 2.5 }),
   ];
   return {
-    id: "r3-break", round: 2, setting: "yard-day", clock: [10, 15], cast, target: cast.length - 1,
-    info: ["Friday 10:15, morning break in the yard. Pupils play, teachers keep an eye on them; one adult keeps away from the cameras.", "Vineri, 10:15, pauza mare în curte. Elevii se joacă, profesorii îi supraveghează; un adult se ferește de camere."],
-    alerts: [
-      ["Unknown adult in the yard during the break", "Adult necunoscut în curte, în pauză"],
-      ["Hood up, face turned away from CAM 01", "Glugă pe cap, fața întoarsă de la CAM 01"],
-      ["Walked along the wall, avoiding the cameras", "A mers pe lângă zid, ferindu-se de camere"],
-    ],
+    id: "r2-break", pool: 1, setting: "yard-day", clock: [10, 15], cast, target: cast.length - 1,
+    info: ["Friday 10:15, the morning break in the yard. Pupils, teachers, the guard and the cleaner — and one adult not on the list.", "Vineri, 10:15, pauza mare în curte. Elevi, profesori, paznicul și îngrijitoarea — și un adult care nu e pe listă."],
   };
 }
 
-function r3Arrival(): Scenario {
+function r2Arrival(): Scenario {
   const cast: Member[] = [
     kid(0, { k: "cross", from: "gate", to: "leftBack", gap: [0.5, 2] }),
     kid(1, { k: "cross", from: "gate", to: "rightBack", gap: [0.5, 2] }),
     kid(2, { k: "cross", from: "gate", to: "left", gap: [1, 3] }),
-    kid(3, { k: "cross", from: "gate", to: "right", gap: [1, 3] }),
     kid(4, { k: "play", area: [0.2, 0.6, 0.5, 0.9] }),
-    kid(5, { k: "chat", at: [0.3, 0.35], with: 6 }),
-    kid(6, { k: "chat", at: [0.36, 0.37], with: 5 }),
-    kid(7, { k: "cross", from: "gate", to: "right", gap: [2, 4] }),
-    kid(8, { k: "cross", from: "left", to: "gate", gap: [2, 5] }),
+    kid(5, { k: "chat", at: [0.3, 0.35], with: 5 }),
+    kid(6, { k: "chat", at: [0.36, 0.37], with: 4 }),
     kid(10, { k: "wait", at: [0.7, 0.6], act: "phone", roam: 0.02 }, "focused"),
-    kid(12, { k: "cross", from: "gate", to: "leftBack", gap: [1, 3] }),
-    M("Ioana", R_PARENT, "adult", { skin: S.light, hair: H.blond, style: "long", top: "#a8c6df", bottom: JEANS, outfit: "coat", carry: "bag" }, { k: "cross", from: "gate", to: "gate", gap: [1, 2] }),
-    M("Radu", R_PARENT, "adult", { skin: S.tan, hair: H.black, style: "short", top: "#6b5a44", bottom: BLACK, outfit: "coat", beard: "beard", carry: "briefcase" }, { k: "chat", at: [0.58, 0.3], with: 13 }),
-    M("Elisabeta", R_GRANDMA, "senior", { skin: S.fair, hair: H.white, style: "short", top: "#7d3b56", bottom: "#4a4136", outfit: "coat", acc: "headscarf", carry: "shopping" }, { k: "chat", at: [0.64, 0.32], with: 12 }),
+    M("Radu", R_PARENT, "adult", { skin: S.tan, hair: H.black, style: "short", top: "#6b5a44", bottom: BLACK, outfit: "coat", beard: "beard", carry: "briefcase" }, { k: "chat", at: [0.58, 0.3], with: 8 }),
+    M("Elisabeta", R_GRANDMA, "senior", { skin: S.fair, hair: H.white, style: "short", top: "#7d3b56", bottom: "#4a4136", outfit: "coat", acc: "headscarf", carry: "shopping" }, { k: "chat", at: [0.64, 0.32], with: 7 }),
     M("Nicolae", R_GRANDPA, "senior", { skin: S.fair, hair: H.white, style: "bald", top: "#6b5a44", bottom: "#4a4136", outfit: "coat", acc: "glasses", carry: "cane", beard: "moustache" }, { k: "wait", at: [0.4, 0.22], roam: 0.02 }),
     M("Mihaela", R_TEACHER_F, "adult", { skin: S.tan, hair: H.dark, style: "bun", top: "#3f7f6f", bottom: BLACK, outfit: "teacher", acc: "glasses" }, { k: "wait", at: [0.25, 0.6], roam: 0.05 }),
-    M("Andreea", R_TEACHER_F, "adult", { skin: S.fair, hair: H.brown, style: "long", top: "#c0563f", bottom: NAVY, outfit: "teacher", carry: "folder" }, { k: "cross", from: "gate", to: "left", gap: [3, 5] }),
     M("Dan", ["Principal", "Director"], "adult", { skin: S.light, hair: H.grey, style: "short", top: "#2b2f3a", bottom: "#2b2f3a", outfit: "suit", acc: "glasses" }, { k: "wait", at: [0.5, 0.5], roam: 0.06 }),
     GUARD("Vasile", S.tan, H.grey, { k: "wait", at: [0.45, 0.15], roam: 0.05 }, "moustache", "senior"),
     M("Teodor", ["Driver, school bus", "Șofer, microbuz școlar"], "adult", { skin: S.light, hair: H.brown, style: "short", top: "#d4ec3a", bottom: NAVY, outfit: "staff", beard: "stubble" }, { k: "cross", from: "right", to: "gate", gap: [4, 7] }),
-    M("?", STRANGER, "adult", { skin: S.tan, hair: H.auburn, style: "long", top: "#556b2f", bottom: BEIGE, outfit: "coat", acc: "glasses", carry: "bag" }, { k: "visit", from: "gate", pts: [[0.5, 0.4], [0.2, 0.3], [0.1, 0.12]], acts: ["none", "none", "none"] }, "furtive"),
+    M("?", UNKNOWN, "adult", { skin: S.light, hair: H.auburn, style: "long", top: "#556b2f", bottom: BEIGE, outfit: "coat", acc: "glasses", carry: "bag" }, { k: "cross", from: "gate", to: "right", gap: [1, 2] }),
   ];
   return {
-    id: "r3-arrival", round: 2, setting: "gate-morning", clock: [7, 52], cast, target: cast.length - 1,
-    info: ["Monday 07:52, everyone arrives. Pupils, parents and grandparents at the gate; one adult walks in with the crowd.", "Luni, 07:52, sosirea la școală. Elevi, părinți și bunici la poartă; un adult intră odată cu mulțimea."],
-    alerts: [
-      ["Unknown adult entered with the pupils", "Un adult necunoscut a intrat odată cu elevii"],
-      ["Did not report to the office (visitor rule)", "Nu a trecut pe la secretariat (regula pentru vizitatori)"],
-      ["Walking towards the back gate", "Se îndreaptă spre poarta din spate"],
-    ],
+    id: "r2-arrival", pool: 1, setting: "gate-morning", clock: [7, 52], cast, target: cast.length - 1,
+    info: ["Monday 07:52, arrival at school. Pupils, parents, grandparents and staff at the gate — and one adult not on the list.", "Luni, 07:52, sosirea la școală. Elevi, părinți, bunici și personal la poartă — și un adult care nu e pe listă."],
   };
 }
 
-function r3Festival(): Scenario {
+function r2Fair(): Scenario {
   const cast: Member[] = [
     kid(0, { k: "play", area: [0.2, 0.8, 0.5, 0.9] }),
     kid(1, { k: "play", area: [0.2, 0.8, 0.5, 0.9] }),
-    kid(2, { k: "play", area: [0.2, 0.8, 0.5, 0.9] }),
-    kid(3, { k: "chat", at: [0.15, 0.25], with: 4 }),
-    kid(5, { k: "chat", at: [0.2, 0.27], with: 3 }),
-    kid(6, { k: "wait", at: [0.85, 0.3], act: "phone", roam: 0.02 }, "focused"),
+    kid(3, { k: "chat", at: [0.15, 0.25], with: 3 }),
+    kid(5, { k: "chat", at: [0.2, 0.27], with: 2 }),
     kid(7, { k: "cross", from: "left", to: "right", gap: [2, 4] }),
-    kid(9, { k: "chat", at: [0.62, 0.5], with: 8 }),
-    kid(11, { k: "chat", at: [0.68, 0.52], with: 7 }),
-    M("Ioana", R_PARENT, "adult", { skin: S.light, hair: H.blond, style: "long", top: "#a8c6df", bottom: JEANS, outfit: "casual", carry: "bag" }, { k: "chat", at: [0.4, 0.35], with: 10 }),
-    M("Alin", R_PARENT, "adult", { skin: S.light, hair: H.black, style: "short", top: "#7a8a5a", bottom: JEANS, outfit: "casual", beard: "beard" }, { k: "chat", at: [0.46, 0.36], with: 9 }),
-    M("Simona", R_PARENT, "adult", { skin: S.tan, hair: H.dark, style: "curly", top: "#c45a8a", bottom: NAVY, outfit: "casual", skirt: true }, { k: "wait", at: [0.3, 0.6], act: "photo", roam: 0.03 }, "happy"),
+    kid(9, { k: "chat", at: [0.62, 0.5], with: 6 }),
+    kid(11, { k: "chat", at: [0.68, 0.52], with: 5 }),
+    M("Alin", R_PARENT, "adult", { skin: S.light, hair: H.black, style: "short", top: "#7a8a5a", bottom: JEANS, outfit: "casual", beard: "beard" }, { k: "chat", at: [0.46, 0.36], with: 8 }),
+    M("Simona", R_PARENT, "adult", { skin: S.tan, hair: H.dark, style: "curly", top: "#c45a8a", bottom: NAVY, outfit: "casual", skirt: true }, { k: "chat", at: [0.4, 0.35], with: 7 }),
     M("Elisabeta", R_GRANDMA, "senior", { skin: S.fair, hair: H.white, style: "short", top: "#7d3b56", bottom: "#4a4136", outfit: "coat", acc: "headscarf" }, { k: "wait", at: [0.12, 0.55], roam: 0.01 }),
-    M("Nicolae", R_GRANDPA, "senior", { skin: S.fair, hair: H.white, style: "bald", top: "#6b5a44", bottom: "#4a4136", outfit: "coat", acc: "glasses", carry: "cane", beard: "moustache" }, { k: "cross", from: "left", to: "right", gap: [3, 6] }),
     M("Gabriela", R_TEACHER_F, "adult", { skin: S.fair, hair: H.brown, style: "bun", top: "#7a4f8f", bottom: BLACK, outfit: "teacher", acc: "glasses" }, { k: "patrol", pts: [[0.25, 0.4], [0.75, 0.4]], pause: 3 }),
     M("Sorin", R_TEACHER, "adult", { skin: S.light, hair: H.dark, style: "short", top: "#3e6f5a", bottom: GREY, outfit: "teacher", beard: "beard" }, { k: "wait", at: [0.55, 0.2], act: "gesture", roam: 0.02 }, "happy"),
-    M("Corina", R_TEACHER_F, "adult", { skin: S.fair, hair: H.red, style: "long", top: "#2f6d8f", bottom: BLACK, outfit: "teacher" }, { k: "chat", at: [0.5, 0.2], with: 15 }),
     GUARD("Ion", S.light, H.dark, { k: "patrol", pts: [[0.1, 0.3], [0.9, 0.3]], pause: 2 }),
     M("Dan", ["Principal", "Director"], "adult", { skin: S.light, hair: H.grey, style: "short", top: "#2b2f3a", bottom: "#2b2f3a", outfit: "suit", acc: "glasses" }, { k: "patrol", pts: [[0.3, 0.7], [0.7, 0.7]], pause: 3 }),
-    M("Doina", R_CLEANER, "adult", { skin: S.light, hair: H.dark, style: "bun", top: "#8b6fae", bottom: "#3a3550", outfit: "cleaner" }, { k: "cross", from: "doorL", to: "doorR", gap: [3, 6] }),
-    M("?", STRANGER, "senior", { skin: S.light, hair: H.grey, style: "short", top: "#5e3a2a", bottom: "#3a3a3a", outfit: "worker", acc: "cap", carry: "canister", beard: "beard" }, { k: "visit", from: "rightBack", pts: [[0.8, 0.08], [0.88, 0.2], [0.72, 0.1]], acts: ["handle", "none", "handle"] }, "furtive"),
+    M("?", UNKNOWN, "senior", { skin: S.tan, hair: H.grey, style: "short", top: "#4a6b8a", bottom: "#3a3a3a", outfit: "coat", acc: "cap", beard: "beard" }, { k: "wait", at: [0.82, 0.3], roam: 0.05 }),
   ];
   return {
-    id: "r3-festival", round: 2, setting: "yard-festival", clock: [18, 35], cast, target: cast.length - 1,
-    info: ["Saturday 18:35, the school's autumn fair in the yard. Families, teachers and the guard; someone heads for the boiler room.", "Sâmbătă, 18:35, târgul de toamnă în curtea școlii. Familii, profesori și paznicul; cineva se duce spre centrala termică."],
-    alerts: [
-      ["Unknown person near the boiler room", "Persoană necunoscută lângă centrala termică"],
-      ["Object detected: fuel canister", "Obiect detectat: bidon de combustibil"],
-      ["Boiler room door forced", "Ușa centralei a fost forțată"],
-    ],
+    id: "r2-fair", pool: 1, setting: "yard-festival", clock: [18, 35], cast, target: cast.length - 1,
+    info: ["Saturday 18:35, the school's autumn fair in the yard. Families, teachers and the guard — and one visitor not on the list.", "Sâmbătă, 18:35, târgul de toamnă în curtea școlii. Familii, profesori și paznicul — și un vizitator care nu e pe listă."],
   };
 }
 
-/* ------------------------------------------------------------------ bonus: behaviour */
+/* ------------------------------------------------------------------ rounds 3-5: about to cause harm */
 
-function bGymBack(): Scenario {
-  // the dealer is a teen boy; buyers come one by one
+const HANDOFF_CUES = (who: Line): Record<string, Cue> => ({
+  handoff1: { line: [`Hand-off with ${who[0]}`, `Schimb de obiecte cu ${who[1]}`], w: 1 },
+  count: { line: ["Counted cash", "A numărat bani"], w: 0.6 },
+  handoff2: { line: ["Second hand-off, a different person", "Al doilea schimb, cu altă persoană"], w: 1 },
+});
+
+function hGym(): Scenario {
   const cast: Member[] = [
     M("Robert", R_PUPIL, "teen", { skin: S.light, hair: H.dark, style: "short", top: "#3d4a5c", bottom: JEANS, outfit: "hoodie" }, { k: "dealer", at: [0.72, 0.28] }, "furtive"),
     kid(6, { k: "buyer", dealer: 0, delay: 2, from: "left", to: "left" }, "calm"),
@@ -368,23 +274,14 @@ function bGymBack(): Scenario {
     kid(13, { k: "wait", at: [0.15, 0.3], act: "phone", roam: 0.02 }, "focused"),
   ];
   return {
-    id: "b-gym", round: 3, setting: "yard-gym", scale: 1.2, clock: [16, 40], cast, target: 0,
+    id: "h-gym", pool: 2, setting: "yard-gym", scale: 1.2, clock: [16, 40], cast, target: 0,
     info: ["Thursday 16:40, behind the gym after classes. Pupils hang around; one of them meets several others, one at a time.", "Joi, 16:40, în spatele sălii de sport, după ore. Elevii stau pe afară; unul dintre ei se întâlnește cu mai mulți, pe rând."],
-    alerts: [
-      ["CAM 03 · 10 people in view", "CAM 03 · 10 persoane în cadru"],
-      ["Repeated short contacts in one spot", "Contacte scurte repetate în același loc"],
-      ["Same person in repeated contacts", "Aceeași persoană în contacte repetate"],
-    ],
-    story: [
-      ["Hand-offs with different pupils, one at a time", "Schimburi de obiecte cu elevi diferiți, pe rând"],
-      ["Looked around before each one", "S-a uitat în jur înainte de fiecare"],
-      ["Counted cash between hand-offs", "A numărat bani între schimburi"],
-    ],
+    cues: HANDOFF_CUES(["a pupil", "un elev"]),
+    act: { id: "handoff3", noun: ["the third hand-off", "al treilea schimb"] },
   };
 }
 
-function bCorridor(): Scenario {
-  // the aggressor is a teen girl closing in on a younger girl
+function hCorridor(): Scenario {
   const cast: Member[] = [
     M("Larisa", R_PUPIL_F, "teen", { skin: S.tan, hair: H.black, style: "ponytail", top: "#b0353a", bottom: BLACK, outfit: "casual" }, { k: "aggressor", target: 1, area: [0.4, 0.8, 0.3, 0.7] }, "hostile"),
     kid(3, { k: "wait", at: [0.62, 0.45], act: "phone", roam: 0.01 }, "focused"),
@@ -398,25 +295,20 @@ function bCorridor(): Scenario {
     M("Rodica", R_CLEANER, "senior", { skin: S.fair, hair: H.white, style: "bun", top: "#6f8fae", bottom: "#3a3550", outfit: "cleaner", carry: "mop" }, { k: "work", area: [0.1, 0.4, 0.2, 0.4], act: "mop" }),
   ];
   return {
-    id: "b-corridor", round: 3, setting: "corridor-evening", scale: 1.2, clock: [11, 5], cast, target: 0,
-    info: ["Wednesday 11:05, corridor during the break. Busy and loud; somewhere a fight is about to start.", "Miercuri, 11:05, holul în pauză. Aglomerat și gălăgios; undeva e pe cale să înceapă o bătaie."],
-    alerts: [
-      ["CAM 05 · break, 10 people in view", "CAM 05 · pauză, 10 persoane în cadru"],
-      ["Fast approach detected", "Apropiere rapidă detectată"],
-      ["Physical contact: push", "Contact fizic: împingere"],
-    ],
-    story: [
-      ["Paced, then closed in on a younger pupil", "S-a plimbat agitat, apoi s-a apropiat de o elevă mai mică"],
-      ["Fists clenched, stood right in front of her", "Cu pumnii strânși, s-a oprit chiar în fața ei"],
-      ["Pushed her against the wall", "A împins-o spre perete"],
-    ],
+    id: "h-corridor", pool: 2, setting: "corridor-evening", scale: 1.2, clock: [11, 5], cast, target: 0,
+    info: ["Wednesday 11:05, the corridor during the break. Busy and loud; somewhere a fight is about to start.", "Miercuri, 11:05, holul în pauză. Aglomerat și gălăgios; undeva e pe cale să înceapă o bătaie."],
+    cues: {
+      restless: { line: ["Paced back and forth near a younger pupil", "Se plimbă agitată lângă o elevă mai mică"], w: 0.8 },
+      close: { line: ["Closed in fast on her", "S-a apropiat repede de ea"], w: 1.3 },
+      square: { line: ["Fists clenched, face to face", "Pumnii strânși, față în față"], w: 1 },
+    },
+    act: { id: "push", noun: ["the push", "împingere"] },
   };
 }
 
-function bGate(): Scenario {
-  // an adult man follows a pupil closely after classes
+function hGate(): Scenario {
   const cast: Member[] = [
-    M("?", ["Adult, not a parent on the list", "Adult, nu e părinte pe listă"], "adult", { skin: S.fair, hair: H.brown, style: "short", top: "#4b5563", bottom: JEANS, outfit: "coat", beard: "stubble" }, { k: "follow", target: 1, gap: 0.09 }, "furtive"),
+    M("?", ["Adult, not on the pick-up list", "Adult, nu e pe lista de preluare"], "adult", { skin: S.fair, hair: H.brown, style: "short", top: "#4b5563", bottom: JEANS, outfit: "coat", beard: "stubble" }, { k: "follow", target: 1, gap: 0.09 }, "furtive"),
     kid(1, { k: "play", area: [0.2, 0.8, 0.35, 0.85] }, "calm"),
     M("Ioana", R_PARENT, "adult", { skin: S.light, hair: H.blond, style: "long", top: "#a8c6df", bottom: JEANS, outfit: "coat", carry: "bag" }, { k: "rush", from: "gate", to: 4 }, "anxious"),
     M("Nicolae", R_GRANDPA, "senior", { skin: S.fair, hair: H.white, style: "bald", top: "#6b5a44", bottom: "#4a4136", outfit: "coat", acc: "glasses", carry: "cane", beard: "moustache" }, { k: "wait", at: [0.3, 0.3], roam: 0.02 }),
@@ -428,23 +320,17 @@ function bGate(): Scenario {
     M("Mihaela", R_TEACHER_F, "adult", { skin: S.tan, hair: H.dark, style: "bun", top: "#3f7f6f", bottom: BLACK, outfit: "teacher", acc: "glasses" }, { k: "patrol", pts: [[0.2, 0.45], [0.8, 0.45]], pause: 2 }),
   ];
   return {
-    id: "b-gate", round: 3, setting: "gate-afternoon", scale: 1.2, clock: [13, 20], cast, target: 0,
-    info: ["Friday 13:20, classes are over. Parents arrive, pupils wait or play; one adult stays close behind a pupil.", "Vineri, 13:20, s-au terminat orele. Vin părinții, elevii așteaptă sau se joacă; un adult stă mereu aproape, în spatele unui elev."],
-    alerts: [
-      ["CAM 01 · pick-up, 10 people in view", "CAM 01 · plecarea acasă, 10 persoane în cadru"],
-      ["Same two tracks moving together", "Două trasee care se mișcă împreună"],
-      ["Distance kept under 2 m for 40 s", "Distanță sub 2 m timp de 40 s"],
-    ],
-    story: [
-      ["Followed the same pupil around the yard", "A urmărit aceeași elevă prin curte"],
-      ["Stayed close behind, changed direction with her", "A stat mereu aproape, în spatele ei, și a schimbat direcția odată cu ea"],
-      ["Not on the list of people who pick up pupils", "Nu e pe lista celor care iau copiii de la școală"],
-    ],
+    id: "h-gate", pool: 2, setting: "gate-afternoon", scale: 1.2, clock: [13, 20], cast, target: 0,
+    info: ["Friday 13:20, classes are over. Parents arrive, pupils wait or play; one adult stays close behind a pupil.", "Vineri, 13:20, s-au terminat orele. Vin părinții, elevii așteaptă sau se joacă; un adult stă mereu aproape, în spatele unei eleve."],
+    cues: {
+      follow10: { line: ["Followed the same pupil for 10 s", "A urmărit aceeași elevă timp de 10 s"], w: 1 },
+      follow20: { line: ["Stayed under 2 m behind her for 20 s", "A stat la sub 2 m în spatele ei timp de 20 s"], w: 1.2 },
+    },
+    act: { id: "grab", noun: ["the grab for her arm", "încercarea de a o prinde de braț"] },
   };
 }
 
-function bBusStop(): Scenario {
-  // the aggressor is a man in his sixties; he kicks a bin, then squares up to a teen
+function hBus(): Scenario {
   const cast: Member[] = [
     M("?", ["Adult at the bus stop", "Adult în stația de autobuz"], "senior", { skin: S.light, hair: H.grey, style: "short", top: "#5a4636", bottom: "#3a3a3a", outfit: "coat", beard: "beard" }, { k: "aggressor", target: 1, area: [0.35, 0.8, 0.35, 0.75], kick: [0.55, 0.3] }, "hostile"),
     kid(6, { k: "wait", at: [0.62, 0.5], act: "phone", roam: 0.01 }, "focused"),
@@ -458,24 +344,20 @@ function bBusStop(): Scenario {
     M("Irina", ["Student", "Studentă"], "teen", { skin: S.fair, hair: H.red, style: "long", top: "#5d5fd6", bottom: JEANS, outfit: "casual", carry: "book" }, { k: "sit", seat: 3, act: "read" }, "focused"),
   ];
   return {
-    id: "b-bus", round: 3, setting: "busstop", clock: [14, 5], cast, target: 0,
+    id: "h-bus", pool: 2, setting: "busstop", clock: [14, 5], cast, target: 0,
     props: [{ kind: "bin", at: [0.55, 0.3] }],
     info: ["Tuesday 14:05, the bus stop next to the school. The bus is late; one adult is getting more and more restless.", "Marți, 14:05, stația de lângă școală. Autobuzul întârzie; un adult devine tot mai agitat."],
-    alerts: [
-      ["CAM 11 · bus stop, 10 people in view", "CAM 11 · stație, 10 persoane în cadru"],
-      ["Object hit: litter bin", "Obiect lovit: coș de gunoi"],
-      ["Fast approach towards a pupil", "Apropiere rapidă de un elev"],
-    ],
-    story: [
-      ["Kicked the litter bin", "A lovit cu piciorul coșul de gunoi"],
-      ["Closed in on a pupil, fists clenched", "S-a apropiat de un elev cu pumnii strânși"],
-      ["Squared up and pushed", "S-a postat în fața lui și l-a împins"],
-    ],
+    cues: {
+      restless: { line: ["Paced back and forth", "S-a plimbat agitat"], w: 0.8 },
+      kick: { line: ["Kicked the litter bin", "A lovit coșul de gunoi cu piciorul"], w: 1.2 },
+      close: { line: ["Closed in fast on a pupil", "S-a apropiat repede de un elev"], w: 1.3 },
+      square: { line: ["Fists clenched, face to face", "Pumnii strânși, față în față"], w: 1 },
+    },
+    act: { id: "push", noun: ["the push", "împingere"] },
   };
 }
 
-function bPark(): Scenario {
-  // the dealer is a woman in her thirties at a bench in the park next to the school
+function hPark(): Scenario {
   const cast: Member[] = [
     M("?", ["Adult in the park", "Adultă în parc"], "adult", { skin: S.brown, hair: H.black, style: "bun", top: "#2f3a4a", bottom: BLACK, outfit: "casual", acc: "glasses", carry: "bag" }, { k: "dealer", at: [0.7, 0.32] }, "furtive"),
     kid(7, { k: "buyer", dealer: 0, delay: 2, from: "left", to: "leftBack" }, "calm"),
@@ -489,46 +371,90 @@ function bPark(): Scenario {
     M("Maria", ["Parent", "Mamă"], "adult", { skin: S.fair, hair: H.auburn, style: "long", top: "#c45a8a", bottom: NAVY, outfit: "coat" }, { k: "rush", from: "leftBack", to: 4 }, "anxious"),
   ];
   return {
-    id: "b-park", round: 3, setting: "park", clock: [17, 30], cast, target: 0,
+    id: "h-park", pool: 2, setting: "park", clock: [17, 30], cast, target: 0,
     info: ["Monday 17:30, the park next to the school. Children play, people pass through; at one bench, people stop for a few seconds.", "Luni, 17:30, parcul de lângă școală. Copiii se joacă, oamenii trec; la o bancă, unii se opresc câteva secunde."],
-    alerts: [
-      ["CAM 14 · park, 10 people in view", "CAM 14 · parc, 10 persoane în cadru"],
-      ["Short contacts at the same bench", "Contacte scurte la aceeași bancă"],
-      ["Same person in repeated contacts", "Aceeași persoană în contacte repetate"],
-    ],
-    story: [
-      ["Hand-offs with different people, two of them pupils", "Schimburi de obiecte cu persoane diferite, doi dintre ei elevi"],
-      ["Looked around before each one", "S-a uitat în jur înainte de fiecare"],
-      ["Took cash, counted it", "A primit bani și i-a numărat"],
-    ],
+    cues: HANDOFF_CUES(["a pupil", "un elev"]),
+    act: { id: "handoff3", noun: ["the third hand-off", "al treilea schimb"] },
+  };
+}
+
+function hCrowbar(): Scenario {
+  // an evening club is on; an adult with a crowbar tries the classroom doors
+  const cast: Member[] = [
+    M("?", ["Adult, not on the visitor list", "Adult, nu e pe lista de vizitatori"], "adult", { skin: S.fair, hair: H.blond, style: "buzz", top: "#4a4f2f", bottom: GREY, outfit: "worker", carry: "crowbar", beard: "stubble" }, { k: "prowl", from: "left", pts: [[0.15, 0.06], [0.5, 0.06], [0.85, 0.07]], acts: ["handle", "handle", "shove"] }, "furtive"),
+    M("Gheorghe", ["Caretaker", "Administrator"], "senior", { skin: S.light, hair: H.grey, style: "bald", top: "#3d5a6b", bottom: "#3d5a6b", outfit: "worker", acc: "beanie", beard: "moustache", carry: "box" }, { k: "patrol", pts: [[0.2, 0.55], [0.8, 0.6]], pause: 3 }),
+    kid(9, { k: "chat", at: [0.3, 0.45], with: 3 }),
+    kid(11, { k: "chat", at: [0.36, 0.47], with: 2 }),
+    kid(10, { k: "wait", at: [0.7, 0.4], roam: 0.02 }, "calm", { acc: "hood" }),
+    kid(7, { k: "dance", at: [0.62, 0.7] }, "excited"),
+    M("Corina", R_TEACHER_F, "adult", { skin: S.fair, hair: H.red, style: "long", top: "#2f6d8f", bottom: BLACK, outfit: "teacher", carry: "folder" }, { k: "cross", from: "doorM", to: "right", gap: [3, 5] }),
+    M("Alin", R_PARENT, "adult", { skin: S.light, hair: H.black, style: "short", top: "#7a8a5a", bottom: JEANS, outfit: "coat", beard: "beard" }, { k: "pace", a: [0.15, 0.7], b: [0.35, 0.8], act: "call" }),
+    kid(2, { k: "playfight", with: 9, area: [0.5, 0.9, 0.6, 0.9] }, "happy"),
+    kid(4, { k: "playfight", with: 8, area: [0.5, 0.9, 0.6, 0.9] }, "happy"),
+  ];
+  return {
+    id: "h-crowbar", pool: 2, setting: "corridor-evening", scale: 1.2, clock: [20, 25], cast, target: 0,
+    info: ["Thursday 20:25, the evening robotics club is ending. Pupils, a teacher and the caretaker in the corridor; someone goes from door to door.", "Joi, 20:25, se termină cercul de robotică. Elevi, o profesoară și administratorul pe hol; cineva trece de la o ușă la alta."],
+    cues: {
+      handle1: { line: ["Tried a classroom door", "A încercat ușa unei clase"], w: 0.8 },
+      tool: { line: ["Tool in hand: crowbar", "Unealtă în mână: rangă"], w: 0.8 },
+      handle2: { line: ["Tried a second door", "A încercat o a doua ușă"], w: 0.8 },
+    },
+    act: { id: "force", noun: ["forcing the door", "forțarea ușii"] },
+  };
+}
+
+function hHood(): Scenario {
+  // after practice; an adult with the hood up keeps away from the cameras and goes for the side door
+  const cast: Member[] = [
+    M("?", ["Adult, not on the list", "Adult, nu e pe listă"], "adult", { skin: S.light, hair: H.dark, style: "short", top: "#4b4f57", bottom: BLACK, outfit: "hoodie", acc: "hood", beard: "stubble" }, { k: "prowl", from: "leftBack", pts: [[0.12, 0.1], [0.88, 0.12], [0.53, 0.05]], acts: ["none", "handle", "shove"] }, "furtive"),
+    kid(10, { k: "chat", at: [0.4, 0.4], with: 2 }, "happy", { acc: "hood" }),
+    kid(8, { k: "chat", at: [0.46, 0.42], with: 1 }, "happy"),
+    M("Radu", ["PE coach", "Antrenor"], "adult", { skin: S.light, hair: H.black, style: "buzz", top: "#2a5fa8", bottom: "#2a5fa8", outfit: "sport" }, { k: "wait", at: [0.3, 0.25], act: "shout", roam: 0.02 }, "loud"),
+    kid(6, { k: "pace", a: [0.65, 0.5], b: [0.85, 0.6], act: "call" }),
+    kid(0, { k: "play", area: [0.15, 0.55, 0.55, 0.9] }),
+    kid(4, { k: "play", area: [0.15, 0.55, 0.55, 0.9] }),
+    M("Cristian", R_PARENT, "adult", { skin: S.light, hair: H.brown, style: "short", top: "#5b4a3a", bottom: JEANS, outfit: "coat", beard: "stubble" }, { k: "wait", at: [0.7, 0.75], act: "phone", roam: 0.02 }, "focused"),
+    kid(11, { k: "dance", at: [0.2, 0.7] }, "excited"),
+    M("Doina", R_CLEANER, "adult", { skin: S.light, hair: H.dark, style: "bun", top: "#8b6fae", bottom: "#3a3550", outfit: "cleaner", carry: "mop" }, { k: "work", area: [0.6, 0.9, 0.3, 0.5], act: "mop" }),
+  ];
+  return {
+    id: "h-hood", pool: 2, setting: "yard-gym", scale: 1.2, clock: [19, 35], cast, target: 0,
+    info: ["Wednesday 19:35, after handball practice outside the gym. Pupils, the coach and parents; someone keeps to the wall.", "Miercuri, 19:35, după antrenamentul de handbal, în fața sălii. Elevi, antrenorul și părinți; cineva merge numai pe lângă zid."],
+    cues: {
+      avoid: { line: ["Walked along the wall, face away from the cameras", "A mers pe lângă zid, cu fața ferită de camere"], w: 0.8 },
+      handle1: { line: ["Tried the gym's side door", "A încercat ușa laterală a sălii"], w: 0.8 },
+      handle2: { line: ["Back at the door a second time", "S-a întors la ușă a doua oară"], w: 0.8 },
+    },
+    act: { id: "force", noun: ["forcing the door", "forțarea ușii"] },
   };
 }
 
 /* ------------------------------------------------------------------ catalogue */
 
-const BUILDERS: (() => Scenario)[][] = [
-  [r1Fence, r1Corridor, r1Gate],
-  [r2Pickup, r2Gym, r2Meeting],
-  [r3Break, r3Arrival, r3Festival],
-  [bGymBack, bCorridor, bGate, bBusStop, bPark],
+const POOLS: (() => Scenario)[][] = [
+  [r1Yard, r1Corridor, r1Gate],
+  [r2Break, r2Arrival, r2Fair],
+  [hGym, hCorridor, hGate, hBus, hPark, hCrowbar, hHood],
 ];
 
-/** A fresh copy of one scenario for round `r` (0-3), avoiding `avoid` when another one exists. */
-export function pickScenario(r: number, avoid?: string): Scenario {
-  const list = BUILDERS[r];
-  const options = list.length > 1 && avoid ? list.filter((b) => b().id !== avoid) : list;
-  const s = options[Math.floor(Math.random() * options.length)]();
+function fresh(b: () => Scenario) {
+  const s = b();
   s.cast.forEach((m, i) => (m.id = i));
   return s;
 }
 
+/** A fresh scenario from a pool, never one of `avoid` (when the pool still has others). */
+export function pickScenario(pool: 0 | 1 | 2, avoid: string[] = []): Scenario {
+  const all = POOLS[pool].map(fresh);
+  const options = all.filter((s) => !avoid.includes(s.id));
+  const list = options.length ? options : all;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
 /** All scenarios (for tests): one fresh copy of each. */
 export function allScenarios(): Scenario[] {
-  return BUILDERS.flat().map((b) => {
-    const s = b();
-    s.cast.forEach((m, i) => (m.id = i));
-    return s;
-  });
+  return POOLS.flat().map(fresh);
 }
 
 /** A fresh copy of the scenario with this id (tests), or null. */

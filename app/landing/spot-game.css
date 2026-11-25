@@ -609,3 +609,31 @@
   .sg__restart { margin-left: auto; }
   .sg__restart + .sg__back { margin-left: 0; }
 }
+
+/* live feed kinds and the harmful-round timeline */
+.sg__feed li.sg__feed-info {
+  border-left-color: oklch(75% 0.11 225);
+}
+.sg__feed li.sg__feed-cue {
+  border-left-color: oklch(80% 0.13 70);
+}
+.sg__feed li.sg__feed-alert {
+  border-left-color: oklch(64% 0.22 25);
+  background: rgb(60 8 14 / 0.86);
+  font-weight: 700;
+}
+.sg__incident li.sg__tl-alert {
+  color: #ffd1d6;
+  font-weight: 700;
+}
+.sg__incident li.sg__tl-you {
+  color: var(--color-accent-hi);
+  font-weight: 700;
+}
+.sg__summary li span {
+  min-width: 0;
+}
+.sg__summary li b {
+  text-align: right;
+  font-size: 13px;
+}

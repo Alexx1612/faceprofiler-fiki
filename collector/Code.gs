@@ -469,7 +469,7 @@ function referrals(sessions) {
     .sort(function (a, b) { return b.visitors - a.visitors || b.sessions - a.sessions || (a.source < b.source ? -1 : 1); });
 }
 
-var GAME_ROUNDS = ["1", "2", "3", "4"]; // 2, 5 and 20 people, then the bonus round
+var GAME_ROUNDS = ["1", "2", "3", "4", "5"]; // 3+1 and 14+1 people, then three harmful-action scenarios
 
 /**
  * "Spot the stranger" game, from game_round_finished events.

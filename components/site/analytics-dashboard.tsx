@@ -468,7 +468,7 @@ function Survey({ s }: { s: Stats }) {
 const sec = (ms: number | null | undefined) => (ms === null || ms === undefined ? "–" : `${(ms / 1000).toFixed(1)} s`);
 const msx = (ms: number | null | undefined) => (ms === null || ms === undefined ? "–" : `${ms.toFixed(2)} ms`);
 
-/** Who plays "Spot the stranger" and how well: players, finishers, score 0-4, and each round vs the machine. */
+/** Who plays "Spot the stranger" and how well: players, finishers, score 0-5, and each round vs the machine. */
 function Game({ s }: { s: Stats }) {
   const g = s.game_summary;
   if (!s.game.length) return <p className="text-sm text-neutral-400">Nobody has played yet.</p>;
@@ -480,8 +480,8 @@ function Game({ s }: { s: Stats }) {
           {(
             [
               ["Players", num(g.players)],
-              ["Finished all 4", `${num(g.finished_all)}${g.players ? ` · ${pct(g.finished_all / g.players)}` : ""}`],
-              ["Avg. score", `${g.avg_score.toFixed(1)} / 4`],
+              ["Finished all 5", `${num(g.finished_all)}${g.players ? ` · ${pct(g.finished_all / g.players)}` : ""}`],
+              ["Avg. score", `${g.avg_score.toFixed(1)} / 5`],
             ] as const
           ).map(([k, v]) => (
             <div key={k} className={box}>
@@ -495,15 +495,15 @@ function Game({ s }: { s: Stats }) {
         {g ? (
           <div className={box}>
             <p className={h4}>Score (rounds right per player)</p>
-            <div className="flex h-36 items-end gap-3" role="img" aria-label={`Players per score: ${g.score_distribution.map((d) => `${d.score}/4: ${d.players}`).join(", ")}`}>
+            <div className="flex h-36 items-end gap-3" role="img" aria-label={`Players per score: ${g.score_distribution.map((d) => `${d.score}/5: ${d.players}`).join(", ")}`}>
               {g.score_distribution.map((d) => (
                 <div key={d.score} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
                   <span className="text-xs tabular-nums text-neutral-200">{num(d.players)}</span>
                   <div
-                    className={`w-full rounded-t-md ${d.score === 4 ? "bg-emerald-400" : "bg-sky-500"}`}
+                    className={`w-full rounded-t-md ${d.score === 5 ? "bg-emerald-400" : "bg-sky-500"}`}
                     style={{ height: `${Math.max(3, (d.players / maxDist) * 100)}%` }}
                   />
-                  <span className="text-xs text-neutral-400">{d.score}/4</span>
+                  <span className="text-xs text-neutral-400">{d.score}/5</span>
                 </div>
               ))}
             </div>

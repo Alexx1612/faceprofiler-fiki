@@ -2,17 +2,24 @@
  * "Spot the stranger" results, shared with the quick survey.
  *
  * Methodology: sessionStorage key "nauino-game" holds a JSON array with the latest result per round
- * (rounds 1-3: 2, 5 and 20 remembered people; round 4: the bonus, 10 people, behaviour). Reads and writes are wrapped in try/catch: private windows and blocked storage
+ * (rounds 1-2: find the unknown person among 3 and 14 remembered people; rounds 3-5: who is about to
+ * cause harm, about 10 people, behaviour). human_ms and machine_ms share one basis: from the unknown
+ * person's first appearance (rounds 1-2) or from the start of the round (rounds 3-5); machine_ms is the
+ * system time modelled on Nau-ino's measurements. lead_ms / human_lead_ms: how long before the harmful
+ * act the system alerted / the visitor tapped (negative = after it). Reads and writes are wrapped in try/catch: private windows and blocked storage
  * must not break the page. After saving, `nauino:game-result` is dispatched on window so a mounted
  * listener (the survey dialog) re-reads the key without polling.
  */
 
 export type GameResult = {
-  round: 1 | 2 | 3 | 4;
+  round: 1 | 2 | 3 | 4 | 5;
   people: number;
   human_ms: number;
   machine_ms: number;
   correct: boolean;
+  lead_ms?: number;
+  human_lead_ms?: number;
+  scenario?: string;
 };
 
 export const GAME_KEY = "nauino-game";
@@ -40,7 +47,7 @@ export function saveGameResult(r: GameResult) {
   window.dispatchEvent(new CustomEvent(GAME_EVENT));
 }
 
-/** Where the player is: the round to play next (1-4), or 5 when all four are done. */
+/** Where the player is: the round to play next (1-5), or 6 when all five are done. */
 export const PROGRESS_KEY = "nauino-game-progress";
 export type GameProgress = { round: number; at: number };
 
