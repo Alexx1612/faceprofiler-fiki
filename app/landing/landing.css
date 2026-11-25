@@ -321,6 +321,14 @@
   box-shadow: var(--glass-hi), var(--shadow-card);
 }
 
+/* Cards in the page sections sit on the plain navy background, where the blur shows nothing but makes
+   Safari on iPhone re-blur every frame while the card holds a playing video or the game: solid colour. */
+.lp-section .lp-glass {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: oklch(20% 0.045 256);
+}
+
 .lp-night {
   padding: var(--space-md);
   /* More solid than the other glass: it carries the product's message over a busy photo. */
@@ -328,9 +336,27 @@
 }
 
 .lp-night__sum {
+  display: grid;
   margin: 0 6px var(--space-sm);
   font-size: 14px;
   color: var(--color-ink);
+}
+
+/* The summary and the longest summary share one cell, so the line count never changes. */
+.lp-night__sum > span {
+  grid-area: 1 / 1;
+}
+
+.lp-night__sizer {
+  visibility: hidden;
+}
+
+/* Rows and the alert that the night has not reached yet: space kept, nothing shown (see NightLive).
+   Two classes so it beats .lp-row's rise animation, which then plays when the row appears. */
+.lp-row.lp-later,
+.lp-open.lp-later {
+  visibility: hidden;
+  animation: none;
 }
 
 .lp-night__foot {
@@ -1449,8 +1475,21 @@
 }
 
 .lp-tour__stage {
+  display: grid;
   align-self: start;
+}
+
+/* The four screens stacked in one cell (see Tour); the one that turns current flashes in. */
+.lp-tour__slot {
+  grid-area: 1 / 1;
   border-radius: var(--radius-card);
+}
+
+.lp-tour__slot[data-on="false"] {
+  visibility: hidden;
+}
+
+.lp-tour__slot[data-on="true"] {
   animation: lp-flash 900ms ease-out both;
 }
 
@@ -1491,7 +1530,7 @@
   .lp-live--alert,
   .lp-live--alert .lp-row--open,
   .lp-tour__bar,
-  .lp-tour__stage {
+  .lp-tour__slot[data-on="true"] {
     animation: none;
   }
   .lp-btn,

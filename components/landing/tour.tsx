@@ -146,7 +146,7 @@ export function Tour() {
       at(delay, () => setCursor((c) => c && { ...c, click: c.click + 1 }));
     };
     const next = (step + 1) % steps.length;
-    if (step === 2) at(1800, () => point(".lp-tour__stage .lp-open b", 900)); // click Review in the alert
+    if (step === 2) at(1800, () => point('.lp-tour__slot[data-on="true"] .lp-open b', 900)); // click Review in the alert
     at(STEP_MS - 1700, () => point(`.lp-tour li:nth-child(${next + 1}) button`, 1000));
     at(STEP_MS, () => setStep(next));
     return () => timers.forEach(clearTimeout);
@@ -187,10 +187,17 @@ export function Tour() {
           {auto ? "Pause the walk-through" : "Play the walk-through"}
         </button>
       </div>
-      <div key={step} className="lp-tour__stage">
-        <AppFrame screen={screens[step]}>
-          <Pane step={step} />
-        </AppFrame>
+      {/* all four screens share one cell and only the current one shows, so the stage keeps the height of
+          the tallest: a stage that resized at every step made the page jump on iPhone */}
+      <div className="lp-tour__stage">
+        {steps.map((s, i) => (
+          <div key={s.title} className="lp-tour__slot" data-on={step === i} aria-hidden={step !== i || undefined}>
+            {/* remounted when it turns current, so its own entrance animations play again, as before */}
+            <AppFrame key={step === i ? "on" : "off"} screen={screens[i]}>
+              <Pane step={i} />
+            </AppFrame>
+          </div>
+        ))}
       </div>
     </div>
   );

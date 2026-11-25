@@ -11,6 +11,14 @@ export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
   {
+    version: "v1.17",
+    date: "2026-11-25",
+    changes: [
+      "Landing on phones: no more jumping while scrolling; the live night card and the How it works stage keep a fixed height",
+      "Cards without backdrop blur (smoother in Safari on iPhone); the game draws at 1.5x on touch screens",
+    ],
+  },
+  {
     version: "v1.16",
     date: "2026-11-25",
     changes: [

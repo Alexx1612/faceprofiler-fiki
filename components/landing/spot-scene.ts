@@ -1236,7 +1236,9 @@ export class SpotScene {
   private resize() {
     const r = this.canvas.getBoundingClientRect();
     if (!r.width) return;
-    this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    // phones: 1.5x is sharp enough on a small screen and draws about 44% fewer pixels per frame than 2x
+    const touch = window.matchMedia?.("(pointer: coarse)").matches;
+    this.dpr = Math.min(touch ? 1.5 : 2, window.devicePixelRatio || 1);
     this.W = r.width;
     this.H = r.height;
     this.P = projector(this.W, this.H);

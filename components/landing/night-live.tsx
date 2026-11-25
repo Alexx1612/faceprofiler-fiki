@@ -90,16 +90,23 @@ export function NightLive() {
         </div>
       )}
 
+      {/* every row, the alert and the longest summary keep their space from the start (hidden until due),
+          so the card never changes height while the night plays: on iPhone that made the page jump */}
       <p className="lp-night__sum">
-        {stranger
-          ? "Staff seen 3 times, all named. 1 stranger, flagged the moment they appeared."
-          : shown.length
-            ? `Staff seen ${shown.length} ${shown.length === 1 ? "time" : "times"}, all named. Nothing unusual so far.`
-            : "Cameras watching. Nobody seen yet."}
+        <span>
+          {stranger
+            ? "Staff seen 3 times, all named. 1 stranger, flagged the moment they appeared."
+            : shown.length
+              ? `Staff seen ${shown.length} ${shown.length === 1 ? "time" : "times"}, all named. Nothing unusual so far.`
+              : "Cameras watching. Nobody seen yet."}
+        </span>
+        <span className="lp-night__sizer" aria-hidden="true">
+          Staff seen 3 times, all named. 1 stranger, flagged the moment they appeared.
+        </span>
       </p>
       <ul className="lp-rows">
-        {shown.map((r) => (
-          <li key={r.time} className="lp-row">
+        {night.map((r) => (
+          <li key={r.time} className={offset(r.time) <= t ? "lp-row" : "lp-row lp-later"} aria-hidden={offset(r.time) > t || undefined}>
             <span className="lp-initial">{r.i}</span>
             <span>
               <span className="lp-row__name">{r.name}</span>
@@ -112,27 +119,23 @@ export function NightLive() {
             </span>
           </li>
         ))}
-        {stranger && (
-          <li className="lp-row lp-row--open">
-            <span className="lp-initial">?</span>
-            <span>
-              <span className="lp-row__name">Unknown_1</span>
-              <br />
-              <span className="lp-row__place">Side gate</span>
-            </span>
-            <span className="lp-row__status">
-              <span className="lp-dot" aria-hidden="true" />
-              {STRANGER}
-            </span>
-          </li>
-        )}
+        <li className={stranger ? "lp-row lp-row--open" : "lp-row lp-row--open lp-later"} aria-hidden={!stranger || undefined}>
+          <span className="lp-initial">?</span>
+          <span>
+            <span className="lp-row__name">Unknown_1</span>
+            <br />
+            <span className="lp-row__place">Side gate</span>
+          </span>
+          <span className="lp-row__status">
+            <span className="lp-dot" aria-hidden="true" />
+            {STRANGER}
+          </span>
+        </li>
       </ul>
-      {stranger && (
-        <div className="lp-open">
-          An adult nobody enrolled, at the side gate
-          <b>Review</b>
-        </div>
-      )}
+      <div className={stranger ? "lp-open" : "lp-open lp-later"} aria-hidden={!stranger || undefined}>
+        An adult nobody enrolled, at the side gate
+        <b>Review</b>
+      </div>
       <p className="lp-night__foot">Sample night, fictional names.</p>
     </div>
     </AppFrame>
