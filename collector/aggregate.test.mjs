@@ -149,3 +149,26 @@ test("test traffic is stored but excluded from every number", () => {
   assert.equal(C.cleanEvents([{ event: "$pageview", anon: "a" }], T0)[0].test, false);
   assert.equal(C.cleanForm({ form: "pilot", data: { email: "a@b.ro" }, test: true }, T0).test, true);
 });
+
+test("funnel counts the landing page under the GitHub Pages base path", () => {
+  const T = Date.UTC(2026, 10, 26);
+  const e = (event, min, path = "/faceprofiler-fiki/landing/") => ({ id: `b${min}`, anon: "Z", session: "Z1", event, ts: T + min * 60000, version: "v1.14", path, device: "phone" });
+  const out = C.aggregate([e("$pageview", 0), e("survey_opened", 1), e("survey_submitted", 2)], [], T).versions.all;
+  assert.deepEqual(out.funnel.map((s) => s.visitors), [1, 1, 1]);
+  const other = C.aggregate([e("$pageview", 0, "/faceprofiler-fiki/landingpage-old/")], [], T).versions.all;
+  assert.equal(other.funnel[0].visitors, 0);
+});
+
+test("visitors who came through a test-tagged link (utm_source=selftest/probe) are test traffic", () => {
+  const T = Date.UTC(2026, 10, 26);
+  const e = (anon, event, min, extra = {}) => ({ id: `t${anon}${min}`, anon, session: `${anon}1`, event, ts: T + min * 60000, version: "v1.14", path: "/faceprofiler-fiki/landing/", device: "phone", ...extra });
+  const events = [
+    e("S", "$pageview", 0, { utm_source: "selftest" }), e("S", "survey_opened", 1), // owner testing with a tagged link
+    e("R", "$pageview", 0, { utm_source: "whatsapp" }), e("R", "survey_opened", 1), // a real visitor
+  ];
+  const forms = [{ ts: T + 120000, version: "v1.14", form: "survey", anon: "S", path: "/landing/", data: { role: "Teacher" } }];
+  const out = C.aggregate(events, forms, T);
+  assert.equal(out.test_events, 3);
+  assert.equal(out.versions.all.visitors, 1);
+  assert.deepEqual(out.versions.all.sources.map((s) => s.source), ["whatsapp"]);
+});

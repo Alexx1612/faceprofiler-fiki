@@ -32,7 +32,7 @@
  *   web app. The "@provenance" markers delimit the code that the /analytics/ page links to.
  */
 
-var COLLECTOR_VERSION = "1.1";
+var COLLECTOR_VERSION = "1.2";
 /** Sheet columns, in order. "chain" is always last; every other cell of the row is hashed into it. */
 var EVENT_HEADERS = [
   "row_id", "received_at", "id", "ts", "version", "build", "anon", "session", "event", "path", "landing_path",
@@ -58,7 +58,8 @@ function isFreeText(k) {
   return k === "comment" || /_(other|note)$/.test(k);
 }
 var FUNNEL = [
-  { name: "Landing page", match: function (e) { return e.event === "$pageview" && String(e.path).indexOf("/landing") === 0; } },
+  // path may carry the GitHub Pages base path ("/faceprofiler-fiki/landing/"), so match the segment anywhere
+  { name: "Landing page", match: function (e) { return e.event === "$pageview" && /(^|\/)landing(\/|$)/.test(String(e.path)); } },
   { name: "Book a pilot or survey opened", match: function (e) { return e.event === "cta_book_pilot_click" || e.event === "survey_opened"; } },
   { name: "Form or survey sent", match: function (e) { return e.event === "pilot_form_submitted" || e.event === "updates_form_submitted" || e.event === "survey_submitted"; } },
 ];
@@ -170,6 +171,9 @@ function readSheet_(ss, name, headers) {
 function isTest(v) {
   return v === true || v === "true" || v === "TRUE" || v === 1 || v === "1";
 }
+
+/** utm_source tags that mark a link as ours for testing ("?utm_source=selftest"); such visits are test traffic. */
+var TEST_SOURCES = { probe: 1, selftest: 1, test: 1 };
 
 function cut(v, n) {
   return v === undefined || v === null ? "" : String(v).slice(0, n);
@@ -623,9 +627,17 @@ function statsFor(events, forms) {
 // @provenance:aggregate:start
 /** Stats for all versions merged ("all") and for each version on its own. Test rows and duplicate ids out. */
 function aggregate(events, forms, now) {
-  var testEvents = events.filter(function (e) { return isTest(e.test); }).length + forms.filter(function (f) { return isTest(f.test); }).length;
-  events = events.filter(function (e) { return !isTest(e.test); });
-  forms = forms.filter(function (f) { return !isTest(f.test); });
+  // Visitors who arrived through a test-tagged link (utm_source probe / selftest / test) count as test
+  // traffic too, with every event and form of theirs; the rows themselves are never changed.
+  var testAnon = {};
+  events.forEach(function (e) {
+    var tag = String(e.utm_source || "").toLowerCase();
+    if (TEST_SOURCES[tag] && e.anon) testAnon[e.anon] = 1;
+  });
+  var isTestRow = function (r) { return isTest(r.test) || Boolean(r.anon && testAnon[r.anon]); };
+  var testEvents = events.filter(isTestRow).length + forms.filter(isTestRow).length;
+  events = events.filter(function (e) { return !isTestRow(e); });
+  forms = forms.filter(function (f) { return !isTestRow(f); });
   var seen = {};
   events = events.filter(function (e) {
     if (!e.id) return true;
@@ -649,7 +661,7 @@ function aggregate(events, forms, now) {
 
 if (typeof module !== "undefined") {
   module.exports = {
-    COLLECTOR_VERSION: COLLECTOR_VERSION, EVENT_HEADERS: EVENT_HEADERS, FORM_HEADERS: FORM_HEADERS, GENESIS: GENESIS,
+    COLLECTOR_VERSION: COLLECTOR_VERSION, TEST_SOURCES: TEST_SOURCES, EVENT_HEADERS: EVENT_HEADERS, FORM_HEADERS: FORM_HEADERS, GENESIS: GENESIS,
     isTest: isTest, cleanEvents: cleanEvents, cleanForm: cleanForm, normalizeSource: normalizeSource, classifySource: classifySource,
     hostOnly: hostOnly, cell: cell, canonical: canonical, sha256Hex: sha256Hex, chainRows: chainRows, verifyChain: verifyChain,
     chainSummary: chainSummary, eventRow: eventRow, formRow: formRow, rowsToObjects: rowsToObjects,

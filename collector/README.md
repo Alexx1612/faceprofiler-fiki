@@ -74,3 +74,7 @@ in `lib/collect.ts`, kept equal by a test). Site changes (pages, survey question
 To update: open the Sheet → Extensions → Apps Script → replace all the code with the new `Code.gs` → Save →
 Deploy → Manage deployments → the pencil → Version: New version → Deploy. The /exec URL stays the same,
 so nothing changes on the site.
+
+**Test-tagged links.** A visit that arrives with `utm_source=selftest`, `probe` or `test` counts as test
+traffic (all of that visitor's events and forms), the same as `?test=1`. Use e.g.
+`…/landing/?utm_source=selftest` to try a link from a phone you haven't marked.

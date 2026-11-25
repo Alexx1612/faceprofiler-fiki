@@ -11,6 +11,14 @@ export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
   {
+    version: "v1.18",
+    date: "2026-11-26",
+    changes: [
+      "Analytics: funnel counts the landing page under the GitHub Pages path (was always 0)",
+      "Analytics: visits through test-tagged links (utm_source selftest / probe / test) count as test traffic",
+    ],
+  },
+  {
     version: "v1.17",
     date: "2026-11-25",
     changes: [

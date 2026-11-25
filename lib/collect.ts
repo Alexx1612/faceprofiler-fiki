@@ -21,7 +21,7 @@ import { siteVersion } from "@/lib/versions";
 
 export const collectUrl = process.env.NEXT_PUBLIC_COLLECT_URL ?? "";
 /** The collector/Code.gs version this site expects; /analytics/ asks the owner to update the Apps Script when it reports an older one. Kept equal to COLLECTOR_VERSION by a test. */
-export const EXPECTED_COLLECTOR = "1.1";
+export const EXPECTED_COLLECTOR = "1.2";
 const build = process.env.NEXT_PUBLIC_SITE_BUILD ?? "";
 const SESSION_IDLE_MS = 30 * 60 * 1000;
 const K = { test: "nauino:test", anon: "nauino:aid", consent: "nauino:consent", session: "nauino:sid", seen: "nauino:seen", utm: "nauino:utm", landing: "nauino:land" };
