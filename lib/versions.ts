@@ -11,6 +11,23 @@ export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
   {
+    version: "v1.14",
+    date: "2026-11-26",
+    changes: [
+      "Game in 5 rounds: 3+1 and 14+1 (find the unknown person), then three harmful-action scenarios",
+      "System time modelled from Nau-ino measurements; cue timeline vs your pick",
+      "Live collector connected (Google Sheet)",
+    ],
+  },
+  {
+    version: "v1.13",
+    date: "2026-11-25",
+    changes: [
+      "Survey: questions rewritten to pass The Mom Test, \"Other\" answers, teachers-only labels, game progress and restart",
+      "Analytics: source decided on the server, hash chain, verify script, code links, game players and scores",
+    ],
+  },
+  {
     version: "v1.12",
     date: "2026-11-25",
     changes: ["Own analytics and form collector (Google Sheet) with the /analytics/ page", "Spot-the-stranger game with a moving crowd: 2, 5 and 20 people"],
