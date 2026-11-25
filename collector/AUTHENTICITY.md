@@ -77,3 +77,16 @@ Each stored row keeps both the raw facts (`referrer_host`, `utm_*`) and the resu
 - **Returning visitors:** before cookie consent, the anonymous id lasts for one tab only, so a returning visitor who declined counts again.
 - **Test traffic:** test visits (owner's browsers with `?test=1`, localhost, automated browsers) are excluded. `/analytics/` shows how many were ignored.
 - **Large sheets:** above 50,000 rows, the stats endpoint stops re-checking the chain on every request to stay within the Apps Script time limit. `verify.mjs` still checks all rows.
+
+## Session recordings (owner only)
+
+- **When:** only after the visitor clicks Accept on the cookie bar; never with Do-Not-Track / Global Privacy
+  Control; never when they Decline. Test-mode traffic is recorded but flagged test.
+- **What:** the page's structure and changes, mouse moves, clicks and scrolls (rrweb). Every input is masked
+  at recording time, and the text of forms and the survey is replaced by asterisks before it leaves the
+  browser; the game canvas and videos are not recorded (shown as empty boxes). No IP address is stored.
+- **Where and how long:** JSON files in the owner's Google Drive (folder "Nau-ino replays"), one summary row
+  per session in the private sheet `replays`; deleted after 30 days by a daily job.
+- **Who can see them:** only Google accounts listed in the Script Property `OWNER_EMAILS`, after signing in on
+  `/analytics/`; the collector checks the Google token on every request. Replays are not part of the public
+  statistics and are not covered by the hash chain (they are viewing aids, not counted data).

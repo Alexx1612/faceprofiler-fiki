@@ -32,7 +32,7 @@
  *   web app. The "@provenance" markers delimit the code that the /analytics/ page links to.
  */
 
-var COLLECTOR_VERSION = "1.3";
+var COLLECTOR_VERSION = "1.4";
 /**
  * Sheet columns, in order. Every cell of a row except "chain" is hashed into "chain".
  * Rows written before collector 1.3 stop at "chain" (24 cells). From 1.3 the columns after "chain" hold who
@@ -78,6 +78,7 @@ var FUNNEL = [
 function doPost(e) {
   try {
     var body = (e && e.postData && e.postData.contents) || "";
+    if (body.indexOf('{"type":"replay"') === 0 && typeof storeReplay_ === "function") return json_(storeReplay_(body)); // Replay.gs: larger chunks, own limit
     if (body.length > MAX_BODY) return json_({ errors: [{ message: "Too large." }] });
     var msg = JSON.parse(body);
     if (msg.type === "events") return json_(storeEvents_(msg.events));
@@ -105,6 +106,7 @@ function storeForm_(msg) {
   if (!rateOk_(f.anon || "form", 5)) return { errors: [{ message: "Slow down." }] };
   if (f.form === "pilot") f = typeof handlePilot_ === "function" ? handlePilot_(f) : (delete f.data.id_token, f); // Pilot.gs: verify Google sign-in, notify; never store the token
   append_("forms", FORM_HEADERS, [formRow(f, Utilities.getUuid(), now)]);
+  if (f.form === "updates" && typeof afterNewsletter_ === "function") afterNewsletter_(f); // Inbox.gs: optional autoresponder
   return { ok: true };
 }
 
@@ -131,18 +133,40 @@ function append_(name, headers, rows) {
 function doGet(e) {
   if (e && e.parameter && e.parameter.token && typeof privateRoute_ === "function") return json_(privateRoute_(e.parameter)); // Owner.gs: owner-only views
   if (!e || !e.parameter || e.parameter.stats !== "1") return json_({ ok: true, service: "nau-ino collector", version: COLLECTOR_VERSION });
-  var cache = CacheService.getScriptCache();
-  var hit = cache.get("stats");
-  if (hit) return ContentService.createTextOutput(hit).setMimeType(ContentService.MimeType.JSON);
+  // guests: the M5 public summary only (publicStats); everything finer goes through PRIVATE_ROUTES.stats
+  return cachedJson_("stats_pub", function () { return publicStats(fullStats_()); });
+}
+
+/** Full aggregate with the chain facts (owner route and the public summary are both cut from this). */
+function fullStats_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ev = readSheet_(ss, "events", EVENT_HEADERS);
   var fo = readSheet_(ss, "forms", FORM_HEADERS);
   var stats = aggregate(rowsToObjects(EVENT_HEADERS, ev), rowsToObjects(FORM_HEADERS, fo), new Date().getTime());
   stats.integrity = { collector: COLLECTOR_VERSION, events: chainSummary(ev, EVENT_CHAIN_IDX), forms: chainSummary(fo) };
-  var out = JSON.stringify(stats);
-  try { cache.put("stats", out, 300); } catch (err) { /* over 100 KB: serve uncached */ }
+  return stats;
+}
+
+/** JSON response cached for 5 minutes under `key` (skipped when over the 100 KB cache limit). */
+function cachedJson_(key, build) {
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get(key);
+  if (hit) return ContentService.createTextOutput(hit).setMimeType(ContentService.MimeType.JSON);
+  var out = JSON.stringify(build());
+  try { cache.put(key, out, 300); } catch (err) { /* over 100 KB: serve uncached */ }
   return ContentService.createTextOutput(out).setMimeType(ContentService.MimeType.JSON);
 }
+
+/** Owner route (Owner.gs): the full aggregate, cached apart from the public summary. */
+var PRIVATE_ROUTES = typeof PRIVATE_ROUTES !== "undefined" ? PRIVATE_ROUTES : {};
+PRIVATE_ROUTES.stats = function () {
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get("stats_full");
+  if (hit) return JSON.parse(hit);
+  var full = fullStats_();
+  try { cache.put("stats_full", JSON.stringify(full), 300); } catch (err) { /* too big to cache */ }
+  return full;
+};
 
 function json_(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
@@ -661,6 +685,206 @@ function hourGrid(sessions) {
   return { tz: LOCAL_TZ, weekdays: WEEKDAYS, grid: grid };
 }
 
+/* ---------------- PostHog-style extras (pure): heatmap, frustration, scroll, retention, paths ---------------- */
+
+var HEAT_COLS = 50; // 2 % of the page width per cell
+var HEAT_ROWS = 50; // 2 % of the page height per cell
+var HEAT_MAX_CELLS = 600;
+var CLICK_EVENTS = { $autocapture: 1, $deadclick: 1, $rageclick: 1 };
+
+/** 0-100 → cell index 0..n-1 (clamped); null for non-numbers. */
+function heatCell(v, n) {
+  var x = Number(v);
+  if (!isFinite(x)) return null;
+  return Math.max(0, Math.min(n - 1, Math.floor((Math.max(0, Math.min(100, x)) / 100) * n)));
+}
+
+/**
+ * Click heatmaps: one grid per page + device (phone / tablet / desktop), from clicks that carry the
+ * position the client sends (x, y in % of the document, rounded to 1 %). Cells are [col, row, clicks].
+ */
+function heatmaps(events) {
+  var by = {};
+  events.forEach(function (e) {
+    if (!CLICK_EVENTS[e.event] || !e.props) return;
+    var cx = heatCell(e.props.x, HEAT_COLS), cy = heatCell(e.props.y, HEAT_ROWS);
+    if (cx === null || cy === null) return;
+    var dev = String(e.props.vp || e.device || "unknown");
+    var k = e.path + "|" + dev;
+    var h = (by[k] = by[k] || { path: e.path, device: dev, clicks: 0, cells: {}, labels: {} });
+    h.clicks++;
+    bump(h.cells, cx + "," + cy);
+    if (e.label) bump(h.labels, e.label);
+  });
+  return Object.keys(by)
+    .map(function (k) {
+      var h = by[k];
+      var cells = Object.keys(h.cells)
+        .map(function (c) { var p = c.split(","); return [Number(p[0]), Number(p[1]), h.cells[c]]; })
+        .sort(function (a, b) { return b[2] - a[2]; })
+        .slice(0, HEAT_MAX_CELLS);
+      return { path: h.path, device: h.device, clicks: h.clicks, cols: HEAT_COLS, rows: HEAT_ROWS, cells: cells, top: top(h.labels, 10) };
+    })
+    .sort(function (a, b) { return b.clicks - a.clicks; })
+    .slice(0, 30);
+}
+
+/** Rage and dead clicks per page + element label (the client detects them; here they are counted). */
+function frustration(events) {
+  var rage = {}, dead = {};
+  events.forEach(function (e) {
+    if (e.event !== "$rageclick" && e.event !== "$deadclick") return;
+    bump(e.event === "$rageclick" ? rage : dead, e.path + " | " + (e.label || "(no label)"));
+  });
+  var split = function (c) {
+    var i = c.key.indexOf(" | ");
+    return { path: c.key.slice(0, i), label: c.key.slice(i + 3), count: c.count };
+  };
+  return { rage: top(rage, 20).map(split), dead: top(dead, 20).map(split) };
+}
+
+/** Scroll depth: per page, the share of visitors whose deepest scroll reached 25 / 50 / 75 / 100 %. */
+function scrollDepth(events) {
+  var best = {};
+  events.forEach(function (e) {
+    if (e.event !== "$pageleave" || !e.props) return;
+    var d = Number(e.props.scroll_pct);
+    if (!isFinite(d)) return;
+    var p = (best[e.path] = best[e.path] || {});
+    p[e.anon] = Math.max(p[e.anon] || 0, Math.max(0, Math.min(100, d)));
+  });
+  return Object.keys(best)
+    .map(function (path) {
+      var depths = Object.keys(best[path]).map(function (a) { return best[path][a]; });
+      var n = depths.length;
+      var reach = function (t) { return depths.filter(function (d) { return d >= t; }).length / n; };
+      return { path: path, visitors: n, r25: reach(25), r50: reach(50), r75: reach(75), r100: reach(98), median: median(depths) };
+    })
+    .sort(function (a, b) { return b.visitors - a.visitors; })
+    .slice(0, 15);
+}
+
+/** Monday (UTC) of the week a timestamp falls in, as YYYY-MM-DD. */
+function weekStart(ts) {
+  var d = new Date(ts);
+  var wd = (d.getUTCDay() + 6) % 7;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - wd)).toISOString().slice(0, 10);
+}
+
+/**
+ * Retention: returning visitors (sessions on two or more different days) and weekly cohorts by the week of
+ * the first visit: how many came back 1, 2 and 3 weeks later.
+ */
+function retention(sessions) {
+  var by = {};
+  sessions.forEach(function (s) {
+    var v = (by[s.anon] = by[s.anon] || { first: s.start, days: {}, weeks: {} });
+    v.first = Math.min(v.first, s.start);
+    v.days[day(s.start)] = 1;
+    v.weeks[weekStart(s.start)] = 1;
+  });
+  var anons = Object.keys(by);
+  var returning = anons.filter(function (a) { return Object.keys(by[a].days).length >= 2; }).length;
+  var cohorts = {};
+  anons.forEach(function (a) {
+    var w0 = weekStart(by[a].first);
+    var c = (cohorts[w0] = cohorts[w0] || { week: w0, size: 0, w1: 0, w2: 0, w3: 0 });
+    c.size++;
+    [1, 2, 3].forEach(function (k) {
+      var wk = new Date(Date.parse(w0 + "T00:00:00Z") + k * 7 * 86400000).toISOString().slice(0, 10);
+      if (by[a].weeks[wk]) c["w" + k]++;
+    });
+  });
+  return {
+    visitors: anons.length,
+    returning: returning,
+    returning_rate: anons.length ? returning / anons.length : 0,
+    cohorts: Object.keys(cohorts).sort().map(function (k) { return cohorts[k]; }),
+  };
+}
+
+/** Most common first three pages of a session (repeats of the same page collapse into one step). */
+function topPaths(sessions) {
+  var paths = {};
+  sessions.forEach(function (s) {
+    var seq = [];
+    s.events.forEach(function (e) {
+      if (e.event !== "$pageview" || !e.path) return;
+      if (seq[seq.length - 1] !== e.path) seq.push(e.path);
+    });
+    if (seq.length) bump(paths, seq.slice(0, 3).join(" → "));
+  });
+  return top(paths, 12);
+}
+
+/** All PostHog-style extras for one set of events (the test split gets its own via statsFor). */
+function behaviourStats(events, sessions) {
+  return {
+    heatmaps: heatmaps(events),
+    frustration: frustration(events),
+    scroll: scrollDepth(events),
+    retention: retention(sessions),
+    paths: topPaths(sessions),
+  };
+}
+
+/**
+ * What guests see on /analytics/: the M5 lead-generation story. Totals, daily trend, where visitors came
+ * from (visitors, leads, conversion %, medium, how we know, utm_campaign), the funnel, device types,
+ * countries, form counts, the game summary and the chain facts. Everything finer or personal (regions,
+ * OS / browser / in-app / screen / language, referrer hosts, landing paths, utm_content, pages & clicks,
+ * heatmaps, frustration, scroll, retention, paths, survey answers, per-version detail, test-traffic
+ * stats) stays behind the owner route.
+ */
+function publicStats(full) {
+  var a = (full.versions && full.versions.all) || {};
+  var who = a.who || {};
+  var pub = {
+    visitors: a.visitors || 0,
+    sessions: a.sessions || 0,
+    pageviews: a.pageviews || 0,
+    avg_session_s: a.avg_session_s || 0,
+    leads: a.leads || 0,
+    lead_rate: a.lead_rate || 0,
+    daily: a.daily || [],
+    sources: (a.sources || []).map(function (r) {
+      return {
+        source: r.source,
+        visitors: r.visitors,
+        sessions: r.sessions,
+        conversions: r.conversions,
+        conversion_rate: r.conversion_rate,
+        by_form: r.by_form,
+        mediums: r.mediums,
+        how: r.how,
+        campaigns: r.campaigns,
+      };
+    }),
+    funnel: a.funnel || [],
+    forms: a.forms || [],
+    who: {
+      devices: who.devices || [],
+      countries: (who.countries || []).map(function (c) { return { key: c.key, name: c.name, visitors: c.visitors, how: c.how }; }),
+    },
+    game: (a.game || []).map(function (r) {
+      return { round: r.round, people: r.people, plays: r.plays, correct_pct: r.correct_pct, median_human_ms: r.median_human_ms, median_machine_ms: r.median_machine_ms };
+    }),
+    game_summary: a.game_summary
+      ? { players: a.game_summary.players, finished_all: a.game_summary.finished_all, avg_score: a.game_summary.avg_score, score_distribution: a.game_summary.score_distribution }
+      : null,
+  };
+  return {
+    public: true,
+    generated: full.generated,
+    collector: full.collector,
+    events: full.events,
+    test_events: full.test_events,
+    integrity: full.integrity,
+    version_list: Object.keys(full.versions || {}).filter(function (v) { return v !== "all"; }),
+    versions: { all: pub },
+  };
+}
+
 function statsFor(events, forms) {
   var anons = {}, pages = {}, devices = {}, clicks = {}, daily = {};
   var pageviews = 0;
@@ -731,7 +955,17 @@ function statsFor(events, forms) {
 
   var gameOut = gameStats(events);
 
+  // leads: visitors who left their contact (newsletter or pilot), the M5 headline number
+  var leadAnons = {};
+  events.forEach(function (e) {
+    if (LEAD_KINDS[FORM_KIND[e.event]]) leadAnons[e.anon] = 1;
+  });
+  var nVisitors = Object.keys(anons).length;
+
   return {
+    leads: Object.keys(leadAnons).length,
+    lead_rate: nVisitors ? Object.keys(leadAnons).length / nVisitors : 0,
+    behaviour: behaviourStats(events, sessions),
     visitors: Object.keys(anons).length,
     sessions: sessions.length,
     pageviews: pageviews,
@@ -803,5 +1037,7 @@ if (typeof module !== "undefined") {
     hostOnly: hostOnly, cell: cell, canonical: canonical, sha256Hex: sha256Hex, chainRows: chainRows, verifyChain: verifyChain,
     chainSummary: chainSummary, eventRow: eventRow, formRow: formRow, rowsToObjects: rowsToObjects,
     referrals: referrals, sessionize: sessionize, statsFor: statsFor, gameStats: gameStats, aggregate: aggregate, median: median,
+    heatmaps: heatmaps, heatCell: heatCell, frustration: frustration, scrollDepth: scrollDepth, retention: retention, weekStart: weekStart,
+    topPaths: topPaths, behaviourStats: behaviourStats, publicStats: publicStats, FORM_HEADERS_LIST: FORM_HEADERS,
   };
 }

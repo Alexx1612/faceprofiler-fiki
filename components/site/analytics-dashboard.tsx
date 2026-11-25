@@ -2,11 +2,17 @@
 
 import { ChevronDown, ExternalLink, RefreshCw, ShieldCheck, ShieldAlert } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import { ReplaysPanel } from "@/components/site/replays";
+import { GoogleSignIn } from "@/components/landing/google-signin";
+import { FrustrationView, HeatmapView, RetentionView, type Behaviour } from "@/components/site/heatmap";
+import { Inbox } from "@/components/site/inbox";
 import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
 import codeLinks from "@/lib/code-links.json";
 import { EXPECTED_COLLECTOR, collectUrl } from "@/lib/collect";
+import { googleClientId } from "@/lib/google-auth";
+import { ownerFetch, useOwner } from "@/lib/owner-auth";
 import { siteVersion, versions } from "@/lib/versions";
 import { NextArrow, TabLabel } from "./tab-hint";
 
@@ -29,6 +35,13 @@ import { NextArrow, TabLabel } from "./tab-hint";
  * returns the team's own test traffic as a separate aggregate: the Real / Test switch shows one or the
  * other, never a mix. Every chart opens with a one-line takeaway computed from the numbers it shows.
  * Colours: the validated dark categorical order (dataviz skill) for identity, one blue ramp for magnitude.
+ *
+ * Guests and the owner (collector 1.4): `?stats=1` returns only the M5 public summary (collector publicStats:
+ * totals, lead rate, trend, sources with leads and campaigns, funnel, device types, countries, form counts,
+ * game summary, chain facts). The owner signs in with Google; the token goes to the collector's owner route
+ * (`route=stats`), which returns the full aggregate, and unlocks the finer tabs: pages & clicks, survey
+ * answers, versions, heatmap, frustration, scroll & retention, inbox and replays. The server decides; a
+ * guest's page never receives the private numbers.
  */
 
 type Count = { key: string; count: number };
@@ -47,34 +60,38 @@ type Source = {
   /** raw referrer hosts mapped into this source, e.g. l.facebook.com → facebook */
   referrer_hosts?: Count[];
   campaigns: Count[];
-  contents: Count[];
-  landing_pages: Count[];
+  contents?: Count[];
+  landing_pages?: Count[];
 };
 type Stats = {
   visitors: number;
   sessions: number;
   pageviews: number;
-  bounce_rate: number;
+  bounce_rate?: number;
   avg_session_s: number;
-  top_pages: Count[];
+  /** visitors who left their contact (newsletter or pilot) and their share of visitors */
+  leads?: number;
+  lead_rate?: number;
+  top_pages?: Count[];
   sources: Source[];
   devices: Count[];
-  clicks: Count[];
+  clicks?: Count[];
   funnel: { step: string; visitors: number; conversion: number }[];
   forms: Count[];
-  survey: Record<string, Count[]>;
+  survey?: Record<string, Count[]>;
   game: GameRound[];
   game_summary?: {
     players: number;
     finished_all: number;
     avg_score: number;
     score_distribution: { score: number; players: number }[];
-    scenarios: Count[];
+    scenarios?: Count[];
   };
   daily: { date: string; pageviews: number; visitors: number }[];
   survey_free_text?: Count[];
   who?: Who;
   hours?: { tz: string; weekdays: string[]; grid: number[][] };
+  behaviour?: Behaviour;
 };
 type Who = {
   devices: Count[];
@@ -106,6 +123,9 @@ type Payload = {
   /** the team's own test traffic (test mode, automated browsers, test-tagged links), counted the same way */
   test?: Stats;
   test_visitors?: number;
+  /** true for the guests' summary (collector publicStats) */
+  public?: boolean;
+  version_list?: string[];
 };
 
 const box = "rounded-2xl border border-white/10 bg-white/[0.03] p-4";
@@ -385,11 +405,12 @@ function Kpis({ s }: { s: Stats }) {
     ["Visitors", num(s.visitors)],
     ["Sessions", num(s.sessions)],
     ["Pageviews", num(s.pageviews)],
-    ["Bounce rate", pct(s.bounce_rate)],
+    ...(s.lead_rate !== undefined ? ([["Lead rate", `${pct(s.lead_rate)}${s.leads !== undefined ? ` · ${num(s.leads)}` : ""}`]] as [string, string][]) : []),
+    ...(s.bounce_rate !== undefined ? ([["Bounce rate", pct(s.bounce_rate)]] as [string, string][]) : []),
     ["Avg. session", dur(s.avg_session_s)],
   ];
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {items.map(([k, v], i) => (
         <div key={k} className={`${box} ${i === 0 ? "col-span-2 sm:col-span-1" : ""}`}>
           <p className="text-xs text-neutral-400">{k}</p>
@@ -480,7 +501,7 @@ function Sources({ s }: { s: Stats }) {
                     <div className="grid gap-4 px-1 pb-4 pt-1 sm:grid-cols-2 lg:grid-cols-4">
                       <div>
                         <p className="mb-2 text-xs font-semibold text-neutral-300">Referrer hosts → {r.source}</p>
-                        <CountList items={r.referrer_hosts ?? []} empty="None (UTM link or no referrer)." />
+                        <CountList items={r.referrer_hosts ?? []} empty={r.referrer_hosts ? "None (UTM link or no referrer)." : "Owner only."} />
                       </div>
                       <div>
                         <p className="mb-2 text-xs font-semibold text-neutral-300">utm_campaign</p>
@@ -488,11 +509,11 @@ function Sources({ s }: { s: Stats }) {
                       </div>
                       <div>
                         <p className="mb-2 text-xs font-semibold text-neutral-300">utm_content</p>
-                        <CountList items={r.contents} empty="None." />
+                        <CountList items={r.contents ?? []} empty={r.contents ? "None." : "Owner only."} />
                       </div>
                       <div>
                         <p className="mb-2 text-xs font-semibold text-neutral-300">Landed on</p>
-                        <CountList items={r.landing_pages} />
+                        <CountList items={r.landing_pages ?? []} empty="Owner only." />
                       </div>
                     </div>
                   )}
@@ -738,7 +759,7 @@ const SURVEY_LABELS: Record<string, string> = {
 };
 
 function Survey({ s }: { s: Stats }) {
-  const keys = Object.keys(s.survey);
+  const keys = Object.keys(s.survey ?? {});
   if (!keys.length) return <p className="text-sm text-neutral-400">No survey answers yet.</p>;
   const order = Object.keys(SURVEY_LABELS);
   keys.sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
@@ -751,7 +772,7 @@ function Survey({ s }: { s: Stats }) {
       </Takeaway>
       <div className="grid gap-4 md:grid-cols-2">
         {keys.map((k) => {
-          const items = s.survey[k];
+          const items = (s.survey ?? {})[k];
           const total = items.reduce((a, b) => a + b.count, 0);
           const lead = items[0];
           return (
@@ -819,10 +840,10 @@ function Game({ s }: { s: Stats }) {
                 </div>
               ))}
             </div>
-            {g.scenarios.length ? (
+            {g.scenarios?.length ? (
               <>
                 <p className="mb-2 mt-4 text-xs font-semibold text-neutral-300">Scenarios</p>
-                <CountList items={g.scenarios} />
+                <CountList items={g.scenarios ?? []} />
               </>
             ) : null}
           </div>
@@ -895,7 +916,7 @@ function Versions({ data, current }: { data: Payload | null; current: string }) 
               </p>
               {st && (
                 <p className="text-xs tabular-nums text-neutral-300">
-                  {num(st.visitors)} visitors · {num(st.pageviews)} views · {num(st.clicks.reduce((a, c) => a + c.count, 0))} clicks
+                  {num(st.visitors)} visitors · {num(st.pageviews)} views · {num((st.clicks ?? []).reduce((a, c) => a + c.count, 0))} clicks
                 </p>
               )}
             </div>
@@ -930,11 +951,116 @@ function ViewSwitch({ view, setView }: { view: "real" | "test"; setView: (v: "re
   );
 }
 
+/** Owner sign-in box for the guests' view (Google; the collector decides who is an owner). */
+function OwnerSignIn({ onUser, notice }: { onUser: Parameters<typeof GoogleSignIn>[0]["onUser"]; notice: string }) {
+  const [unavailable, setUnavailable] = useState(!googleClientId);
+  return (
+    <section className={`${box} flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`} aria-label="Owner sign-in">
+      <div className="text-sm text-neutral-200">
+        <p className="font-semibold text-white">Signed in as the owner you see everything</p>
+        <p className="text-neutral-300">Conversions by campaign detail, regions, pages and clicks, heatmaps, frustration, retention, replays and the form inbox.</p>
+        {notice && <p className="mt-1 text-amber-200">{notice}</p>}
+      </div>
+      {unavailable ? (
+        <p className="text-xs text-neutral-400">{googleClientId ? "Google sign-in could not load here (blocked or offline)." : "Owner sign-in needs the Google client ID in this build."}</p>
+      ) : (
+        <div className="w-full max-w-[360px] shrink-0">
+          <GoogleSignIn onUser={onUser} onUnavailable={() => setUnavailable(true)} />
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Device types and countries (country level only): what guests see of "who visits". */
+function PublicWho({ s }: { s: Stats }) {
+  const devices = s.who?.devices ?? s.devices ?? [];
+  const countries = s.who?.countries ?? [];
+  const total = devices.reduce((a, c) => a + c.count, 0);
+  const max = Math.max(1, ...countries.map((c) => c.visitors));
+  return (
+    <section className={`${box} grid gap-6 md:grid-cols-2`} aria-label="Who visits">
+      <div>
+        <p className={h4}>Device type</p>
+        <Share title="" items={devices} total={total} />
+      </div>
+      <div>
+        <p className={h4}>Countries</p>
+        {countries.length ? (
+          <ul className="space-y-2 text-sm">
+            {countries.map((c) => (
+              <li key={c.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1">
+                <span className="truncate text-white">
+                  {flag(c.key)} {c.name}
+                </span>
+                <span className="tabular-nums text-white">{num(c.visitors)}</span>
+                <span className="col-span-2">
+                  <Bar value={c.visitors} max={max} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-neutral-400">No visits yet.</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** Guests: the M5 lead-generation story only (the collector sends nothing finer). */
+function PublicSummary({ data, onUser, notice, reload }: { data: Payload; onUser: Parameters<typeof GoogleSignIn>[0]["onUser"]; notice: string; reload: () => void }) {
+  const s = data.versions.all;
+  return (
+    <div className="flex flex-col gap-4 text-left" data-public-summary>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="text-lg font-semibold text-white">M5 · Lead generation — public summary</h2>
+        <Link href="/M5/" className="text-sm text-sky-300 underline underline-offset-2">
+          What M5 is about →
+        </Link>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" onClick={reload} className="flex min-h-11 items-center gap-2 rounded-full border border-white/15 px-4 text-sm text-neutral-200 hover:bg-white/5">
+          <RefreshCw aria-hidden className="size-4" /> Refresh
+        </button>
+        <span className="text-xs text-neutral-400">
+          {num(data.events)} real events · {num(data.test_events ?? 0)} test events (kept apart) · updated {new Date(data.generated).toLocaleString("en-GB")} · cached up to 5 min
+        </span>
+      </div>
+      <Kpis s={s} />
+      <div className={box}>
+        <Daily s={s} />
+      </div>
+      <Sources s={s} />
+      <div className={box}>
+        <p className={h4}>Funnel</p>
+        <Funnel s={s} />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className={box}>
+          <p className={h4}>Forms sent</p>
+          <CountList items={s.forms} empty="No forms sent yet." />
+        </div>
+        <div className={box}>
+          <p className={h4}>Spot-the-stranger game</p>
+          <Game s={s} />
+        </div>
+      </div>
+      <PublicWho s={s} />
+      <OwnerSignIn onUser={onUser} notice={notice} />
+      <Provenance data={data} />
+    </div>
+  );
+}
+
 export function AnalyticsDashboard() {
   const [data, setData] = useState<Payload | null>(null);
   const [state, setState] = useState<"loading" | "ok" | "off" | "error">(collectUrl ? "loading" : "off");
   const [version, setVersion] = useState("all");
   const [view, setView] = useState<"real" | "test">("real");
+  const owner = useOwner();
+  const [full, setFull] = useState<Payload | null>(null);
+  const [notice, setNotice] = useState("");
 
   const load = useCallback(() => {
     if (!collectUrl) return;
@@ -951,12 +1077,32 @@ export function AnalyticsDashboard() {
 
   useEffect(load, [load]);
 
-  const options = useMemo(() => {
-    const seen = new Set(Object.keys(data?.versions ?? {}).filter((v) => v !== "all"));
-    const known = versions.map((v) => v.version).filter((v) => seen.has(v));
-    const other = [...seen].filter((v) => !known.includes(v)).sort();
-    return ["all", ...known, ...other];
-  }, [data]);
+  // the owner's full aggregate (server checks the Google token); falls back to the public view on failure
+  const { token, signOut } = owner;
+  useEffect(() => {
+    if (!token) {
+      setFull(null);
+      return;
+    }
+    let alive = true;
+    ownerFetch<Payload>(token, { route: "stats" }).then((r) => {
+      if (!alive) return;
+      if ("versions" in r && r.versions?.all) {
+        setFull(r);
+        setNotice("");
+      } else {
+        setFull(null);
+        setNotice(
+          "error" in r && r.error === "not owner"
+            ? "This Google account is not on the owner list (OWNER_EMAILS), so you see the public summary."
+            : "The owner view did not load (collector 1.4 with Owner.gs and Inbox.gs needed); showing the public summary.",
+        );
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [token]);
 
   if (state === "off" || state === "error")
     return (
@@ -972,6 +1118,50 @@ export function AnalyticsDashboard() {
       </div>
     );
   if (state === "loading" || !data) return <p className="text-sm text-neutral-400">Loading…</p>;
+  if (!full && (data.public || !owner.token))
+    return data.public ? (
+      <PublicSummary data={data} onUser={owner.signIn} notice={notice} reload={load} />
+    ) : (
+      // an older collector (before 1.4) still sends everything publicly: show it as before
+      <FullView data={data} version={version} setVersion={setVersion} view={view} setView={setView} reload={load} owner={null} />
+    );
+  return (
+    <FullView
+      data={full ?? data}
+      version={version}
+      setVersion={setVersion}
+      view={view}
+      setView={setView}
+      reload={load}
+      owner={full ? { email: owner.user?.email ?? "", token, signOut } : null}
+    />
+  );
+}
+
+/** Everything (the owner's view, or an older collector that still publishes the full aggregate). */
+function FullView({
+  data,
+  version,
+  setVersion,
+  view,
+  setView,
+  reload,
+  owner,
+}: {
+  data: Payload;
+  version: string;
+  setVersion: (v: string) => void;
+  view: "real" | "test";
+  setView: (v: "real" | "test") => void;
+  reload: () => void;
+  owner: { email: string; token: string; signOut: () => void } | null;
+}) {
+  const load = reload;
+  const options = [
+    "all",
+    ...versions.map((v) => v.version).filter((v) => Object.keys(data.versions).includes(v)),
+    ...Object.keys(data.versions).filter((v) => v !== "all" && !versions.some((x) => x.version === v)).sort(),
+  ];
 
   const isTest = view === "test";
   const s = isTest ? data.test : data.versions[version] ?? data.versions.all;
@@ -999,11 +1189,11 @@ export function AnalyticsDashboard() {
         <div className="grid gap-4 md:grid-cols-3">
           <div className={box}>
             <p className={h4}>Top pages</p>
-            <CountList items={s.top_pages} />
+            <CountList items={s.top_pages ?? []} />
           </div>
           <div className={box}>
             <p className={h4}>Top clicks</p>
-            <CountList items={s.clicks} />
+            <CountList items={s.clicks ?? []} />
           </div>
           <div className={box}>
             <p className={h4}>Devices</p>
@@ -1030,10 +1220,27 @@ export function AnalyticsDashboard() {
     { label: "Survey", el: <Survey s={s} /> },
     { label: "Game", el: <Game s={s} /> },
     { label: "Versions", el: <Versions data={data} current={siteVersion} /> },
+    ...(owner
+      ? [
+          { label: "Heatmap", el: <HeatmapView b={s.behaviour} /> },
+          { label: "Frustration", el: <FrustrationView b={s.behaviour} /> },
+          { label: "Scroll & retention", el: <RetentionView b={s.behaviour} /> },
+          { label: "Inbox", el: <Inbox token={owner.token} /> },
+          { label: "Replays & live", el: <ReplaysPanel /> },
+        ]
+      : []),
   ];
 
   return (
     <div className="flex flex-col gap-4 text-left">
+      {owner && (
+        <p className="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-100" data-owner-bar>
+          <ShieldCheck aria-hidden className="size-4" /> Owner view{owner.email ? ` · ${owner.email}` : ""} · all data.
+          <button type="button" onClick={owner.signOut} className="ml-auto min-h-9 rounded-full border border-white/20 px-3 text-xs text-white hover:bg-white/10">
+            Sign out
+          </button>
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-3">
         <ViewSwitch view={view} setView={setView} />
         <label className="flex min-h-11 items-center gap-2 text-sm text-neutral-300">
@@ -1082,6 +1289,8 @@ export function AnalyticsDashboard() {
         trailing={(next) => <NextArrow onClick={next} />}
         className="max-w-full min-w-0 justify-start overflow-x-auto border border-white/10 bg-white/[0.06] [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_85%,transparent)] lg:[mask-image:none] [&>button]:shrink-0 [&>button]:whitespace-nowrap"
       />
+      {/* owner-only: locked teaser for guests (components/site/replays.tsx); the owner has it as a tab above */}
+      {!owner && <ReplaysPanel />}
     </div>
   );
 }

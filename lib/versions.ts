@@ -11,6 +11,15 @@ export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
   {
+    version: "v1.21",
+    date: "2026-11-26",
+    changes: [
+      "Analytics: public M5 summary for guests; full view for the owner after Google sign-in (collector 1.4)",
+      "Owner: form inbox (filters, statuses, notes, CSV, daily digest), heatmaps, rage and dead clicks, scroll depth, retention, paths",
+      "Owner: session replays (after Accept, inputs hidden, 30 days) and Live now",
+    ],
+  },
+  {
     version: "v1.20",
     date: "2026-11-26",
     changes: ["Home: glowing button to the school landing page", "Privacy page (what the site collects, why, how long, your rights), linked from footers and the pilot form"],

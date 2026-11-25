@@ -28,7 +28,7 @@ export function Analytics() {
       className="fixed inset-x-3 bottom-3 z-[60] mx-auto flex max-w-xl flex-wrap items-center gap-3 rounded-2xl border border-white/15 bg-[#0a1529]/95 p-3 text-sm text-neutral-200 shadow-2xl backdrop-blur sm:p-4"
     >
       <p className="min-w-0 flex-1 basis-60">
-        We count visits to improve this page. Accept allows a cookie and an approximate location (country, region); Decline counts the visit without either.
+        We count visits to improve this page. Accept allows a cookie, an approximate location (country, region) and anonymised session recordings (inputs hidden); Decline counts the visit without any of them.
       </p>
       <div className="flex gap-2">
         <button onClick={() => choose(false)} className="min-h-10 rounded-full border border-white/20 px-4 hover:bg-white/10">

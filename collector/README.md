@@ -137,3 +137,60 @@ the Script Property and the site use different client IDs).
 Limits: at most 20 notification e-mails a day (`MAX_MAILS_PER_DAY` in Pilot.gs; a consumer Google account
 may send ~100 a day in total). Tokens are never written to the sheet; requests are rate-limited like all
 forms, and the honeypot field drops bots.
+
+## Inbox, digest and the owner view (collector 1.4)
+
+Guests on `/analytics/` see the **M5 public summary** only (`?stats=1` → `publicStats`): totals, lead
+rate, trend, where visitors come from (visitors, leads, conversion %, medium, how we know, utm_campaign),
+the funnel, device types, countries, form counts, the game summary and the chain facts. Everything finer
+(regions, OS / browser / in-app / screen / language, referrer hosts, landing paths, utm_content, pages &
+clicks, survey answers, per-version detail, test traffic, heatmaps, frustration, scroll, retention, paths,
+the inbox, replays) is served only through the owner route after Google sign-in.
+
+Owner steps (Apps Script, once):
+
+1. Paste the new `Code.gs`; add files with **+ → Script**: `Owner.gs`, `Inbox.gs` (and `Pilot.gs` if not
+   there yet). Paste each, **Save**.
+2. **Project Settings → Script Properties**:
+   - `OWNER_EMAILS` = the Google account(s) allowed to see everything, comma-separated;
+   - `GOOGLE_CLIENT_ID` = the same OAuth client ID the site uses (already set for the pilot form);
+   - `NOTIFY_EMAIL` = where the daily digest goes (already set for pilot requests);
+   - optional `NEWSLETTER_AUTOREPLY` = `true` to send a short thank-you to newsletter sign-ups (max 50 a day);
+   - optional `DAILY_DIGEST` = `false` to switch the digest off.
+3. **Triggers** (clock icon) → **Add trigger** → function `dailyDigest_`, event source *Time-driven*,
+   *Day timer*, *8am to 9am* → Save. It e-mails yesterday's newsletter sign-ups, pilot requests and survey
+   count; nothing is sent on a day without submissions.
+4. **Deploy → Manage deployments → ✏ → Version: New version → Deploy**. Allow the new permissions (send
+   e-mail as you, connect to an external service). The `/exec` URL stays the same.
+
+The inbox never edits the hash-chained `forms` sheet: status changes and notes go to a separate
+`inbox_status` sheet (newest line per submission wins). "spam?" is only a hint (link in the text, sent
+under 3 s after the page loaded, disposable e-mail domain); nothing is deleted automatically.
+
+Heatmaps, rage / dead clicks and scroll depth come from the site itself (click position in % of the page,
+never the content of what was typed). Pages shown inside the heatmap's frame are not counted as visits.
+
+## Session replays and "Live now" (owner only)
+
+What it is: like PostHog's session replay, but stored in your own Google Drive. After a visitor clicks
+**Accept** on the cookie bar, the site records the page with rrweb (every input masked, form and survey text
+masked, the game canvas and videos blocked) and sends chunks of about 10 s to the collector. `Replay.gs`
+saves them in the Drive folder **Nau-ino replays/<day>/** and keeps one summary row per session in the sheet
+`replays`. On `/analytics/` the **Replays** panel (play at 1x–8x, inactivity skipped, a timeline with page
+changes, clicks, rage clicks and form events) and **Live now** (who is on the site in the last 2 minutes)
+appear only after you sign in with Google and your address is in `OWNER_EMAILS`. Guests see a locked teaser;
+nothing about replays is in the public `?stats=1` answer.
+
+Owner steps (once):
+1. Apps Script → **Project Settings → Script Properties**: add `OWNER_EMAILS` = your Google address(es),
+   comma-separated (and `GOOGLE_CLIENT_ID`, the same as for pilot requests).
+2. Apps Script → **+ → Script** → name it `Owner` → paste `collector/Owner.gs`; again for `Replay` →
+   paste `collector/Replay.gs`; replace `Code.gs` with the new one → **Save**.
+3. **Deploy → Manage deployments → ✏ → Version: New version → Deploy**, and allow the new permissions
+   (**Google Drive** for the replay files, **external requests** for the Google sign-in check).
+4. Optional, recommended: in the editor pick the function `installReplayPruneTrigger` and press **Run**
+   once. It adds a daily job that deletes recordings older than 30 days (`pruneReplays_`).
+
+Limits: a session is recorded for at most 15 minutes; one chunk may be up to 1 MB (the first one carries the
+page's CSS so old replays still look right after a redeploy). `REPLAY_SAMPLE_RATE` in `lib/replay.ts` can
+record only a share of visitors if Drive fills up.

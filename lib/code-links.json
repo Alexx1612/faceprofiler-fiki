@@ -12,22 +12,22 @@
       "id": "classify",
       "file": "collector/Code.gs",
       "fn": "classifySource",
-      "from": 425,
-      "to": 484
+      "from": 449,
+      "to": 508
     },
     {
       "id": "store",
       "file": "collector/Code.gs",
       "fn": "doPost",
       "from": 77,
-      "to": 128
+      "to": 130
     },
     {
       "id": "aggregate",
       "file": "collector/Code.gs",
       "fn": "aggregate",
-      "from": 759,
-      "to": 794
+      "from": 993,
+      "to": 1028
     }
   ]
 }

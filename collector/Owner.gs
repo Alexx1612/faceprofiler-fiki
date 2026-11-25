@@ -21,12 +21,12 @@ function ownerFromToken_(token) {
   var cache = CacheService.getScriptCache();
   var key = "own_" + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token)).slice(0, 40);
   var hit = cache.get(key);
-  if (hit) return owners.indexOf(hit) >= 0 ? hit : null;
+  if (hit) return owners.indexOf(sameMailbox(hit)) >= 0 ? hit : null;
   try {
     var res = UrlFetchApp.fetch(TOKENINFO_URL + encodeURIComponent(token), { muteHttpExceptions: true });
     var claims = res.getResponseCode() === 200 ? JSON.parse(res.getContentText()) : {};
     var c = checkClaims(claims, props.getProperty("GOOGLE_CLIENT_ID"), new Date().getTime());
-    if (!c.ok || owners.indexOf(c.email) < 0) return null;
+    if (!c.ok || owners.indexOf(sameMailbox(c.email)) < 0) return null;
     cache.put(key, c.email, 600);
     return c.email;
   } catch (err) {
@@ -46,11 +46,22 @@ function ownerList(raw) {
   return String(raw || "")
     .split(",")
     .map(function (s) { return s.trim().toLowerCase(); })
-    .filter(function (s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); });
+    .filter(function (s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); })
+    .map(sameMailbox);
+}
+
+/** Gmail ignores dots and "+tags" in the name part: "a.b+x@gmail.com" and "ab@gmail.com" are one mailbox. */
+function sameMailbox(email) {
+  var e = String(email || "").trim().toLowerCase();
+  var at = e.lastIndexOf("@");
+  if (at < 0) return e;
+  var name = e.slice(0, at), domain = e.slice(at + 1);
+  if (domain === "gmail.com" || domain === "googlemail.com") return name.split("+")[0].replace(/\./g, "") + "@gmail.com";
+  return e;
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { ownerList: ownerList };
+  module.exports = { ownerList: ownerList, sameMailbox: sameMailbox };
 }
 
 /**

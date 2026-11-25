@@ -25,7 +25,7 @@ import { siteVersion } from "@/lib/versions";
 
 export const collectUrl = process.env.NEXT_PUBLIC_COLLECT_URL ?? "";
 /** The collector/Code.gs version this site expects; /analytics/ asks the owner to update the Apps Script when it reports an older one. Kept equal to COLLECTOR_VERSION by a test. */
-export const EXPECTED_COLLECTOR = "1.3";
+export const EXPECTED_COLLECTOR = "1.4";
 const build = process.env.NEXT_PUBLIC_SITE_BUILD ?? "";
 const SESSION_IDLE_MS = 30 * 60 * 1000;
 const K = { test: "nauino:test", anon: "nauino:aid", consent: "nauino:consent", session: "nauino:sid", seen: "nauino:seen", utm: "nauino:utm", landing: "nauino:land", geo: "nauino:geo" };
@@ -291,6 +291,21 @@ function base(now: number) {
 }
 // @provenance:capture:end
 
+/**
+ * Context for session replays (lib/replay.ts): the same anonymous and session ids as the analytics events,
+ * so a recording can be matched with its events, plus the facts the replay list shows.
+ */
+export function replayContext() {
+  const now = Date.now();
+  const b = base(now);
+  return { anon: b.anon, session: b.session, version: siteVersion, test: testMode(), path: b.path, device: b.device, country: b.country ?? "", utm_source: String((b as Record<string, unknown>).utm_source ?? ""), referrer_host: b.referrer_host };
+}
+
+/** Start or stop replay recording (lazy: rrweb is only downloaded when recording is allowed). */
+function replay(on: boolean) {
+  void import("@/lib/replay").then((m) => (on ? m.startReplay() : m.stopReplay())).catch(() => {});
+}
+
 function send(events: Event[], beacon = false) {
   if (!events.length) return;
   const body = JSON.stringify({ type: "events", events });
@@ -315,16 +330,78 @@ function pageview() {
   if (lastPath) leave();
   lastPath = location.pathname;
   pageStart = Date.now();
+  maxScroll = scrollPct();
   collect("$pageview", { title: document.title.slice(0, 80) });
 }
 
 function leave() {
   if (!lastPath) return;
   const now = Date.now();
-  queue.push({ ...base(now), path: lastPath, event: "$pageleave", label: "", props: { duration_ms: now - pageStart } });
+  queue.push({ ...base(now), path: lastPath, event: "$pageleave", label: "", props: { duration_ms: now - pageStart, scroll_pct: maxScroll } });
+}
+
+/* PostHog-style extras: click position for heatmaps, rage and dead clicks, scroll depth. */
+let maxScroll = 0;
+
+/** How far down the page the visitor has seen, in % of the document height (bottom of the viewport). */
+function scrollPct(): number {
+  const h = document.documentElement.scrollHeight || 1;
+  return Math.min(100, Math.round(((window.scrollY + window.innerHeight) / h) * 100));
+}
+
+/** Click position in % of the document (rounded to 1 %) and the viewport bucket, for heatmaps. */
+function clickPos(e: MouseEvent) {
+  const w = document.documentElement.scrollWidth || 1;
+  const h = document.documentElement.scrollHeight || 1;
+  return { x: Math.round((e.pageX / w) * 100), y: Math.round((e.pageY / h) * 100), vp: device() };
+}
+
+// a function, not a constant: CLICKABLE is declared further down this module
+const interactive = () => `${CLICKABLE_SEL}, input, select, textarea, label, video, canvas, [contenteditable], [tabindex]`;
+let recent: { t: number; x: number; y: number }[] = [];
+let rageAt = 0;
+
+/** Short label for any element (for rage / dead clicks): data-track, aria-label, else tag + a few words. */
+function anyLabel(el: Element): string {
+  const c = el.closest(CLICKABLE_SEL);
+  if (c) return clickLabel(c);
+  const text = (el.getAttribute("aria-label") || el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40);
+  return `${el.tagName.toLowerCase()}${text ? `: ${text}` : ""}`;
+}
+
+/**
+ * Rage click: 3 or more clicks within 1 s and 30 px (one event per burst). Dead click: a click on something
+ * that is not interactive and changes nothing (no navigation, no DOM change, no scroll) within 1 s.
+ */
+function onFrustration(e: MouseEvent) {
+  const target = e.target as Element | null;
+  if (!target?.closest) return;
+  const now = Date.now();
+  recent = recent.filter((c) => now - c.t < 1000 && Math.hypot(c.x - e.clientX, c.y - e.clientY) <= 30);
+  recent.push({ t: now, x: e.clientX, y: e.clientY });
+  if (recent.length >= 3 && now - rageAt > 1000) {
+    rageAt = now;
+    collect("$rageclick", clickPos(e), anyLabel(target));
+  }
+  if (target.closest(interactive())) return;
+  const href = location.href;
+  const y = window.scrollY;
+  let changed = false;
+  const mo = new MutationObserver(() => (changed = true));
+  mo.observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true });
+  const pos = clickPos(e);
+  setTimeout(() => {
+    mo.disconnect();
+    if (!changed && location.href === href && Math.abs(window.scrollY - y) < 5) collect("$deadclick", pos, anyLabel(target));
+  }, 1000);
+}
+
+function onScroll() {
+  maxScroll = Math.max(maxScroll, scrollPct());
 }
 
 const CLICKABLE = "a, button, [role=button], summary, input[type=submit], [data-track]";
+const CLICKABLE_SEL = CLICKABLE;
 
 /** Stable, short label for a clicked element: data-track, aria-label, or its visible text. */
 export function clickLabel(el: Element): string {
@@ -340,12 +417,14 @@ function onClick(e: MouseEvent) {
   const label = clickLabel(el);
   if (!label) return;
   const href = el instanceof HTMLAnchorElement ? el.getAttribute("href") ?? "" : "";
-  collect("$autocapture", { tag: el.tagName.toLowerCase(), href: href.slice(0, 120) }, label);
+  collect("$autocapture", { tag: el.tagName.toLowerCase(), href: href.slice(0, 120), ...clickPos(e) }, label);
 }
 
 /** Start capture once per page load. Safe to call many times; does nothing without a collector URL. */
 export function startCollect() {
   if (started || !collectUrl || typeof window === "undefined") return;
+  // pages shown inside a frame (the owner's heatmap view) are not visits
+  if (window.self !== window.top) return;
   const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
   if (nav.globalPrivacyControl || nav.doNotTrack === "1") return;
   started = true;
@@ -360,6 +439,8 @@ export function startCollect() {
   }
   window.addEventListener("popstate", pageview);
   document.addEventListener("click", onClick, { capture: true });
+  document.addEventListener("click", onFrustration, { capture: true, passive: true });
+  window.addEventListener("scroll", onScroll, { passive: true });
   // Hidden tab = the visitor left or switched away: record time on page so far and send with a beacon.
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
@@ -369,6 +450,7 @@ export function startCollect() {
   });
   window.addEventListener("pagehide", () => flush(true));
   timer ??= setInterval(() => flush(), 5000);
+  if (store.get("local", K.consent) === "granted") replay(true);
 }
 
 /** Remember the consent choice; after Accept the anonymous id may persist across visits. */
@@ -378,6 +460,7 @@ export function setCollectConsent(accept: boolean) {
     store.set("local", K.anon, anonId());
     void lookupGeo();
   }
+  if (started) replay(accept);
 }
 
 export function collectConsent(): "granted" | "denied" | "pending" {
@@ -390,7 +473,8 @@ export async function collectForm(form: string, data: Record<string, string>): P
   const body = JSON.stringify({
     type: "form",
     form,
-    data,
+    // time since page load: the inbox flags very fast (bot-like) submits as "spam?"
+    data: { ...data, elapsed_ms: String(Math.round(performance.now())) },
     version: siteVersion,
     anon: started ? anonId() : "",
     path: location.pathname + location.search,
