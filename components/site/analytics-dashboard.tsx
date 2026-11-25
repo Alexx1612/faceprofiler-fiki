@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
 import codeLinks from "@/lib/code-links.json";
-import { collectUrl } from "@/lib/collect";
+import { EXPECTED_COLLECTOR, collectUrl } from "@/lib/collect";
 import { siteVersion, versions } from "@/lib/versions";
 import { NextArrow, TabLabel } from "./tab-hint";
 
@@ -346,6 +346,12 @@ function Provenance({ data }: { data: Payload | null }) {
           {build ? ` (${build})` : ""}
           {data?.integrity?.collector || data?.collector ? ` · collector ${data?.integrity?.collector ?? data?.collector}` : ""}
         </li>
+        {(data?.integrity?.collector ?? data?.collector) && (data?.integrity?.collector ?? data?.collector) !== EXPECTED_COLLECTOR && (
+          <li role="alert" className="rounded-lg border border-amber-400/60 bg-amber-400/10 p-3 text-amber-200">
+            The Apps Script runs collector {data?.integrity?.collector ?? data?.collector}; this site expects {EXPECTED_COLLECTOR}. Update it: paste the new{" "}
+            <code>collector/Code.gs</code> in Apps Script, then Deploy → Manage deployments → Edit → New version.
+          </li>
+        )}
       </ul>
     </section>
   );

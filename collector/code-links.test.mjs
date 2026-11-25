@@ -21,3 +21,10 @@ test("each linked range contains the function it names", () => {
     assert.ok(!lines.some((l) => l.includes("@provenance")), `${s.id}: range includes a marker`);
   }
 });
+
+test("the site expects the collector version that collector/Code.gs reports", async () => {
+  const { readFileSync } = await import("node:fs");
+  const gs = readFileSync(new URL("./Code.gs", import.meta.url), "utf8").match(/var COLLECTOR_VERSION = "([^"]+)"/)[1];
+  const site = readFileSync(new URL("../lib/collect.ts", import.meta.url), "utf8").match(/EXPECTED_COLLECTOR = "([^"]+)"/)[1];
+  assert.equal(site, gs);
+});

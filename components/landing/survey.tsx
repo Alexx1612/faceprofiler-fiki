@@ -228,7 +228,7 @@ export function SurveyButton() {
                 </select>
               </Card>
               {shown.map((q) => (
-                <Card key={q.id} id={q.id} title={q.title[L]} required={q.required} missing={missing.includes(q.id)} missText={ui.missingOne[L]}>
+                <Card key={q.id} id={q.id} title={q.title[L]} required={q.required} missing={missing.includes(q.id)} missText={ui.missingOne[L]} badge={audience(q, L)}>
                   <Field q={q} L={L} answers={answers} onChange={set} />
                 </Card>
               ))}
@@ -264,6 +264,7 @@ function Card({
   required,
   missing,
   missText,
+  badge,
   children,
 }: {
   id: string;
@@ -271,10 +272,12 @@ function Card({
   required?: boolean;
   missing?: boolean;
   missText: string;
+  badge?: string;
   children: React.ReactNode;
 }) {
   return (
     <fieldset className={`gf__card gf__q${missing ? " gf__q--missing" : ""}`} data-q={id}>
+      {badge && <span className="gf__badge">{badge}</span>}
       <legend className="gf__title">
         {title}
         {required && <span className="gf__star"> *</span>}
@@ -286,6 +289,14 @@ function Card({
 }
 
 const OTHER = "Other";
+
+/** Label for questions only some roles see, e.g. "Teachers only". */
+function audience(q: Question, L: 0 | 1): string | undefined {
+  if (!q.for) return undefined;
+  if (q.for.length === 1 && q.for[0] === "teacher") return ui.forTeachers[L];
+  if (q.for.every((r) => r === "teacher" || r === "staff")) return ui.forStaff[L];
+  return undefined;
+}
 
 function Field({
   q,

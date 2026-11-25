@@ -64,3 +64,13 @@ Free-text answers (comments), e-mails and phone numbers stay in the Sheet. They 
 ## Tests
 
 `npm run test:collector` runs the aggregation, source rules, hash chain, `verify.mjs` (on the fixture CSVs in `fixtures/`, made by `node collector/fixtures/make.mjs`) and checks that the /analytics/ code links (`lib/code-links.json`, rebuilt before every build) still point at the right functions.
+
+## When to update the Apps Script
+
+Only when `collector/Code.gs` changes (its `COLLECTOR_VERSION` goes up). `/analytics/` shows a yellow
+"Update it" note when the Apps Script reports an older version than the site expects (`EXPECTED_COLLECTOR`
+in `lib/collect.ts`, kept equal by a test). Site changes (pages, survey questions, the game) never need it.
+
+To update: open the Sheet → Extensions → Apps Script → replace all the code with the new `Code.gs` → Save →
+Deploy → Manage deployments → the pencil → Version: New version → Deploy. The /exec URL stays the same,
+so nothing changes on the site.

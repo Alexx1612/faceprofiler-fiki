@@ -59,6 +59,8 @@ export const ui = {
   addNote: ["+ Add a comment", "+ Adaugă un comentariu"],
   gameDone: ["Your game results are sent with your answers.", "Rezultatele tale din joc vor fi trimise împreună cu răspunsurile."],
   gameProgress: ["Game", "Joc"],
+  forTeachers: ["Teachers only", "Doar pentru profesori"],
+  forStaff: ["Teachers and school staff only", "Doar pentru profesori și personalul școlii"],
   gameResume: ["Continue the game where you left off", "Continuă jocul de unde ai rămas"],
   gameRestart: ["Start the game over", "Reia jocul de la început"],
 } satisfies Record<string, T>;
