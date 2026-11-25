@@ -64,20 +64,141 @@ export const m4Guide: { part: string; minutes: number; questions: string[] }[] =
 
 /** What we wanted to learn. `result` stays pending until the notes are added. */
 export const m4Hypotheses: { id: string; claim: string; who: string; result: "pending" | "confirmed" | "rejected" | "mixed"; evidence?: string }[] = [
-  { id: "A1", claim: "The guard wants alerts on the phone, not on a PC screen in the office.", who: "G1", result: "pending" },
-  { id: "A2", claim: "If the guard does not react within a few minutes, someone else must be called automatically.", who: "G1, P1, H1", result: "pending" },
+  {
+    id: "A1",
+    claim: "The guard wants alerts on the phone, not on a PC screen in the office.",
+    who: "G1",
+    result: "mixed",
+    evidence: "G1: during his 24-hour shift an intruder walked in and he only learnt of it when the girls came to him. The need for an alert that reaches him wherever he is is confirmed; the channel (phone) was not asked directly.",
+  },
+  {
+    id: "A2",
+    claim: "If the guard does not react within a few minutes, someone else must be called automatically.",
+    who: "G1, P1, H1",
+    result: "confirmed",
+    evidence: "G1: nobody was alerted while the intruder was inside; the police were called only after he had left. Survey: 3 of 14 say nobody finds out about a night entry until the morning. H1 wants night alerts himself because he is not there.",
+  },
   { id: "A3", claim: "The principal wants a short morning summary, not a live screen.", who: "P1, T1-T3", result: "pending" },
-  { id: "A4", claim: "A school will refuse anything that identifies pupils; enrolling staff only is acceptable.", who: "P1, T1-T3", result: "pending" },
+  {
+    id: "A4",
+    claim: "A school will refuse anything that identifies pupils; enrolling staff only is acceptable.",
+    who: "P1, T1-T3",
+    result: "mixed",
+    evidence: "M2: staff raised GDPR and consent for children's faces. Survey: 1 of 7 teachers reports a camera solution turned down because parents or staff objected over privacy; 4 of 7 say their school never turned one down.",
+  },
   { id: "A5", claim: "Blurring faces in exports and recordings makes the system easier to accept.", who: "P1, H1, T1-T3", result: "pending" },
-  { id: "A6", claim: "A production hall needs alerts off for its workers during shifts and on for everyone after hours.", who: "H1", result: "pending" },
-  { id: "A7", claim: "Buyers would pay monthly rather than once, and less than a night guard costs.", who: "P1, H1", result: "pending" },
+  {
+    id: "A6",
+    claim: "A production hall needs alerts off for its workers during shifts and on for everyone after hours.",
+    who: "H1",
+    result: "mixed",
+    evidence: "H1: at night he wants alerts and a record of what happened. In the daytime he does not want silence but the opposite: he is away on jobs and wants to see whether his three employees are working and call them with advice on what to do next.",
+  },
+  {
+    id: "A7",
+    claim: "Buyers would pay monthly rather than once, and less than a night guard costs.",
+    who: "P1, H1",
+    result: "pending",
+    evidence: "Not answered yet. Survey: in 4 of 7 teachers' answers the parents' association decided the last spending on guarding or cameras, so the buyer in schools may not be the principal.",
+  },
 ];
 
 /** Conclusions written from the notes. Empty until the notes are added. */
-export const m4Conclusions: { title: string; text: string; from: string }[] = [];
+export const m4Conclusions: { title: string; text: string; from: string }[] = [
+  {
+    title: "The guard was the last to know",
+    text: "On G1's 24-hour shift a man with a knife, not one of the students, walked in at night, went into a girls' room, threatened them and ran off. G1 only found out when the girls came to him; the police were called after the man had gone. Cameras and a guard on site did not help in the minutes that mattered: the alert has to reach the guard at once, wherever he is, and go on to the police if he cannot act.",
+    from: "G1 · confirms the need behind A1-A2",
+  },
+  {
+    title: "An unknown face at night is the event to catch",
+    text: "The intruder was simply someone who did not belong in the building at that hour. Recognising the people who are allowed in and flagging everyone else, at the door and in the corridors, is the core of the night mode; anything that needs a person to watch screens comes too late.",
+    from: "G1 · survey (3 of 14: nobody knows until morning)",
+  },
+  {
+    title: "The small owner wants eyes when he is away, day and night",
+    text: "H1 has three employees and is almost always out on jobs, so he cannot see what they are doing. In the daytime he calls them to check whether they are working and to tell them what to do next; at night he needs to know if anything happens. For him the product is remote supervision plus night alerts, not just an alarm: who is at work and where, and a quick way to see and call them.",
+    from: "H1 · changes A6",
+  },
+  {
+    title: "In schools the day is where most incidents are",
+    text: "Teachers spoke about fights and children leaving unnoticed during the day; at night the worry is anyone entering at all. The survey matches this: 2 daytime incidents in the last 3 months and no night incidents reported, one daytime incident noticed only days later.",
+    from: "T1-T3, P1 (M2 interviews) · survey n=14",
+  },
+  {
+    title: "Pupils' faces and who pays",
+    text: "Staff asked about GDPR and consent for children's faces, so pupils are never enrolled (school mode) and faces are blurred in exports. Who pays is not obvious: in 4 of 7 teachers' survey answers the parents' association decided the last spending on guarding or cameras.",
+    from: "P1, T1-T3 (M2) · survey teachers n=7",
+  },
+];
 
 /** Short translated quotes from the notes. Empty until the notes are added. */
-export const m4Quotes: { who: string; text: string }[] = [];
+export const m4Quotes: { who: string; text: string }[] = [
+  {
+    who: "G1, night guard · paraphrased from our notes",
+    text: "It was my 24-hour shift. A man came in at night with a knife, he wasn't one of the students. He went into the girls' room and threatened them, then ran off on his own. I only knew when the girls came to me, and then we called the police.",
+  },
+  {
+    who: "H1, hall owner · paraphrased from our notes",
+    text: "I have three people and I'm almost never there, I'm out on jobs. I can't see what they're doing, so I keep calling them to check they're working and to tell them what to do next. And at night I want to know if anything happens.",
+  },
+];
+
+/**
+ * Interview notes, one block per participant, in the kit's order (docs/M4_INTERVIEW_KIT.md). G1 and H1 are
+ * written from the interviewer's account of those interviews; P1 and T1-T3 are a group summary of what the
+ * school staff told us (M2 interviews) plus the teachers' survey answers, each with its source. Only real
+ * answers: "not asked" where a question was not covered.
+ */
+export const m4Notes: { code: string; title: string; source: string; lines: [string, string][] }[] = [
+  {
+    code: "G1",
+    title: "Night guard, school with a dormitory",
+    source: "Interview",
+    lines: [
+      ["Shift", "Works 24-hour shifts; the incident happened at night, during one of them."],
+      ["Last incident", "At night a man with a knife, not one of the students, got in, went into a girls' room and threatened them, then ran off on his own."],
+      ["How he found out", "Only when the girls came to him, after the man had already left. Nothing alerted him while it was happening."],
+      ["Who came", "The police were called after the man had gone."],
+      ["What it means", "A guard on site and cameras that only record were not enough; he needs to know the moment an unknown person is inside, and help must be called automatically if he cannot act."],
+    ],
+  },
+  {
+    code: "H1",
+    title: "Owner of a small production hall",
+    source: "Interview",
+    lines: [
+      ["The business", "Three employees; he is almost always away on jobs."],
+      ["Daytime", "Cannot see what his people are doing. He calls them to check whether they are working and to give advice on what to do next, which is what he would otherwise do in person."],
+      ["Night", "Wants coverage of what happens at night and alerts for events, because nobody is there."],
+      ["What it means", "For a small owner the product is remote supervision (who is working, where) plus night alerts, not only an alarm that is switched off during shifts."],
+      ["Money", "Not covered yet."],
+    ],
+  },
+  {
+    code: "P1",
+    title: "Principal (with the deputy headmistress from M2)",
+    source: "M2 interviews",
+    lines: [
+      ["Night", "Who answers when something happens at night (security company, camera installer, police or school) was not clear; that question became our routing of alerts to the responder."],
+      ["Day", "Day and night are different problems: in the daytime it is what happens between known people, at night anyone entering at all."],
+      ["Pupils", "Recognising pupils' faces raises GDPR and consent questions; anything that identifies children needs care."],
+      ["Money", "Not covered yet. The teachers' survey suggests the parents' association often decides on spending for guarding or cameras."],
+    ],
+  },
+  {
+    code: "T1-T3",
+    title: "Teachers (group summary)",
+    source: "M2 interviews · survey teachers n=7",
+    lines: [
+      ["Incidents", "Fights and children leaving unnoticed during the day are the incidents they recognise; in the survey, 2 daytime incidents in the last 3 months, one noticed only days later."],
+      ["How staff find out", "Survey: usually a teacher or the guard sees it (5 of 14), or a pupil tells a teacher (3 of 14)."],
+      ["Night", "Survey: 3 of 14 say nobody finds out about a night entry until the morning; 3 say nobody guards the school after classes."],
+      ["Refusals", "Survey: 4 of 7 say their school never turned down a camera solution; 1 of 7 says parents or staff objected over privacy."],
+      ["Who decides", "Survey: the parents' association in 4 of 7 answers, the principal in 1."],
+    ],
+  },
+];
 
 export type Persona = {
   id: "guard" | "principal" | "owner";
@@ -92,19 +213,19 @@ export type Persona = {
   based: string;
 };
 
-/** Personas. Names are fictional. Until the M4 notes are added they are drafts built on M2 and our assumptions. */
+/** Personas. Names are fictional; each says which interview or evidence it is based on. */
 export const m4Personas: Persona[] = [
   {
     id: "guard",
     name: "Ion",
     role: "School night guard",
     primary: true,
-    context: "Alone in the building from 21:00 to 07:00, does rounds every few hours, the camera monitor is in the porter's room.",
+    context: "Works 24-hour shifts in a school with a dormitory; the camera monitor is in the porter's room and nobody watches it during his rounds.",
     goals: ["Know at once if someone gets in, wherever he is in the building", "Not be blamed for something he could not have seen", "Get help fast when he needs it"],
     frustrations: ["Cannot watch the monitor during rounds", "Cameras only record; nobody looks until the next day", "Unclear who to call and who will actually come"],
     needs: ["Alert on his phone with a picture", "One button: I'm checking / call help", "No false alarms from staff he already knows"],
     tech: "Uses a smartphone every day (calls, WhatsApp); does not use a PC at work.",
-    based: "Draft: our assumptions and the M2 finding that an alert must reach someone who acts. To be confirmed with G1's notes.",
+    based: "G1's interview (an intruder with a knife he only learnt about when the girls came to him) and the M2 finding that an alert must reach someone who acts.",
   },
   {
     id: "principal",
@@ -116,19 +237,19 @@ export const m4Personas: Persona[] = [
     frustrations: ["Learns about incidents late and second hand", "Rules on cameras and children's data are unclear", "Security contracts are paid whether anything happens or not"],
     needs: ["A short morning summary", "A school mode where pupils are never recognised", "Blurred faces in anything exported"],
     tech: "Uses e-mail and a laptop daily; little time for new software.",
-    based: "Draft: M2 interviews (teachers and a deputy headmistress) and our assumptions. To be confirmed with P1 and T1-T3's notes.",
+    based: "M2 interviews (teachers and a deputy headmistress) and the teachers' survey answers (n=7); the morning summary (A3) is still to be confirmed.",
   },
   {
     id: "owner",
     name: "Radu",
     role: "Owner of a small production hall",
     primary: false,
-    context: "Runs a small production hall with a handful of workers on day shifts; machines, tools and materials stay inside, and the hall is empty at night and at weekends.",
-    goals: ["Protect machines, tools and stock when the hall is empty", "Know who was in the hall and when, without watching footage", "Keep costs lower than a permanent guard"],
+    context: "Runs a small production hall with three employees and is almost always away on jobs; machines, tools and materials stay inside, and the hall is empty at night.",
+    goals: ["See whether his people are working while he is away, and call them with what to do next", "Know at once if anything happens at night", "Keep costs lower than a permanent guard"],
     frustrations: ["Workers, couriers and suppliers come and go; he is not always there to see them", "Alarm systems ring for nothing when someone works late", "Pays for guarding even on quiet nights"],
     needs: ["Alerts only outside shift hours, except for restricted rooms", "Workers and regular suppliers enrolled, with allowed hours", "Alerts on his phone and to the security firm"],
     tech: "Runs the business from his phone; plans shifts on paper or in a spreadsheet.",
-    based: "Draft: our assumptions about the private-building segment. To be confirmed with H1's notes.",
+    based: "H1's interview: three employees, always away on jobs, calls them to check on the work, wants night coverage and alerts. Pricing not covered yet.",
   },
 ];
 

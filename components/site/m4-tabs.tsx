@@ -3,7 +3,7 @@
 import { ArrowDown, ArrowRight } from "lucide-react";
 
 import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
-import { m4Changes, m4Conclusions, m4Flows, m4Guide, m4Hypotheses, m4Method, m4Participants, m4Personas, m4Quotes, m4Stories, m4Survey, m4UseCases, type Persona, type Source } from "@/lib/m4";
+import { m4Changes, m4Conclusions, m4Flows, m4Guide, m4Hypotheses, m4Method, m4Notes, m4Participants, m4Personas, m4Quotes, m4Stories, m4Survey, m4UseCases, type Persona, type Source } from "@/lib/m4";
 import { cn } from "@/lib/utils";
 import { NextArrow, TabHint, TabLabel } from "./tab-hint";
 
@@ -84,6 +84,32 @@ function Interviews() {
             </ol>
           </div>
         ))}
+      </div>
+      <div className={box}>
+        <p className={h4}>Interview notes</p>
+        <p className="mb-3 text-sm text-neutral-400">
+          Translated from Romanian, names withheld. G1 and H1 are single interviews; P1 and T1-T3 combine what the school staff told us with the teachers&apos;
+          survey answers, each with its source.
+        </p>
+        <div className="grid gap-3 lg:grid-cols-2">
+          {m4Notes.map((n) => (
+            <div key={n.code} className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+              <p className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="jet rounded-md bg-sky-500/20 px-2 py-0.5 text-xs font-bold text-sky-200">{n.code}</span>
+                <b className="text-white">{n.title}</b>
+                <span className="jet text-xs text-neutral-400">{n.source}</span>
+              </p>
+              <dl className="mt-2 grid gap-x-3 gap-y-1.5 text-sm sm:grid-cols-[8rem_1fr]">
+                {n.lines.map(([k, v]) => (
+                  <div key={k} className="contents">
+                    <dt className="text-neutral-400">{k}</dt>
+                    <dd className="text-neutral-200">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
