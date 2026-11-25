@@ -359,6 +359,17 @@
   animation: none;
 }
 
+/* Desktop with a mouse: the browser keeps the reader's place when the card grows (scroll anchoring), so
+   the card grows with the night as it always did, with no empty space kept. Phones and tablets keep the
+   reserved space: Safari on iPhone and iPad has no scroll anchoring and the page jumped. */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .lp-row.lp-later,
+  .lp-open.lp-later,
+  .lp-night__sizer {
+    display: none;
+  }
+}
+
 .lp-night__foot {
   margin: var(--space-sm) 6px 0;
   font-size: 12px;
@@ -1487,6 +1498,13 @@
 
 .lp-tour__slot[data-on="false"] {
   visibility: hidden;
+}
+
+/* Desktop with a mouse: only the current screen takes space, as before (see the night card above). */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .lp-tour__slot[data-on="false"] {
+    display: none;
+  }
 }
 
 .lp-tour__slot[data-on="true"] {

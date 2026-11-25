@@ -14,7 +14,7 @@ export const versions: SiteVersion[] = [
     version: "v1.17",
     date: "2026-11-25",
     changes: [
-      "Landing on phones: no more jumping while scrolling; the live night card and the How it works stage keep a fixed height",
+      "Landing on phones and tablets: no more jumping while scrolling; the live night card and the How it works stage keep a fixed height (desktop with a mouse unchanged)",
       "Cards without backdrop blur (smoother in Safari on iPhone); the game draws at 1.5x on touch screens",
     ],
   },
