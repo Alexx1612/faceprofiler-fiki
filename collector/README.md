@@ -194,3 +194,24 @@ Owner steps (once):
 Limits: a session is recorded for at most 15 minutes; one chunk may be up to 1 MB (the first one carries the
 page's CSS so old replays still look right after a redeploy). `REPLAY_SAMPLE_RATE` in `lib/replay.ts` can
 record only a share of visitors if Drive fills up.
+
+## Export key for the owner's local database
+
+`tools/analytics_db.py` (in the private Nau-ino repo) pulls the raw rows of `events`, `forms`, `replays` and
+`inbox_status` into a local SQLite file through the owner-only route `?route=export`, plus the full stats
+through `?route=stats`. A script cannot do a Google sign-in, so it uses a long shared secret instead:
+
+1. Make a random key of at least 32 characters (48 is good), for example in PowerShell:
+   `-join ((48..57)+(65..90)+(97..122) | Get-Random -Count 48 | % {[char]$_})`
+2. Apps Script → Project Settings → Script Properties → add `EXPORT_KEY` = that key. (Owner.gs ships the
+   route; paste the current `Owner.gs`, Save, Deploy → Manage deployments → ✏ → New version.)
+3. On your PC, put the same key in `Nau-ino/reports/analytics/.export_key` (git-ignored) or in the
+   environment variable `NAUINO_EXPORT_KEY`.
+
+Never commit the key and never put it in the fiki `.env.local`: everything there that starts with
+`NEXT_PUBLIC_` is built into the public site. With the key anyone can read every raw row (e-mails, phones),
+so treat it like a password; to revoke it, change or delete the Script Property.
+
+The key is compared in constant time and is refused when the property is unset or shorter than 32
+characters. Requests: `…/exec?route=export&sheet=events&offset=0&limit=2000&token=<KEY>` (rows in sheet
+order with their sheet row numbers, `total`, `next`), `…/exec?route=stats&token=<KEY>` (full stats).
