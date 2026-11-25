@@ -185,6 +185,18 @@ function afterNewsletter_(f) {
   }
 }
 
+/**
+ * Run once from the Apps Script editor (select it in the function list, press Run): adds the daily digest at
+ * 8-9 am. Functions ending in "_" cannot be picked in the Triggers page, hence this installer. Removes an
+ * older digest trigger first, so running it twice does not send two digests.
+ */
+function installDigestTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === "dailyDigest_") ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger("dailyDigest_").timeBased().everyDays(1).atHour(8).create();
+}
+
 if (typeof module !== "undefined") {
   module.exports = { spamScore: spamScore, duplicateCounts: duplicateCounts, mergeStatus: mergeStatus, inboxItems: inboxItems, digestText: digestText, roDay: roDay, autoreplyText: autoreplyText };
 }

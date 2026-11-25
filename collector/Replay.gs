@@ -82,6 +82,9 @@ function pruneReplays_() {
 
 /** Run once from the editor to add the daily clean-up (Triggers → it appears as pruneReplays_). */
 function installReplayPruneTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === "pruneReplays_") ScriptApp.deleteTrigger(t);
+  });
   ScriptApp.newTrigger("pruneReplays_").timeBased().everyDays(1).atHour(4).create();
 }
 
