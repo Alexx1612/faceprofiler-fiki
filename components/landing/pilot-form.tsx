@@ -5,7 +5,7 @@ import { useState } from "react";
 import { GoogleSignIn } from "@/components/landing/google-signin";
 import { sendLead, track } from "@/lib/analytics";
 import { collectForm, collectUrl } from "@/lib/collect";
-import { team } from "@/lib/content";
+import { asset, team } from "@/lib/content";
 import { googleClientId, loadGoogleId, type GoogleUser } from "@/lib/google-auth";
 
 /**
@@ -161,7 +161,13 @@ export function PilotForm() {
           )}
           <label className="lp-form__check">
             <input type="checkbox" name="consent" required />
-            <span>I agree that Nau-ino may contact me about this pilot. My details are used only for that and never shared.</span>
+            <span>
+              I agree that Nau-ino may contact me about this pilot. My details are used only for that and never shared (
+              <a href={asset("/privacy/")} target="_blank" rel="noreferrer">
+                privacy
+              </a>
+              ).
+            </span>
           </label>
           <input name="_gotcha" tabIndex={-1} autoComplete="off" aria-hidden="true" className="lp-hp" />
           <button type="submit" className="lp-btn" disabled={state === "sending"}>

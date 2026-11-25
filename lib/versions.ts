@@ -11,6 +11,11 @@ export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
   {
+    version: "v1.20",
+    date: "2026-11-26",
+    changes: ["Home: glowing button to the school landing page", "Privacy page (what the site collects, why, how long, your rights), linked from footers and the pilot form"],
+  },
+  {
     version: "v1.19",
     date: "2026-11-26",
     changes: [

@@ -68,7 +68,10 @@ export function Footer() {
         </div>
         <p className="text-muted-foreground max-w-xl text-xs leading-relaxed">
           Demo footage: Mixkit free stock video, fictional names. UI built with Cult UI and Watermelon UI components.
-          Figures marked as estimates or targets are assumptions, not results.
+          Figures marked as estimates or targets are assumptions, not results.{" "}
+          <a href={asset("/privacy/")} className="text-sky-300 underline underline-offset-2">
+            Privacy
+          </a>
         </p>
       </div>
     </footer>

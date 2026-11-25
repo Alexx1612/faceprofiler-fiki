@@ -197,6 +197,7 @@ export default function Landing() {
             <Link href="/">Project wiki</Link>
             <Link href="/M3/">Wireframe</Link>
             <Link href="/manuals/">User manuals</Link>
+            <Link href="/privacy/">Privacy</Link>
             <a href={`mailto:${team[0].email}`}>{team[0].email}</a>
             <a href={`mailto:${team[1].email}`}>{team[1].email}</a>
           </div>

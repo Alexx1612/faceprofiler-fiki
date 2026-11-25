@@ -207,3 +207,31 @@ p, li, figcaption {
 @media (prefers-reduced-motion: reduce) {
   .m3-scan, .m3-blink, .m3-pulse, .m3-ripple, .m3-step, .m3-bar, .m3-target, [style*="m3-walk"] { animation: none !important; }
 }
+
+/* Home hero: neon call-to-action to the school landing page (glow pulses; calm with reduced motion). */
+.neon-cta {
+  position: relative;
+  border: 1.5px solid rgb(103 232 249 / 0.9);
+  background: linear-gradient(135deg, rgb(8 47 73 / 0.85), rgb(14 116 144 / 0.55));
+  box-shadow:
+    0 0 8px rgb(34 211 238 / 0.9),
+    0 0 22px rgb(34 211 238 / 0.55),
+    0 0 48px rgb(56 189 248 / 0.35),
+    inset 0 0 18px rgb(34 211 238 / 0.25);
+  text-shadow: 0 0 10px rgb(34 211 238 / 0.6);
+  animation: neon-pulse 2.4s ease-in-out infinite;
+  transition: transform 160ms ease;
+}
+.neon-cta:hover { transform: translateY(-2px) scale(1.01); }
+.neon-cta:focus-visible { outline: 3px solid rgb(165 243 252); outline-offset: 4px; }
+@keyframes neon-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgb(34 211 238 / 0.9), 0 0 22px rgb(34 211 238 / 0.55), 0 0 48px rgb(56 189 248 / 0.35), inset 0 0 18px rgb(34 211 238 / 0.25);
+  }
+  50% {
+    box-shadow: 0 0 12px rgb(34 211 238 / 1), 0 0 34px rgb(34 211 238 / 0.75), 0 0 80px rgb(56 189 248 / 0.5), inset 0 0 26px rgb(34 211 238 / 0.35);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .neon-cta { animation: none; }
+}
