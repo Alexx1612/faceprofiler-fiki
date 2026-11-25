@@ -33,11 +33,16 @@ export function initAnalytics(): Promise<PostHog | null> {
       api_host: posthogHost,
       person_profiles: "identified_only",
       cookieless_mode: "on_reject",
+      // until the visitor accepts, count them without cookies from the first pageview (with "on_reject" alone,
+      // PostHog sends nothing while consent is pending)
+      opt_out_capturing_by_default: true,
       capture_pageview: "history_change",
       capture_pageleave: true,
       session_recording: { maskAllInputs: true },
     });
     // the owner's own visits: filter them out in PostHog with "is_test" (internal and test users)
+    // the consent bar's own record is the source of truth: a visitor who accepted gets cookies again
+    if (collectConsent() === "granted" && posthog.get_explicit_consent_status() !== "granted") posthog.opt_in_capturing();
     if (testMode()) posthog.register({ is_test: true });
     client = posthog;
     for (const [e, p] of queue.splice(0)) posthog.capture(e, p);
@@ -59,11 +64,10 @@ export type Consent = "granted" | "denied" | "pending";
 /** True when any analytics is configured (PostHog or our collector), so the consent bar is needed. */
 export const analyticsOn = Boolean(posthogKey || collectUrl);
 
+/** The visitor's own choice on the consent bar (PostHog's status is opted out until Accept, so it can't tell). */
 export async function consentStatus(): Promise<Consent> {
-  const ph = await initAnalytics();
-  const own = collectConsent();
-  if (own !== "pending") return own;
-  return ph ? ph.get_explicit_consent_status() : collectUrl ? "pending" : "granted";
+  await initAnalytics();
+  return collectConsent();
 }
 
 export async function setConsent(accept: boolean) {
