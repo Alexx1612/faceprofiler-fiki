@@ -165,7 +165,7 @@ export default function Landing() {
           <div className="lp-wrap">
             <div className="lp-glass lp-signup">
               <span className="lp-chip">Free · 30 days</span>
-              <h2 className="lp-h2">Book a free 30-day pilot.</h2>
+              <h2 className="lp-h2">Book a pilot.</h2>
               <p className="lp-sub">Sign in with Google, tell us about your school, and we set it up with you on your own cameras within 2 working days.</p>
               <PilotForm />
               <ul className="lp-signup__facts">

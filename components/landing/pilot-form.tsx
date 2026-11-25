@@ -114,7 +114,7 @@ export function PilotForm() {
       )}
 
       {showForm && (
-        <form className="lp-form lp-pilotbox__form" onSubmit={submit} aria-label="Book a free 30-day pilot">
+        <form className="lp-form lp-pilotbox__form" onSubmit={submit} aria-label="Book a pilot">
           {!user && (
             <>
               {googleClientId && <p className="lp-form__note">Google sign-in is not available here, so tell us your e-mail instead.</p>}
