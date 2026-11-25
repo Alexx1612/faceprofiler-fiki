@@ -3,8 +3,9 @@
 import { ArrowDown, ArrowRight } from "lucide-react";
 
 import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
-import { m4Changes, m4Conclusions, m4Flows, m4Guide, m4Hypotheses, m4Method, m4Notes, m4Participants, m4Personas, m4Quotes, m4Stories, m4Survey, m4UseCases, type Persona, type Source } from "@/lib/m4";
+import { m4Conclusions, m4Flows, m4Guide, m4Hypotheses, m4Method, m4Notes, m4Participants, m4Personas, m4Quotes, m4Stories, m4Survey, m4UseCases, type Persona, type Source } from "@/lib/m4";
 import { cn } from "@/lib/utils";
+import { WireframeV2 } from "./m4-wireframe-v2";
 import { NextArrow, TabHint, TabLabel } from "./tab-hint";
 
 /**
@@ -299,152 +300,6 @@ function UseCases() {
   );
 }
 
-/* ---------- Wireframe v2: grey-box sketches of the changed screens ---------- */
-
-const wf = "rounded-xl border border-zinc-400 bg-zinc-50 p-3 text-zinc-800 shadow-lg";
-const bar = (w: string, c = "bg-zinc-300") => <span className={cn("block h-2 rounded", c)} style={{ width: w }} />;
-
-function W1() {
-  return (
-    <div className="mx-auto flex w-44 flex-col gap-2 rounded-[22px] border-4 border-zinc-500 bg-zinc-100 p-2.5 text-zinc-800">
-      <span className="mx-auto h-1 w-10 rounded-full bg-zinc-400" />
-      <span className="text-[11px] font-bold text-red-700">Unknown person · Corridor A</span>
-      <span className="aspect-video rounded bg-zinc-300" />
-      <span className="text-[10px] text-zinc-600">02:17 · escalates to security company in 2:41</span>
-      <span className="rounded bg-zinc-800 py-2 text-center text-[11px] font-semibold text-white">I&apos;m checking</span>
-      <span className="rounded border border-zinc-500 py-2 text-center text-[11px] font-semibold">Call help</span>
-    </div>
-  );
-}
-function W2() {
-  return (
-    <div className={wf}>
-      <p className="text-[11px] font-bold">Last night · 21:00-07:00</p>
-      <div className="mt-2 grid grid-cols-3 gap-2 text-center">
-        {[
-          ["2", "alerts"],
-          ["2", "answered"],
-          ["0", "open"],
-        ].map(([n, t]) => (
-          <span key={t} className="rounded border border-zinc-300 bg-white p-1.5">
-            <b className="block text-lg">{n}</b>
-            <span className="text-[10px] text-zinc-500">{t}</span>
-          </span>
-        ))}
-      </div>
-      <div className="mt-2 flex flex-col gap-1.5">
-        {["02:17 Unknown · Corridor A · answered by guard in 0:40", "04:05 Camera 6 covered · fixed 04:12"].map((r) => (
-          <span key={r} className="rounded border border-zinc-300 bg-white px-2 py-1 text-[10px]">
-            {r}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-function W3() {
-  return (
-    <div className={wf}>
-      <p className="text-[11px] font-bold">Privacy</p>
-      {[
-        ["School mode: pupils are never enrolled", true],
-        ["Blur faces in exports", true],
-      ].map(([t, on]) => (
-        <span key={String(t)} className="mt-2 flex items-center gap-2 text-[11px]">
-          <span className={cn("h-3.5 w-6 rounded-full p-0.5", on ? "bg-zinc-800" : "bg-zinc-300")}>
-            <span className="block size-2.5 translate-x-2.5 rounded-full bg-white" />
-          </span>
-          {t}
-        </span>
-      ))}
-      <span className="mt-2 flex gap-1 text-[10px]">
-        {["Everyone", "Known people", "Unknown people"].map((o, i) => (
-          <span key={o} className={cn("rounded border px-1.5 py-0.5", i === 1 ? "border-zinc-800 bg-zinc-800 text-white" : "border-zinc-400")}>
-            {o}
-          </span>
-        ))}
-      </span>
-      <span className="mt-2 block text-[11px]">Keep footage: <b className="rounded border border-zinc-400 bg-white px-1.5">14</b> days</span>
-    </div>
-  );
-}
-function W4() {
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  return (
-    <div className={wf}>
-      <p className="text-[11px] font-bold">Schedule</p>
-      <div className="mt-2 grid grid-cols-7 gap-1 text-center text-[9px]">
-        {days.map((d, i) => (
-          <span key={d} className="flex flex-col gap-1">
-            <span className="text-zinc-500">{d}</span>
-            <span className="flex h-14 flex-col overflow-hidden rounded bg-zinc-800/80">{i < 5 && <span className="mt-[30%] h-[45%] bg-amber-200" />}</span>
-          </span>
-        ))}
-      </div>
-      <span className="mt-2 flex gap-3 text-[10px] text-zinc-600">
-        <span className="flex items-center gap-1">
-          <span className="size-2 rounded bg-zinc-800/80" /> After hours: alerts on
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="size-2 rounded bg-amber-200" /> Shift: workers allowed
-        </span>
-      </span>
-    </div>
-  );
-}
-function W5() {
-  return (
-    <div className={wf}>
-      <p className="text-[11px] font-bold">Who is alerted</p>
-      {[
-        ["1", "Night guard", "at once"],
-        ["2", "Security company", "after 3 min"],
-        ["3", "Principal", "after 10 min"],
-      ].map(([n, w, t]) => (
-        <span key={n} className="mt-1.5 flex items-center gap-2 rounded border border-zinc-300 bg-white px-2 py-1 text-[11px]">
-          <b className="flex size-4 items-center justify-center rounded-full bg-zinc-800 text-[9px] text-white">{n}</b>
-          {w}
-          <span className="ml-auto text-zinc-500">{t}</span>
-        </span>
-      ))}
-      <span className="mt-2 block">{bar("40%")}</span>
-    </div>
-  );
-}
-const SKETCH: Record<string, () => React.ReactElement> = { W1, W2, W3, W4, W5 };
-
-function Wireframe() {
-  return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm text-neutral-300">
-        Changes to the M3 wireframe. Each one says what it is based on; drafts are checked against the interview notes before they are built.
-      </p>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {m4Changes.map((c) => {
-          const S = SKETCH[c.id];
-          return (
-            <div key={c.id} className={cn(box, "flex flex-col gap-3")}>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="jet text-xs text-sky-300">{c.id}</span>
-                <b className="text-white">{c.screen}</b>
-                <span className="ml-auto">
-                  <Tag source={c.source} />
-                </span>
-              </div>
-              <div className="rounded-xl bg-[#0e1c33] p-3">
-                <S />
-              </div>
-              <p className="text-sm text-neutral-200">{c.change}</p>
-              <p className="text-xs text-neutral-400">Why: {c.why}</p>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-
 /** The landing page's quick survey (Mom-Test questions, past facts): answers per question, real visitors only. */
 function Survey() {
   const pct = (n: number, of: number) => (of ? Math.round((n / of) * 100) : 0);
@@ -504,7 +359,7 @@ const TABS = [
   { label: "Personas", el: <Personas /> },
   { label: "User stories", el: <Stories /> },
   { label: "Use cases & flows", el: <UseCases /> },
-  { label: "Wireframe v2", el: <Wireframe /> },
+  { label: "Wireframe v2", el: <WireframeV2 /> },
 ];
 
 export const M4Hint = () => <TabHint text={`${TABS.length} tabs: click or swipe to open the next one`} />;

@@ -235,3 +235,15 @@ p, li, figcaption {
 @media (prefers-reduced-motion: reduce) {
   .neon-cta { animation: none; }
 }
+
+/* M4 Wireframe v2 mockups (components/site/m4-wireframe-v2.tsx): alert pulse and the escalation ladder's dot. */
+@keyframes m4w-ping { 75%, 100% { transform: scale(2.2); opacity: 0; } }
+@keyframes m4w-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes m4w-travel { 0% { top: 12px; opacity: 0; } 10% { opacity: 1; } 85% { opacity: 1; } 100% { top: calc(100% - 18px); opacity: 0; } }
+.m4w-ping { animation: m4w-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.m4w-pulse { animation: m4w-blink 1.6s ease-in-out infinite; }
+.m4w-travel { animation: m4w-travel 4.5s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .m4w-ping, .m4w-pulse { animation: none; }
+  .m4w-travel { animation: none; top: 12px; }
+}

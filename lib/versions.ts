@@ -11,6 +11,11 @@ export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
   {
+    version: "v1.25",
+    date: "2026-11-26",
+    changes: ["M4: Wireframe v2 redesigned as product-style mockups (guard phone alert with countdown, morning report, privacy settings, schedule, escalation ladder)"],
+  },
+  {
     version: "v1.24",
     date: "2026-11-26",
     changes: ["M4: interview notes (G1 night guard, H1 hall owner; P1 and T1-T3 from M2 and the survey), conclusions, A1-A7 results with evidence, personas based on the notes"],
