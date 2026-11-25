@@ -6,6 +6,7 @@ import Link from "next/link";
 import { DemoReel } from "@/components/landing/demo-reel";
 import { HeroCopy } from "@/components/landing/hero-copy";
 import { NightLive } from "@/components/landing/night-live";
+import { PilotForm } from "@/components/landing/pilot-form";
 import { SpotGame } from "@/components/landing/spot-game";
 import { Tour } from "@/components/landing/tour";
 import { SurveyButton } from "@/components/landing/survey";
@@ -53,11 +54,11 @@ export default function Landing() {
             <a href="#game">Game</a>
             <a href="#modes">Day and night</a>
             <a href="#privacy">Privacy</a>
-            <a href="#updates">Updates</a>
+            <a href="#pilot">Pilot</a>
           </nav>
           <SurveyButton />
-          <TrackedLink href="#updates" event="cta_book_pilot_click" props={{ place: "nav" }} className="lp-btn lp-btn--sm lp-nav__cta">
-            Get notified
+          <TrackedLink href="#pilot" event="cta_book_pilot_click" props={{ place: "nav" }} className="lp-btn lp-btn--sm lp-nav__cta">
+            Book a pilot
           </TrackedLink>
         </div>
       </header>
@@ -80,11 +81,11 @@ export default function Landing() {
             <div>
               <HeroCopy />
               <div className="lp-actions">
-                <TrackedLink href="#updates" event="cta_book_pilot_click" props={{ place: "hero" }} className="lp-btn">
-                  Get notified
+                <TrackedLink href="#pilot" event="cta_book_pilot_click" props={{ place: "hero" }} className="lp-btn">
+                  Book a pilot
                 </TrackedLink>
               </div>
-              <p className="lp-hero__note">One e-mail when the free pilot opens.</p>
+              <p className="lp-hero__note">Free for 30 days, on your own cameras.</p>
             </div>
 
             <NightLive />
@@ -160,13 +161,13 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="updates" className="lp-section">
+        <section id="pilot" className="lp-section">
           <div className="lp-wrap">
             <div className="lp-glass lp-signup">
-              <span className="lp-chip">Coming soon</span>
-              <h2 className="lp-h2">Hear first when <span style={{ whiteSpace: "nowrap" }}>Nau-ino</span> opens.</h2>
-              <p className="lp-sub">One e-mail when the free pilot starts near you.</p>
-              <UpdatesForm />
+              <span className="lp-chip">Free · 30 days</span>
+              <h2 className="lp-h2">Book a free 30-day pilot.</h2>
+              <p className="lp-sub">Sign in with Google, tell us about your school, and we set it up with you on your own cameras within 2 working days.</p>
+              <PilotForm />
               <ul className="lp-signup__facts">
                 <li>
                   <CheckIcon />
@@ -177,16 +178,10 @@ export default function Landing() {
                   No spam, no sharing
                 </li>
               </ul>
-              <p className="lp-signup__pilot">
-                Run a school?{" "}
-                <TrackedLink
-                  href={`mailto:${team[1].email}?subject=${encodeURIComponent("Nau-ino: free 30-day pilot")}`}
-                  event="pilot_email_click"
-                  props={{ place: "signup" }}
-                >
-                  Ask for a free 30-day pilot
-                </TrackedLink>
-              </p>
+              <div id="updates" className="lp-signup__updates">
+                <p>Just want updates?</p>
+                <UpdatesForm />
+              </div>
             </div>
           </div>
         </section>

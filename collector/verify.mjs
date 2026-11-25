@@ -50,16 +50,21 @@ export function toCsvLine(cells) {
   return cells.map((c) => (/[",\r\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(",");
 }
 
-/** Check one sheet's CSV against the expected headers; returns chain facts and the rows. */
+/**
+ * Check one sheet's CSV against the expected headers; returns chain facts and the rows. A download made
+ * before collector 1.3 (events header ending at "chain") is accepted too: its rows are read with the new
+ * columns empty, and hashed as they were written.
+ */
 export function checkSheet(text, expected) {
   const all = parseCsv(text).filter((r) => r.some((c) => c !== ""));
   const [head, ...rows] = all;
-  if (!head || head.join(",") !== expected.join(",")) {
+  const legacy = head && head.length < expected.length && head.at(-1) === "chain" && expected.slice(0, head.length).join(",") === head.join(",");
+  if (!head || (!legacy && head.join(",") !== expected.join(","))) {
     return { ok: false, error: `Unexpected columns. Expected: ${expected.join(",")}` };
   }
   const width = expected.length;
   const padded = rows.map((r) => (r.length < width ? r.concat(Array(width - r.length).fill("")) : r.slice(0, width)));
-  const v = C.verifyChain(padded);
+  const v = C.verifyChain(padded, expected.indexOf("chain"));
   return { ok: v.broken === -1, rows: padded, count: v.rows, head: v.head, brokenSheetRow: v.broken === -1 ? null : v.broken + 2 };
 }
 

@@ -15,7 +15,7 @@ import { NextArrow, TabLabel } from "./tab-hint";
  *
  * Methodology: fetches `NEXT_PUBLIC_COLLECT_URL?stats=1`, which returns aggregates only, per site version
  * and merged ("all"). The version selector switches between them. "Where visitors come from" sits at the
- * top: one row per normalised source with visitors, sessions, sessions that sent a form or the survey and
+ * top: one row per normalised source with visitors, sessions, visitors who left their contact (newsletter or pilot) and
  * the conversion rate, its medium and how it was known (our UTM link, the browser's referrer, or nothing),
  * expandable to the raw referrer hosts mapped into it, campaigns, utm_content and landing paths. The source is
  * decided by the collector (classifySource in collector/Code.gs), not here. "How these numbers are made"
@@ -23,6 +23,12 @@ import { NextArrow, TabLabel } from "./tab-hint";
  * shows the hash-chain facts, so anyone can re-check the numbers from the Sheet with collector/verify.mjs.
  * Without a collector URL, or when the fetch fails, the page shows the setup steps instead of numbers;
  * nothing is ever made up.
+ *
+ * Collector 1.3 adds who visits (counted once per visitor: device, OS, browser, in-app browser, screen
+ * width, language, country and region, with how the country was found) and a weekday × hour grid, and
+ * returns the team's own test traffic as a separate aggregate: the Real / Test switch shows one or the
+ * other, never a mix. Every chart opens with a one-line takeaway computed from the numbers it shows.
+ * Colours: the validated dark categorical order (dataviz skill) for identity, one blue ramp for magnitude.
  */
 
 type Count = { key: string; count: number };
@@ -30,8 +36,10 @@ type Source = {
   source: string;
   visitors: number;
   sessions: number;
+  /** visitors who left their contact (newsletter or pilot); the survey is counted apart in by_form */
   conversions: number;
   conversion_rate: number;
+  by_form?: { newsletter: number; pilot: number; survey: number };
   /** utm_medium, else social / search / email / referral / direct */
   mediums?: Count[];
   /** how the source was known: "utm" (our tagged link), "referrer" (sent by the browser) or "none" */
@@ -64,6 +72,19 @@ type Stats = {
     scenarios: Count[];
   };
   daily: { date: string; pageviews: number; visitors: number }[];
+  survey_free_text?: Count[];
+  who?: Who;
+  hours?: { tz: string; weekdays: string[]; grid: number[][] };
+};
+type Who = {
+  devices: Count[];
+  os: Count[];
+  browsers: Count[];
+  in_app: Count[];
+  screens: Count[];
+  langs: Count[];
+  countries: { key: string; name: string; visitors: number; how: Count[] }[];
+  regions: { country: string; region: string; visitors: number }[];
 };
 type GameRound = {
   round: string;
@@ -82,6 +103,9 @@ type Payload = {
   collector?: string;
   integrity?: { collector: string; events: Chain; forms: Chain };
   versions: Record<string, Stats>;
+  /** the team's own test traffic (test mode, automated browsers, test-tagged links), counted the same way */
+  test?: Stats;
+  test_visitors?: number;
 };
 
 const box = "rounded-2xl border border-white/10 bg-white/[0.03] p-4";
@@ -96,6 +120,216 @@ const howText = (r: Source) => {
   if (h.length === 1 && h[0].key === "none") return "no source sent";
   return `from ${h.map((x) => `${HOW[x.key] ?? x.key}${h.length > 1 ? ` ${x.count}` : ""}`).join(" + ")}`;
 };
+
+/** Validated dark categorical order (dataviz reference palette, checked against this page's surface). */
+const SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c"];
+const OTHER = "#6b7280";
+/** One blue ramp for magnitude (dark surface: more = lighter). */
+const RAMP = ["#13223d", "#184f95", "#256abf", "#3987e5", "#6da7ec", "#b7d3f6"];
+const share = (n: number, t: number) => (t ? Math.round((n / t) * 100) : 0);
+
+/** The one-line, plain-language reading of a chart, above it. */
+function Takeaway({ children }: { children: React.ReactNode }) {
+  return <p className="mb-3 text-sm text-neutral-200">{children}</p>;
+}
+
+/** "RO" → 🇷🇴 (regional indicator letters); "??" → 🌐. */
+function flag(cc: string) {
+  if (!/^[A-Z]{2}$/.test(cc)) return "🌐";
+  return String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+}
+
+const LABEL: Record<string, string> = {
+  ios: "iOS", android: "Android", windows: "Windows", macos: "macOS", linux: "Linux", chromeos: "ChromeOS",
+  chrome: "Chrome", safari: "Safari", firefox: "Firefox", edge: "Edge", samsung: "Samsung", opera: "Opera",
+  facebook: "Facebook app", instagram: "Instagram app", whatsapp: "WhatsApp app", linkedin: "LinkedIn app",
+  tiktok: "TikTok app", snapchat: "Snapchat app", "google-app": "Google app", webview: "Other app (webview)",
+  phone: "Phone", tablet: "Tablet", desktop: "Desktop", unknown: "Unknown", other: "Other",
+  ro: "Romanian", en: "English", de: "German", fr: "French", it: "Italian", es: "Spanish", hu: "Hungarian",
+};
+const lab = (k: string) => LABEL[k] ?? k;
+
+/**
+ * Parts of a whole as one 100% bar (2px gaps between segments) with a legend that names every part, its
+ * count and share, so identity never rests on colour alone. More than 5 parts fold into "Other".
+ */
+function Share({ title, items, total, note }: { title: string; items: Count[]; total?: number; note?: string }) {
+  const sum = total ?? items.reduce((a, b) => a + b.count, 0);
+  const head = items.slice(0, 5);
+  const rest = items.slice(5).reduce((a, b) => a + b.count, 0);
+  const parts = rest ? [...head, { key: "other", count: rest }] : head;
+  return (
+    <div className={box}>
+      <p className={h4}>{title}</p>
+      {!sum ? (
+        <p className="text-sm text-neutral-400">No data yet.</p>
+      ) : (
+        <>
+          <div className="flex h-3 w-full gap-[2px] overflow-hidden rounded-full" role="img" aria-label={`${title}: ${parts.map((p) => `${lab(p.key)} ${share(p.count, sum)}%`).join(", ")}`}>
+            {parts.map((p, i) => (
+              <div
+                key={p.key}
+                title={`${lab(p.key)}: ${num(p.count)} (${share(p.count, sum)}%)`}
+                style={{ width: `${(p.count / sum) * 100}%`, background: p.key === "other" || p.key === "unknown" ? OTHER : SERIES[i % SERIES.length] }}
+              />
+            ))}
+          </div>
+          <ul className="mt-3 space-y-1 text-sm">
+            {parts.map((p, i) => (
+              <li key={p.key} className="flex items-center gap-2">
+                <span aria-hidden className="size-2.5 shrink-0 rounded-sm" style={{ background: p.key === "other" || p.key === "unknown" ? OTHER : SERIES[i % SERIES.length] }} />
+                <span className="min-w-0 flex-1 truncate text-neutral-200">{lab(p.key)}</span>
+                <span className="tabular-nums text-neutral-300">{num(p.count)}</span>
+                <span className="w-10 text-right tabular-nums text-neutral-400">{share(p.count, sum)}%</span>
+              </li>
+            ))}
+          </ul>
+          {note ? <p className="mt-2 text-xs text-neutral-400">{note}</p> : null}
+        </>
+      )}
+    </div>
+  );
+}
+
+const HOW_GEO: Record<string, string> = { ip: "IP lookup", tz: "time zone", none: "unknown" };
+
+/** Who visits: countries (ranked, expandable to regions) and device facts, each counted once per visitor. */
+function WhoVisits({ s }: { s: Stats }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const w = s.who;
+  if (!w) return null;
+  const visitors = s.visitors;
+  const countries = w.countries;
+  const known = countries.filter((c) => c.key !== "??");
+  const max = Math.max(1, ...countries.map((c) => c.visitors));
+  const topC = known[0];
+  const phone = w.devices.find((d) => d.key === "phone")?.count ?? 0;
+  const app = w.in_app.reduce((a, b) => a + b.count, 0);
+  return (
+    <section className={box} aria-labelledby="who-h">
+      <h2 id="who-h" className="mb-1 text-base font-semibold text-white">
+        Who visits
+      </h2>
+      <Takeaway>
+        {visitors
+          ? `${topC ? `Most visitors are in ${topC.name} (${num(topC.visitors)} of ${num(visitors)}). ` : ""}${share(phone, visitors)}% use a phone${app ? `; ${num(app)} opened the page inside an app (${lab(w.in_app[0].key)} most)` : ""}.`
+          : "No visitors yet."}
+      </Takeaway>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+        <div className={box}>
+          <p className={h4}>Country → region</p>
+          {!countries.length ? (
+            <p className="text-sm text-neutral-400">No data yet.</p>
+          ) : (
+            <ul className="space-y-1">
+              {countries.map((c) => {
+                const regions = w.regions.filter((r) => r.country === c.key);
+                const isOpen = open === c.key;
+                return (
+                  <li key={c.key}>
+                    <button
+                      type="button"
+                      aria-expanded={regions.length ? isOpen : undefined}
+                      disabled={!regions.length}
+                      onClick={() => setOpen(isOpen ? null : c.key)}
+                      className="w-full rounded-lg px-1 py-1.5 text-left text-sm enabled:hover:bg-white/[0.04]"
+                    >
+                      <span className="mb-1 flex items-center gap-2">
+                        <span aria-hidden>{flag(c.key)}</span>
+                        <span className="min-w-0 flex-1 truncate text-neutral-100">{c.name}</span>
+                        <span className="tabular-nums text-white">{num(c.visitors)}</span>
+                        {regions.length ? <ChevronDown aria-hidden className={`size-4 text-neutral-400 transition-transform ${isOpen ? "rotate-180" : ""}`} /> : <span className="w-4" />}
+                      </span>
+                      <Bar value={c.visitors} max={max} />
+                      <span className="mt-0.5 block text-xs text-neutral-400">from {c.how.map((h) => `${HOW_GEO[h.key] ?? h.key} ${h.count}`).join(" + ")}</span>
+                    </button>
+                    {isOpen && (
+                      <ul className="mb-2 ml-7 mt-1 space-y-1 text-sm">
+                        {regions.map((r) => (
+                          <li key={r.region} className="flex justify-between gap-3 text-neutral-300">
+                            <span className="min-w-0 truncate">{r.region}</span>
+                            <span className="tabular-nums">{num(r.visitors)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <p className="mt-2 text-xs text-neutral-400">Region only after a visitor clicks Accept (one IP lookup; the IP is never stored). Before that, the country comes from the browser&apos;s time zone.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <Share title="Device" items={w.devices} />
+          <Share title="Operating system" items={w.os} />
+          <Share title="Browser" items={w.browsers} />
+          <Share title="Opened inside an app" items={w.in_app} total={visitors} note={app ? `${num(visitors - app)} visitors used a normal browser.` : "Everyone used a normal browser."} />
+          <Share title="Screen width (px)" items={w.screens} />
+          <Share title="Language" items={w.langs} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Sessions by weekday × hour (Romanian time), one blue ramp; the busiest slot is named above. */
+function Hours({ s }: { s: Stats }) {
+  const [hover, setHover] = useState<[number, number] | null>(null);
+  const h = s.hours;
+  if (!h) return null;
+  const max = Math.max(0, ...h.grid.flat());
+  if (!max) return <p className="text-sm text-neutral-400">No sessions yet.</p>;
+  let best: [number, number] = [0, 0];
+  h.grid.forEach((row, d) => row.forEach((v, hr) => { if (v > h.grid[best[0]][best[1]]) best = [d, hr]; }));
+  const byHour = Array.from({ length: 24 }, (_, hr) => h.grid.reduce((a, row) => a + row[hr], 0));
+  const peakHour = byHour.indexOf(Math.max(...byHour));
+  const step = (v: number) => (v ? RAMP[Math.min(RAMP.length - 1, 1 + Math.floor((v / max) * (RAMP.length - 2) + 0.0001))] : RAMP[0]);
+  const cur = hover ?? best;
+  const hh = (x: number) => `${String(x).padStart(2, "0")}:00`;
+  return (
+    <div className="max-w-3xl">
+      <Takeaway>
+        Busiest: {h.weekdays[best[0]]} around {hh(best[1])}; across the week, most visits start at {hh(peakHour)}–{hh((peakHour + 1) % 24)} (Romanian time).
+      </Takeaway>
+      <p className="mb-2 text-xs text-neutral-400" aria-live="polite">
+        {h.weekdays[cur[0]]} {hh(cur[1])}: {num(h.grid[cur[0]][cur[1]])} sessions
+      </p>
+      <div className="overflow-x-auto">
+        <div className="grid min-w-[560px] grid-cols-[2.5rem_repeat(24,minmax(0,1fr))] gap-[2px]" role="img" aria-label={`Sessions by weekday and hour; busiest ${h.weekdays[best[0]]} ${hh(best[1])}`}>
+          {h.grid.map((row, d) => (
+            <div key={d} className="contents">
+              <span className="pr-1 text-right text-[11px] leading-5 text-neutral-400">{h.weekdays[d]}</span>
+              {row.map((v, hr) => (
+                <span
+                  key={hr}
+                  title={`${h.weekdays[d]} ${hh(hr)}: ${v} sessions`}
+                  onMouseEnter={() => setHover([d, hr])}
+                  onMouseLeave={() => setHover(null)}
+                  className={`h-5 rounded-[3px] ${hover && hover[0] === d && hover[1] === hr ? "ring-2 ring-white/80" : ""}`}
+                  style={{ background: step(v) }}
+                />
+              ))}
+            </div>
+          ))}
+          <span />
+          {Array.from({ length: 24 }, (_, hr) => (
+            <span key={hr} className="text-center text-[10px] text-neutral-500">
+              {hr % 6 === 0 ? hr : ""}
+            </span>
+          ))}
+        </div>
+      </div>
+      <p className="mt-2 flex items-center gap-2 text-xs text-neutral-400">
+        fewer
+        {RAMP.map((c) => (
+          <span key={c} aria-hidden className="h-2.5 w-5 rounded-sm" style={{ background: c }} />
+        ))}
+        more
+      </p>
+    </div>
+  );
+}
 
 export const SETUP_STEPS = [
   "Create a new Google Sheet (sheets.new) and name it “Nau-ino analytics”.",
@@ -182,6 +416,15 @@ function Sources({ s }: { s: Stats }) {
         </Link>
         .
       </p>
+      {s.sources.length ? (
+        <Takeaway>
+          {(() => {
+            const t = s.sources[0];
+            const conv = [...s.sources].filter((x) => x.visitors >= 3).sort((a, b) => b.conversion_rate - a.conversion_rate)[0];
+            return `Most visitors come from ${t.source} (${num(t.visitors)} of ${num(s.visitors)})${t.conversions ? `; ${pct(t.conversion_rate)} of them left their contact (newsletter or pilot)` : ""}.${conv && conv.source !== t.source && conv.conversion_rate > t.conversion_rate ? ` Best conversion: ${conv.source} (${pct(conv.conversion_rate)}).` : ""}`;
+          })()}
+        </Takeaway>
+      ) : null}
       {s.sources.length === 0 ? (
         <p className="text-sm text-neutral-400">No visits yet.</p>
       ) : (
@@ -190,7 +433,7 @@ function Sources({ s }: { s: Stats }) {
             <span>Source</span>
             <span className="text-right">Visitors</span>
             <span className="text-right">Sessions</span>
-            <span className="text-right">Sent a form</span>
+            <span className="text-right" title="Visitors who signed up for news or asked for a pilot; the survey is not counted here">Left contact</span>
             <span className="text-right">Conversion</span>
           </div>
           <ul className="divide-y divide-white/10">
@@ -222,7 +465,7 @@ function Sources({ s }: { s: Stats }) {
                     <span className="col-span-2 sm:hidden">
                       <Bar value={r.visitors} max={max} />
                       <span className="mt-1 block text-xs text-neutral-400">
-                        {num(r.sessions)} sessions · {num(r.conversions)} sent a form
+                        {num(r.sessions)} sessions · {num(r.conversions)} left contact{r.by_form ? ` (news ${num(r.by_form.newsletter)} · pilot ${num(r.by_form.pilot)}) · survey ${num(r.by_form.survey)}` : ""}
                       </span>
                     </span>
                     <span className="hidden items-center gap-2 text-sm tabular-nums text-white sm:flex">
@@ -369,14 +612,25 @@ function Daily({ s }: { s: Stats }) {
   const releases = new Map(versions.map((v) => [v.date, v.version]));
   const line = d.map((x, i) => `${i ? "L" : "M"}${P + bw * i + bw / 2},${y(x.visitors)}`).join(" ");
   const cur = hover === null ? d[d.length - 1] : d[hover];
+  const peak = d.reduce((a, b) => (b.visitors > a.visitors ? b : a), d[0]);
+  const totalV = d.reduce((a, b) => a + b.visitors, 0);
   return (
     <div className="max-w-3xl">
+      <Takeaway>
+        {d.length === 1
+          ? `All ${num(totalV)} visitors so far came on ${peak.date}.`
+          : `Busiest day: ${peak.date} with ${num(peak.visitors)} visitors (${num(peak.pageviews)} pageviews) over ${d.length} days.`}
+      </Takeaway>
       <p className="mb-2 text-xs text-neutral-400" aria-live="polite">
         {cur.date}: {num(cur.pageviews)} pageviews · {num(cur.visitors)} visitors
         {releases.get(cur.date) ? ` · released ${releases.get(cur.date)}` : ""}
       </p>
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Pageviews and visitors per day">
         <line x1={P} x2={W - P} y1={H - P} y2={H - P} stroke="rgb(255 255 255 / 0.15)" />
+        <line x1={P} x2={W - P} y1={y(max)} y2={y(max)} stroke="rgb(255 255 255 / 0.08)" strokeDasharray="2 4" />
+        <text x={P} y={y(max) - 4} fontSize={10} fill="rgb(255 255 255 / 0.5)">
+          {num(max)}
+        </text>
         {d.map((x, i) => (
           <g key={x.date} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onTouchStart={() => setHover(i)}>
             <rect x={P + bw * i} y={P / 2} width={bw} height={H - P * 1.5} fill="transparent" />
@@ -410,31 +664,66 @@ function Daily({ s }: { s: Stats }) {
   );
 }
 
+/** Funnel: one bar per step (share of step 1) and, between steps, how many dropped off. */
 function Funnel({ s }: { s: Stats }) {
   const top = s.funnel[0]?.visitors ?? 0;
+  const last = s.funnel[s.funnel.length - 1];
+  let worst = -1, worstDrop = -1;
+  s.funnel.forEach((f, i) => {
+    if (!i) return;
+    const prev = s.funnel[i - 1].visitors;
+    const drop = prev ? 1 - f.visitors / prev : 0;
+    if (drop > worstDrop) [worst, worstDrop] = [i, drop];
+  });
   return (
-    <ol className="space-y-3">
-      {s.funnel.map((f, i) => (
-        <li key={f.step} className="text-sm">
-          <div className="mb-1 flex justify-between gap-3">
-            <span className="text-neutral-200">
-              {i + 1}. {f.step}
-            </span>
-            <span className="tabular-nums text-white">
-              {num(f.visitors)} {i > 0 && <span className="text-emerald-300">· {pct(f.conversion)}</span>}
-            </span>
-          </div>
-          <Bar value={f.visitors} max={top} tone={i === s.funnel.length - 1 ? "bg-emerald-500" : "bg-sky-500"} />
-        </li>
-      ))}
-      <li className="text-xs text-neutral-400">Per visitor, steps in order, within 14 days of step 1.</li>
-    </ol>
+    <div>
+      <Takeaway>
+        {top
+          ? `${pct(last.conversion)} of landing-page visitors sent a form or the survey; the biggest drop is before “${s.funnel[worst]?.step}” (${pct(worstDrop)} left).`
+          : "Nobody has reached the landing page yet."}
+      </Takeaway>
+      <ol className="space-y-1">
+        {s.funnel.map((f, i) => {
+          const prev = i ? s.funnel[i - 1].visitors : 0;
+          return (
+            <li key={f.step} className="text-sm">
+              {i > 0 && (
+                <p className="py-1 pl-3 text-xs text-neutral-400">
+                  ↓ {num(Math.max(0, prev - f.visitors))} dropped ({prev ? pct(1 - f.visitors / prev) : "0%"})
+                </p>
+              )}
+              <div className="mb-1 flex justify-between gap-3">
+                <span className="text-neutral-200">
+                  {i + 1}. {f.step}
+                </span>
+                <span className="tabular-nums text-white">
+                  {num(f.visitors)} <span className="text-neutral-400">· {top ? pct(f.visitors / top) : "0%"}</span>
+                </span>
+              </div>
+              <div className="h-6 w-full overflow-hidden rounded-md bg-white/[0.06]" aria-hidden>
+                <div className="h-full rounded-md" style={{ width: `${top ? Math.max(1, (f.visitors / top) * 100) : 0}%`, background: SERIES[0] }} />
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="mt-3 text-xs text-neutral-400">Per visitor, steps in order, within 14 days of step 1.</p>
+    </div>
   );
 }
 
 const SURVEY_LABELS: Record<string, string> = {
   lang: "Language",
   role: "Role",
+  guarded: "Who guards the school after hours",
+  incident_night: "Night incident in the last 3 months",
+  incident_day: "Daytime incident in the last 3 months",
+  noticed: "How fast it was noticed",
+  resolved: "How it was resolved",
+  alert_night: "Who finds out at night, today",
+  alert_day: "How staff learnt of the last daytime incident",
+  refused: "Turned down a security solution (teachers)",
+  decided: "Who decided the last security spending",
   safe: "Feels safe after hours (0-5)",
   incident: "Incident in the last year",
   found_out: "When the school found out",
@@ -453,28 +742,51 @@ function Survey({ s }: { s: Stats }) {
   if (!keys.length) return <p className="text-sm text-neutral-400">No survey answers yet.</p>;
   const order = Object.keys(SURVEY_LABELS);
   keys.sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
+  const written = new Map((s.survey_free_text ?? []).map((x) => [x.key, x.count]));
+  const answers = s.forms.find((f) => f.key === "survey")?.count ?? 0;
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {keys.map((k) => (
-        <div key={k} className={box}>
-          <p className={h4}>{SURVEY_LABELS[k] ?? k}</p>
-          <CountList items={s.survey[k]} />
-        </div>
-      ))}
+    <div>
+      <Takeaway>
+        {num(answers)} survey answers. Each card shows how many picked each answer; written answers (“Other…”) are only counted here and read in the Sheet.
+      </Takeaway>
+      <div className="grid gap-4 md:grid-cols-2">
+        {keys.map((k) => {
+          const items = s.survey[k];
+          const total = items.reduce((a, b) => a + b.count, 0);
+          const lead = items[0];
+          return (
+            <div key={k} className={box}>
+              <p className="mb-1 text-sm font-semibold text-white">{SURVEY_LABELS[k] ?? k}</p>
+              <p className="mb-3 text-xs text-neutral-400">
+                {lead ? `Most common: “${lead.key}” (${share(lead.count, total)}% of ${num(total)})` : ""}
+                {written.get(`${k}_other`) ? ` · ${num(written.get(`${k}_other`) ?? 0)} wrote their own answer` : ""}
+              </p>
+              <CountList items={items} />
+            </div>
+          );
+        })}
+      </div>
+      {written.get("comment") ? <p className="mt-3 text-xs text-neutral-400">{num(written.get("comment") ?? 0)} left a comment (in the Sheet only).</p> : null}
     </div>
   );
 }
 
 const sec = (ms: number | null | undefined) => (ms === null || ms === undefined ? "–" : `${(ms / 1000).toFixed(1)} s`);
-const msx = (ms: number | null | undefined) => (ms === null || ms === undefined ? "–" : `${ms.toFixed(2)} ms`);
+
 
 /** Who plays "Spot the stranger" and how well: players, finishers, score 0-5, and each round vs the machine. */
 function Game({ s }: { s: Stats }) {
   const g = s.game_summary;
   if (!s.game.length) return <p className="text-sm text-neutral-400">Nobody has played yet.</p>;
   const maxDist = Math.max(1, ...(g?.score_distribution ?? []).map((d) => d.players));
+  const maxT = Math.max(1, ...s.game.flatMap((r) => [r.median_human_ms ?? 0, r.median_machine_ms ?? 0]));
+  const hardest = [...s.game].filter((r) => r.plays).sort((a, b) => a.correct_pct - b.correct_pct)[0];
   return (
     <div className="flex flex-col gap-3">
+      <Takeaway>
+        {g ? `${num(g.players)} people played; ${num(g.finished_all)} finished all rounds, average score ${g.avg_score.toFixed(1)} of 5. ` : ""}
+        {hardest ? `Hardest: round ${hardest.round} (${pct(hardest.correct_pct)} right).` : ""}
+      </Takeaway>
       {g ? (
         <div className="grid grid-cols-3 gap-3">
           {(
@@ -515,7 +827,35 @@ function Game({ s }: { s: Stats }) {
             ) : null}
           </div>
         ) : null}
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className={box}>
+          <p className={h4}>Median time per round: people vs the system</p>
+          <ul className="space-y-3 text-sm">
+            {s.game.map((r) => (
+              <li key={r.round}>
+                <p className="mb-1 text-xs text-neutral-400">
+                  Round {r.round}
+                  {r.people ? ` · ${r.people} people` : ""} · {num(r.plays)} plays · {pct(r.correct_pct)} right
+                </p>
+                {(
+                  [
+                    ["People", r.median_human_ms, SERIES[1]],
+                    ["System", r.median_machine_ms, SERIES[0]],
+                  ] as const
+                ).map(([who, ms, color]) => (
+                  <div key={who} className="flex items-center gap-2">
+                    <span className="w-14 shrink-0 text-xs text-neutral-300">{who}</span>
+                    <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+                      <div className="h-full rounded-full" style={{ width: `${ms ? Math.max(1, (ms / maxT) * 100) : 0}%`, background: color }} />
+                    </div>
+                    <span className="w-14 shrink-0 text-right text-xs tabular-nums text-neutral-200">{sec(ms)}</span>
+                  </div>
+                ))}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-neutral-400">System time is modelled from Nau-ino measurements (43 ms per face, 5 frames/s, 3 frames to confirm); rounds 3-5 count from the round start.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3 md:col-span-2">
           {s.game.map((r) => (
             <div key={r.round} className={box}>
               <p className="text-xs text-neutral-400">
@@ -530,8 +870,8 @@ function Game({ s }: { s: Stats }) {
                 <dd className="text-right tabular-nums text-white">{sec(r.median_human_ms)}</dd>
                 <dt className="text-neutral-400">Best</dt>
                 <dd className="text-right tabular-nums text-white">{sec(r.best_human_ms)}</dd>
-                <dt className="text-neutral-400">Machine</dt>
-                <dd className="text-right tabular-nums text-emerald-300">{msx(r.median_machine_ms)}</dd>
+                <dt className="text-neutral-400">System</dt>
+                <dd className="text-right tabular-nums text-neutral-200">{sec(r.median_machine_ms)}</dd>
               </dl>
             </div>
           ))}
@@ -571,10 +911,30 @@ function Versions({ data, current }: { data: Payload | null; current: string }) 
   );
 }
 
+/** Real / Test: the visitors' numbers, or the team's own test traffic (never mixed). */
+function ViewSwitch({ view, setView }: { view: "real" | "test"; setView: (v: "real" | "test") => void }) {
+  return (
+    <div className="inline-flex rounded-full border border-white/15 p-1" role="group" aria-label="Real or test traffic">
+      {(["real", "test"] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          aria-pressed={view === v}
+          onClick={() => setView(v)}
+          className={`min-h-9 rounded-full px-4 text-sm ${view === v ? (v === "test" ? "bg-amber-400 font-semibold text-amber-950" : "bg-sky-600 font-semibold text-white") : "text-neutral-300 hover:bg-white/5"}`}
+        >
+          {v === "real" ? "Real" : "Test"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function AnalyticsDashboard() {
   const [data, setData] = useState<Payload | null>(null);
   const [state, setState] = useState<"loading" | "ok" | "off" | "error">(collectUrl ? "loading" : "off");
   const [version, setVersion] = useState("all");
+  const [view, setView] = useState<"real" | "test">("real");
 
   const load = useCallback(() => {
     if (!collectUrl) return;
@@ -613,9 +973,26 @@ export function AnalyticsDashboard() {
     );
   if (state === "loading" || !data) return <p className="text-sm text-neutral-400">Loading…</p>;
 
-  const s = data.versions[version] ?? data.versions.all;
+  const isTest = view === "test";
+  const s = isTest ? data.test : data.versions[version] ?? data.versions.all;
+  const testVisitors = data.test_visitors ?? data.test?.visitors;
+  if (!s)
+    return (
+      <div className="flex flex-col gap-4 text-left">
+        <ViewSwitch view={view} setView={setView} />
+        <p className="text-sm text-neutral-400">This collector does not report test traffic separately yet (collector 1.3 does).</p>
+      </div>
+    );
   const tabs = [
-    { label: "Trend", el: <Daily s={s} /> },
+    {
+      label: "Trend",
+      el: (
+        <div className="flex flex-col gap-6">
+          <Daily s={s} />
+          <Hours s={s} />
+        </div>
+      ),
+    },
     {
       label: "Pages & clicks",
       el: (
@@ -658,10 +1035,12 @@ export function AnalyticsDashboard() {
   return (
     <div className="flex flex-col gap-4 text-left">
       <div className="flex flex-wrap items-center gap-3">
+        <ViewSwitch view={view} setView={setView} />
         <label className="flex min-h-11 items-center gap-2 text-sm text-neutral-300">
           Version
           <select
             value={version}
+            disabled={isTest}
             onChange={(e) => setVersion(e.target.value)}
             className="min-h-11 rounded-xl border border-white/15 bg-[#0a1529] px-3 text-white"
           >
@@ -676,11 +1055,27 @@ export function AnalyticsDashboard() {
           <RefreshCw aria-hidden className="size-4" /> Refresh
         </button>
         <span className="text-xs text-neutral-400">
-          {num(data.events)} events{data.test_events ? ` · ${num(data.test_events)} test events ignored` : ""} · updated {new Date(data.generated).toLocaleString("en-GB")} · cached up to 5 min
+          {num(data.events)} real events · {num(data.test_events ?? 0)} test events (kept apart) · updated {new Date(data.generated).toLocaleString("en-GB")} · cached up to 5 min
         </span>
       </div>
+      {isTest && (
+        <p role="status" className="rounded-xl border border-amber-400/60 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+          <span className="mr-2 rounded bg-amber-400 px-1.5 py-0.5 text-xs font-bold text-amber-950">TEST</span>
+          The team&apos;s own traffic only (test mode, automated checks, test-tagged links). None of it is in the real numbers.
+        </p>
+      )}
+      <p className="text-sm text-neutral-300">
+        Real visitors <b className="tabular-nums text-white">{num(data.versions.all.visitors)}</b>
+        {testVisitors !== undefined ? (
+          <>
+            {" "}
+            · Test visitors <b className="tabular-nums text-amber-200">{num(testVisitors)}</b>
+          </>
+        ) : null}
+      </p>
       <Kpis s={s} />
       <Sources s={s} />
+      <WhoVisits s={s} />
       <Provenance data={data} />
       <DirectionAwareTabs
         tabs={tabs.map((t, i) => ({ id: i, label: <TabLabel n={i + 1} text={t.label} />, content: <div className="mt-4 text-left">{t.el}</div> }))}

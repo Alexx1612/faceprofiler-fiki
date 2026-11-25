@@ -11,6 +11,15 @@ export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
   {
+    version: "v1.19",
+    date: "2026-11-26",
+    changes: [
+      "Book a free 30-day pilot again: Google sign-in, optional phone call, e-mail notification to the team; \"Just want updates?\" below",
+      "Analytics: who visits (device, OS, browser, in-app, country and region after consent), real vs test numbers, clearer charts",
+      "Lead rate per visitor and only for newsletter / pilot; the survey is counted apart (collector 1.3)",
+    ],
+  },
+  {
     version: "v1.18",
     date: "2026-11-26",
     changes: [

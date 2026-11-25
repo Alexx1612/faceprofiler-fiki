@@ -22,7 +22,9 @@ const MIN = 60_000;
 let n = 0;
 const ev = (anon, event, min, extra = {}) => ({
   id: `f${n++}`, anon, session: `${anon}-s1`, event, ts: T0 + min * MIN, version: "v1.12", build: "abc1234",
-  path: "/landing/", landing_path: "/landing/", device: "phone", ...extra,
+  path: "/landing/", landing_path: "/landing/", device: "phone",
+  os: "android", browser: "chrome", screen: "400-767", lang: "ro", tz: "Europe/Bucharest", country: "RO", country_name: "Romania", geo_how: "tz",
+  ...extra,
 });
 
 export const rawEvents = [
@@ -31,10 +33,10 @@ export const rawEvents = [
   ev("A", "$autocapture", 1, { referrer_host: "l.facebook.com", utm_source: "facebook", utm_medium: "social", utm_campaign: "launch", utm_content: "parents-group", label: "Book a pilot", props: { tag: "a", href: "#pilot" } }),
   ev("A", "pilot_form_submitted", 3, { referrer_host: "l.facebook.com", utm_source: "facebook", utm_medium: "social", utm_campaign: "launch", utm_content: "parents-group" }),
   // facebook app, no UTM: known only from the referrer host
-  ev("B", "$pageview", 5, { referrer_host: "m.facebook.com" }),
+  ev("B", "$pageview", 5, { referrer_host: "m.facebook.com", os: "ios", browser: "safari", in_app: "facebook", tz: "Europe/London", country: "GB", country_name: "United Kingdom" }),
   ev("B", "$pageleave", 5.2, { referrer_host: "m.facebook.com", props: { duration_ms: 12000 } }),
   // google search
-  ev("C", "$pageview", 6, { referrer_host: "www.google.ro", path: "/", landing_path: "/", device: "desktop" }),
+  ev("C", "$pageview", 6, { referrer_host: "www.google.ro", path: "/", landing_path: "/", device: "desktop", os: "windows", browser: "edge", screen: "1440+", region: "Cluj", geo_how: "ip" }),
   // linkedin app
   ev("D", "$pageview", 7, { referrer_host: "android-app://com.linkedin.android" }),
   ev("D", "survey_opened", 8, { referrer_host: "android-app://com.linkedin.android" }),
@@ -53,7 +55,7 @@ export const rawForms = [
 
 export function buildCsv() {
   const clean = C.cleanEvents(rawEvents, T0 + 60 * MIN);
-  const evRows = C.chainRows(C.GENESIS, clean.map((e, i) => C.eventRow(e, `row-e${i}`, T0 + 60 * MIN + i)));
+  const evRows = C.chainRows(C.GENESIS, clean.map((e, i) => C.eventRow(e, `row-e${i}`, T0 + 60 * MIN + i)), C.EVENT_CHAIN_IDX);
   const foRows = C.chainRows(
     C.GENESIS,
     rawForms.map((f, i) => C.formRow(C.cleanForm(f, T0 + 61 * MIN), `row-f${i}`, T0 + 61 * MIN + i)),

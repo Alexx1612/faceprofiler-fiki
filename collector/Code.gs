@@ -32,13 +32,20 @@
  *   web app. The "@provenance" markers delimit the code that the /analytics/ page links to.
  */
 
-var COLLECTOR_VERSION = "1.2";
-/** Sheet columns, in order. "chain" is always last; every other cell of the row is hashed into it. */
-var EVENT_HEADERS = [
+var COLLECTOR_VERSION = "1.3";
+/**
+ * Sheet columns, in order. Every cell of a row except "chain" is hashed into "chain".
+ * Rows written before collector 1.3 stop at "chain" (24 cells). From 1.3 the columns after "chain" hold who
+ * visits; "schema" is always "2" there, so a row with an empty "schema" is an old row and is hashed as before.
+ */
+var LEGACY_EVENT_HEADERS = [
   "row_id", "received_at", "id", "ts", "version", "build", "anon", "session", "event", "path", "landing_path",
   "referrer_host", "utm_source", "utm_medium", "utm_campaign", "utm_content", "source", "medium", "source_how",
   "device", "label", "props", "test", "chain",
 ];
+var WHO_FIELDS = ["os", "browser", "in_app", "screen", "lang", "tz", "country", "country_name", "region", "geo_how"];
+var EVENT_HEADERS = LEGACY_EVENT_HEADERS.concat(["schema"], WHO_FIELDS);
+var EVENT_CHAIN_IDX = EVENT_HEADERS.indexOf("chain");
 var FORM_HEADERS = ["row_id", "received_at", "version", "form", "anon", "path", "data", "test", "chain"];
 var GENESIS = "nau-ino:genesis";
 /** Above this many rows the stats endpoint skips re-checking the chain (time limit); verify.mjs still can. */
@@ -61,7 +68,7 @@ var FUNNEL = [
   // path may carry the GitHub Pages base path ("/faceprofiler-fiki/landing/"), so match the segment anywhere
   { name: "Landing page", match: function (e) { return e.event === "$pageview" && /(^|\/)landing(\/|$)/.test(String(e.path)); } },
   { name: "Book a pilot or survey opened", match: function (e) { return e.event === "cta_book_pilot_click" || e.event === "survey_opened"; } },
-  { name: "Form or survey sent", match: function (e) { return e.event === "pilot_form_submitted" || e.event === "updates_form_submitted" || e.event === "survey_submitted"; } },
+  { name: "Form or survey sent", match: function (e) { return e.event === "pilot_form_submitted" || e.event === "pilot_requested" || e.event === "updates_form_submitted" || e.event === "survey_submitted"; } },
 ];
 
 /* ---------------- web app entry points (Apps Script only) ---------------- */
@@ -96,6 +103,7 @@ function storeForm_(msg) {
   if (f.error) return { errors: [{ message: f.error }] };
   if (f.spam) return { ok: true };
   if (!rateOk_(f.anon || "form", 5)) return { errors: [{ message: "Slow down." }] };
+  if (f.form === "pilot") f = typeof handlePilot_ === "function" ? handlePilot_(f) : (delete f.data.id_token, f); // Pilot.gs: verify Google sign-in, notify; never store the token
   append_("forms", FORM_HEADERS, [formRow(f, Utilities.getUuid(), now)]);
   return { ok: true };
 }
@@ -108,8 +116,9 @@ function append_(name, headers, rows) {
   try {
     var sh = sheet_(name, headers);
     var last = sh.getLastRow();
-    var prev = last >= 2 ? String(sh.getRange(last, headers.length).getValue()) : GENESIS;
-    var chained = chainRows(prev, rows);
+    var idx = headers.indexOf("chain");
+    var prev = last >= 2 ? String(sh.getRange(last, idx + 1).getValue()) : GENESIS;
+    var chained = chainRows(prev, rows, idx);
     var range = sh.getRange(last + 1, 1, chained.length, headers.length);
     range.setNumberFormat("@"); // plain text: a CSV download then holds exactly the hashed strings
     range.setValues(chained);
@@ -128,7 +137,7 @@ function doGet(e) {
   var ev = readSheet_(ss, "events", EVENT_HEADERS);
   var fo = readSheet_(ss, "forms", FORM_HEADERS);
   var stats = aggregate(rowsToObjects(EVENT_HEADERS, ev), rowsToObjects(FORM_HEADERS, fo), new Date().getTime());
-  stats.integrity = { collector: COLLECTOR_VERSION, events: chainSummary(ev), forms: chainSummary(fo) };
+  stats.integrity = { collector: COLLECTOR_VERSION, events: chainSummary(ev, EVENT_CHAIN_IDX), forms: chainSummary(fo) };
   var out = JSON.stringify(stats);
   try { cache.put("stats", out, 300); } catch (err) { /* over 100 KB: serve uncached */ }
   return ContentService.createTextOutput(out).setMimeType(ContentService.MimeType.JSON);
@@ -144,6 +153,9 @@ function sheet_(name, headers) {
   if (sh.getLastRow() === 0) {
     sh.getRange(1, 1, 1, headers.length).setNumberFormat("@").setValues([headers]);
     sh.setFrozenRows(1);
+  } else if (sh.getLastColumn() < headers.length) {
+    // collector update added columns after "chain": extend the header row; old rows keep their cells
+    sh.getRange(1, 1, 1, headers.length).setNumberFormat("@").setValues([headers]);
   }
   return sh;
 }
@@ -179,6 +191,12 @@ function cut(v, n) {
   return v === undefined || v === null ? "" : String(v).slice(0, n);
 }
 
+/** A short lower-case token ("ios", "chrome", "facebook") or "". */
+function word(v, n) {
+  var s = String(v || "").toLowerCase();
+  return /^[a-z0-9_-]+$/.test(s) ? s.slice(0, n) : "";
+}
+
 /** A sheet cell as text. A leading = + @ gets a space so Sheets never runs it as a formula. */
 function cell(v) {
   var s = v === undefined || v === null ? "" : typeof v === "boolean" ? (v ? "true" : "false") : String(v);
@@ -199,35 +217,48 @@ function sha256Hex(str) {
   return require("crypto").createHash("sha256").update(str, "utf8").digest("hex");
 }
 
-/** Append the chain cell to each row: chain = SHA-256(previous chain + "\n" + canonical(row)). */
-function chainRows(prev, rows) {
+/**
+ * Add the chain cell to each row: chain = SHA-256(previous chain + "\n" + canonical(row)). `idx` is the
+ * chain column (default: last); the cells after it are hashed too.
+ */
+function chainRows(prev, rows, idx) {
   return rows.map(function (r) {
     var cells = r.map(cell);
     prev = sha256Hex(prev + "\n" + canonical(cells));
-    return cells.concat([prev]);
+    var at = idx === undefined || idx >= cells.length ? cells.length : idx;
+    return cells.slice(0, at).concat([prev], cells.slice(at));
   });
+}
+
+/** The cells of a stored row that were hashed: all but the chain; old rows (empty "schema") stop at the chain. */
+function hashedCells(r, idx) {
+  if (idx === undefined || idx >= r.length - 1) return r.slice(0, -1);
+  if (r[idx + 1] === "" || r[idx + 1] === undefined) return r.slice(0, idx);
+  return r.slice(0, idx).concat(r.slice(idx + 1));
 }
 
 /**
  * Re-check a chain from the stored cells (arrays of strings, chain last). Returns the number of rows, the
  * last chain value and the first row (0-based) whose chain does not match, or -1 when all match.
  */
-function verifyChain(rows) {
+function verifyChain(rows, idx) {
   var prev = GENESIS;
+  var at = function (r) { return idx === undefined ? r.length - 1 : idx; };
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i];
-    var want = sha256Hex(prev + "\n" + canonical(r.slice(0, -1)));
-    if (want !== r[r.length - 1]) return { rows: rows.length, head: rows[rows.length - 1][r.length - 1], broken: i };
+    var want = sha256Hex(prev + "\n" + canonical(hashedCells(r, idx)));
+    if (want !== r[at(r)]) return { rows: rows.length, head: rows[rows.length - 1][at(rows[rows.length - 1])], broken: i };
     prev = want;
   }
   return { rows: rows.length, head: rows.length ? prev : "", broken: -1 };
 }
 
 /** Chain facts for the stats endpoint: rows, head and whether the chain still holds. */
-function chainSummary(rows) {
+function chainSummary(rows, idx) {
   if (!rows.length) return { rows: 0, chain_head: "", chain_ok: true, first_broken_row: null };
-  if (rows.length > CHAIN_CHECK_MAX) return { rows: rows.length, chain_head: rows[rows.length - 1][rows[0].length - 1], chain_ok: null, first_broken_row: null };
-  var v = verifyChain(rows);
+  var lastRow = rows[rows.length - 1];
+  if (rows.length > CHAIN_CHECK_MAX) return { rows: rows.length, chain_head: lastRow[idx === undefined ? lastRow.length - 1 : idx], chain_ok: null, first_broken_row: null };
+  var v = verifyChain(rows, idx);
   // first_broken_row is the Sheet row number (row 1 is the header)
   return { rows: v.rows, chain_head: v.head, chain_ok: v.broken === -1, first_broken_row: v.broken === -1 ? null : v.broken + 2 };
 }
@@ -243,7 +274,8 @@ function eventRow(ev, rowId, receivedAt) {
   o.medium = c.medium;
   o.source_how = c.how;
   o.props = JSON.stringify(ev.props || {});
-  return EVENT_HEADERS.slice(0, -1).map(function (h) { return o[h]; });
+  o.schema = "2";
+  return EVENT_HEADERS.filter(function (h) { return h !== "chain"; }).map(function (h) { return o[h]; });
 }
 
 /** One forms-sheet row (without chain). */
@@ -307,6 +339,16 @@ function cleanEvents(events, now) {
       label: cut(e.label, 60),
       props: props,
       test: isTest(e.test),
+      os: word(e.os, 12),
+      browser: word(e.browser, 12),
+      in_app: word(e.in_app, 12),
+      screen: /^[0-9<+-]{2,10}$/.test(String(e.screen || "")) ? String(e.screen) : "",
+      lang: /^[a-z]{2}$/.test(String(e.lang || "")) ? String(e.lang) : "",
+      tz: /^[A-Za-z_]+(\/[A-Za-z_+-]+){0,2}$/.test(String(e.tz || "")) ? cut(e.tz, 40) : "",
+      country: /^[A-Z]{2}$/.test(String(e.country || "")) ? String(e.country) : "",
+      country_name: cut(e.country_name, 40),
+      region: cut(e.region, 60),
+      geo_how: e.geo_how === "ip" || e.geo_how === "tz" ? e.geo_how : "",
     });
   }
   return out;
@@ -369,7 +411,13 @@ function sessionize(events) {
   return sessions;
 }
 
-var SUBMIT_EVENTS = { pilot_form_submitted: 1, updates_form_submitted: 1, survey_submitted: 1 };
+var SUBMIT_EVENTS = { pilot_form_submitted: 1, pilot_requested: 1, updates_form_submitted: 1, survey_submitted: 1 };
+/**
+ * What a submit event counts as. Leads (someone left their contact) are the newsletter sign-up and the pilot
+ * request; the survey is anonymous feedback, so it is counted on its own and never inflates the lead rate.
+ */
+var FORM_KIND = { updates_form_submitted: "newsletter", pilot_form_submitted: "pilot", pilot_requested: "pilot", survey_submitted: "survey" };
+var LEAD_KINDS = { newsletter: 1, pilot: 1 };
 var DIRECT = "direct / unknown";
 
 // @provenance:classify:start
@@ -441,10 +489,16 @@ function referrals(sessions) {
   sessions.forEach(function (s) {
     var first = s.events[0]; // first touch: the session's first event decides its source
     var c = classifySource(first);
-    var r = by[c.source] = by[c.source] || { source: c.source, anons: {}, sessions: 0, conversions: 0, campaigns: {}, contents: {}, landing: {}, mediums: {}, how: {}, hosts: {} };
+    var r = by[c.source] = by[c.source] || { source: c.source, anons: {}, sessions: 0, leads: {}, kinds: { newsletter: {}, pilot: {}, survey: {} }, campaigns: {}, contents: {}, landing: {}, mediums: {}, how: {}, hosts: {} };
     r.anons[s.anon] = 1;
     r.sessions++;
-    if (s.events.some(function (e) { return SUBMIT_EVENTS[e.event]; })) r.conversions++;
+    // per visitor, not per session: one person who signs up twice (or in two tabs) counts once
+    s.events.forEach(function (e) {
+      var kind = FORM_KIND[e.event];
+      if (!kind) return;
+      r.kinds[kind][s.anon] = 1;
+      if (LEAD_KINDS[kind]) r.leads[s.anon] = 1;
+    });
     bump(r.campaigns, first.utm_campaign);
     bump(r.contents, first.utm_content);
     bump(r.mediums, c.medium);
@@ -460,8 +514,14 @@ function referrals(sessions) {
         source: r.source,
         visitors: Object.keys(r.anons).length,
         sessions: r.sessions,
-        conversions: r.conversions,
-        conversion_rate: r.sessions ? r.conversions / r.sessions : 0,
+        // conversions = visitors who left their contact (newsletter or pilot); rate = of this source's visitors
+        conversions: Object.keys(r.leads).length,
+        conversion_rate: Object.keys(r.anons).length ? Object.keys(r.leads).length / Object.keys(r.anons).length : 0,
+        by_form: {
+          newsletter: Object.keys(r.kinds.newsletter).length,
+          pilot: Object.keys(r.kinds.pilot).length,
+          survey: Object.keys(r.kinds.survey).length,
+        },
         mediums: top(r.mediums, 4),
         how: top(r.how, 3),
         referrer_hosts: top(r.hosts, 8),
@@ -532,6 +592,74 @@ function gameStats(events) {
 }
 
 /** All metrics for one set of events and form rows. */
+var WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+var LOCAL_TZ = "Europe/Bucharest";
+var localFmt = null;
+
+/** Weekday (0 = Monday) and hour of a timestamp in Romanian time. */
+function localSlot(ts) {
+  if (!localFmt) localFmt = new Intl.DateTimeFormat("en-GB", { timeZone: LOCAL_TZ, weekday: "short", hour: "2-digit", hour12: false });
+  var parts = localFmt.formatToParts(new Date(ts));
+  var wd = "", hr = 0;
+  parts.forEach(function (p) {
+    if (p.type === "weekday") wd = p.value;
+    if (p.type === "hour") hr = Number(p.value) % 24;
+  });
+  return { weekday: Math.max(0, WEEKDAYS.indexOf(wd)), hour: hr };
+}
+
+/**
+ * Who visits, counted once per visitor: the last non-empty value each visitor reported (the country from the
+ * IP lookup arrives after consent, so it replaces the time-zone guess). Countries keep how they were found.
+ */
+function whoVisits(events) {
+  var byAnon = {};
+  events.slice().sort(function (a, b) { return a.ts - b.ts; }).forEach(function (e) {
+    var v = (byAnon[e.anon] = byAnon[e.anon] || {});
+    ["device"].concat(WHO_FIELDS).forEach(function (k) {
+      if (e[k]) v[k] = e[k];
+    });
+    if (!v.browser && e.props && e.props.browser) v.browser = String(e.props.browser).toLowerCase();
+  });
+  var m = { device: {}, os: {}, browser: {}, in_app: {}, screen: {}, lang: {} };
+  var countries = {}, names = {}, how = {}, regions = {};
+  Object.keys(byAnon).forEach(function (a) {
+    var v = byAnon[a];
+    Object.keys(m).forEach(function (k) { bump(m[k], v[k] || (k === "in_app" ? "" : "unknown")); });
+    var cc = v.country || "??";
+    bump(countries, cc);
+    if (v.country_name) names[cc] = v.country_name;
+    how[cc] = how[cc] || {};
+    bump(how[cc], v.geo_how || "none");
+    if (v.region && v.country) bump(regions, v.country + "|" + v.region);
+  });
+  return {
+    devices: top(m.device, 5),
+    os: top(m.os, 8),
+    browsers: top(m.browser, 8),
+    in_app: top(m.in_app, 8),
+    screens: top(m.screen, 8),
+    langs: top(m.lang, 8),
+    countries: top(countries, 20).map(function (c) {
+      return { key: c.key, name: names[c.key] || (c.key === "??" ? "Unknown" : c.key), visitors: c.count, how: top(how[c.key] || {}, 3) };
+    }),
+    regions: top(regions, 25).map(function (r) {
+      var parts = r.key.split("|");
+      return { country: parts[0], region: parts[1], visitors: r.count };
+    }),
+  };
+}
+
+/** Sessions started per weekday × hour (Romanian time): a 7 × 24 grid. */
+function hourGrid(sessions) {
+  var grid = WEEKDAYS.map(function () { return Array(24).fill(0); });
+  sessions.forEach(function (s) {
+    var slot = localSlot(s.start);
+    grid[slot.weekday][slot.hour]++;
+  });
+  return { tz: LOCAL_TZ, weekdays: WEEKDAYS, grid: grid };
+}
+
 function statsFor(events, forms) {
   var anons = {}, pages = {}, devices = {}, clicks = {}, daily = {};
   var pageviews = 0;
@@ -618,6 +746,8 @@ function statsFor(events, forms) {
     survey_free_text: top(freeText, 30),
     game: gameOut.rounds,
     game_summary: gameOut.summary,
+    who: whoVisits(events),
+    hours: hourGrid(sessions),
     daily: Object.keys(daily).sort().map(function (k) {
       return { date: k, pageviews: daily[k].pageviews, visitors: Object.keys(daily[k].v).length };
     }),
@@ -635,7 +765,8 @@ function aggregate(events, forms, now) {
     if (TEST_SOURCES[tag] && e.anon) testAnon[e.anon] = 1;
   });
   var isTestRow = function (r) { return isTest(r.test) || Boolean(r.anon && testAnon[r.anon]); };
-  var testEvents = events.filter(isTestRow).length + forms.filter(isTestRow).length;
+  var testEvRows = events.filter(isTestRow), testFoRows = forms.filter(isTestRow);
+  var testEvents = testEvRows.length + testFoRows.length;
   events = events.filter(function (e) { return !isTestRow(e); });
   forms = forms.filter(function (f) { return !isTestRow(f); });
   var seen = {};
@@ -649,6 +780,9 @@ function aggregate(events, forms, now) {
   forms.forEach(function (f) { versions[f.version || "unknown"] = 1; });
   var out = { generated: now, collector: COLLECTOR_VERSION, events: events.length, test_events: testEvents, versions: {} };
   out.versions.all = statsFor(events, forms);
+  // the team's own test traffic, counted the same way but kept apart (the dashboard's "Test" view)
+  out.test = statsFor(testEvRows, testFoRows);
+  out.test_visitors = out.test.visitors;
   Object.keys(versions).forEach(function (v) {
     out.versions[v] = statsFor(
       events.filter(function (e) { return (e.version || "unknown") === v; }),
@@ -662,6 +796,8 @@ function aggregate(events, forms, now) {
 if (typeof module !== "undefined") {
   module.exports = {
     COLLECTOR_VERSION: COLLECTOR_VERSION, TEST_SOURCES: TEST_SOURCES, EVENT_HEADERS: EVENT_HEADERS, FORM_HEADERS: FORM_HEADERS, GENESIS: GENESIS,
+    LEGACY_EVENT_HEADERS: LEGACY_EVENT_HEADERS, EVENT_CHAIN_IDX: EVENT_CHAIN_IDX, WHO_FIELDS: WHO_FIELDS, hashedCells: hashedCells,
+    whoVisits: whoVisits, hourGrid: hourGrid, localSlot: localSlot,
     isTest: isTest, cleanEvents: cleanEvents, cleanForm: cleanForm, normalizeSource: normalizeSource, classifySource: classifySource,
     hostOnly: hostOnly, cell: cell, canonical: canonical, sha256Hex: sha256Hex, chainRows: chainRows, verifyChain: verifyChain,
     chainSummary: chainSummary, eventRow: eventRow, formRow: formRow, rowsToObjects: rowsToObjects,

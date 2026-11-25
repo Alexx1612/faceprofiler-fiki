@@ -5,29 +5,29 @@
       "id": "capture",
       "file": "lib/collect.ts",
       "fn": "referrerHost",
-      "from": 116,
-      "to": 180
+      "from": 219,
+      "to": 291
     },
     {
       "id": "classify",
       "file": "collector/Code.gs",
       "fn": "classifySource",
-      "from": 376,
-      "to": 435
+      "from": 424,
+      "to": 483
     },
     {
       "id": "store",
       "file": "collector/Code.gs",
       "fn": "doPost",
-      "from": 70,
-      "to": 119
+      "from": 77,
+      "to": 128
     },
     {
       "id": "aggregate",
       "file": "collector/Code.gs",
       "fn": "aggregate",
-      "from": 628,
-      "to": 659
+      "from": 758,
+      "to": 793
     }
   ]
 }

@@ -67,7 +67,10 @@ test("verify: an untouched download passes and recomputes the dashboard numbers"
   assert.deepEqual(fb.how.map((h) => h.key).sort(), ["referrer", "utm"]);
   assert.deepEqual(fb.referrer_hosts.map((h) => h.key).sort(), ["l.facebook.com", "m.facebook.com"]);
   assert.equal(fb.mediums[0].key, "social");
-  assert.equal(all.sources.find((s) => s.source === "linkedin").conversions, 1);
+  // the linkedin visitor only answered the survey: feedback, not a lead
+  const li = all.sources.find((s) => s.source === "linkedin");
+  assert.equal(li.conversions, 0);
+  assert.equal(li.by_form.survey, 1);
   assert.equal(JSON.stringify(r.stats).includes("free text"), false);
 });
 
@@ -94,7 +97,7 @@ test("verify: a re-hashed chain with a faked source is still caught by re-classi
   const [head, ...data] = rows;
   const iSource = head.indexOf("source");
   data[5][iSource] = "linkedin"; // claim the google visit came from linkedin...
-  const rechained = C.chainRows(C.GENESIS, data.map((r) => r.slice(0, -1))); // ...and recompute every hash
+  const rechained = C.chainRows(C.GENESIS, data.map((r) => C.hashedCells(r, C.EVENT_CHAIN_IDX)), C.EVENT_CHAIN_IDX); // ...and recompute every hash
   const r = verify(relines([head, ...rechained]));
   assert.equal(r.events.ok, true);
   assert.equal(r.ok, false);
@@ -103,9 +106,9 @@ test("verify: a re-hashed chain with a faked source is still caught by re-classi
 
 test("chainSummary reports the sheet row where the chain breaks", () => {
   const rows = parseCsv(fixture("events.csv")).filter((r) => r.length > 1).slice(1);
-  assert.deepEqual(C.chainSummary(rows), { rows: 12, chain_head: rows[11][rows[0].length - 1], chain_ok: true, first_broken_row: null });
+  assert.deepEqual(C.chainSummary(rows, C.EVENT_CHAIN_IDX), { rows: 12, chain_head: rows[11][C.EVENT_CHAIN_IDX], chain_ok: true, first_broken_row: null });
   rows[7][8] = "$pageleave";
-  assert.equal(C.chainSummary(rows).first_broken_row, 9);
+  assert.equal(C.chainSummary(rows, C.EVENT_CHAIN_IDX).first_broken_row, 9);
   assert.deepEqual(C.chainSummary([]), { rows: 0, chain_head: "", chain_ok: true, first_broken_row: null });
 });
 
@@ -164,4 +167,21 @@ test("game: players, finished all rounds, score 0-5 per player (5 rounds), best 
   assert.equal(r["4"].people, 10);
   assert.equal(r["5"].best_human_ms, 9000);
   assert.equal(JSON.stringify(out).includes("free text"), false);
+});
+
+test("a download made before collector 1.3 still verifies, and old and new rows chain together", () => {
+  const legacy = verify(fixture("events-legacy.csv"), fixture("forms.csv"));
+  assert.equal(legacy.ok, true);
+  assert.equal(legacy.events.count, 12);
+  assert.equal(legacy.stats.versions.all.visitors, 5);
+  // a sheet whose first rows are old (24 cells) and later rows new: the chain runs on across the switch
+  const old = parseCsv(fixture("events-legacy.csv")).filter((r) => r.length > 1).slice(1);
+  const head = old[old.length - 1][C.EVENT_CHAIN_IDX];
+  const [fresh] = C.cleanEvents([{ event: "$pageview", anon: "N", id: "n1", ts: 1795600000000, os: "ios", country: "RO", region: "Iasi", geo_how: "ip" }], 1795600000000);
+  const newRows = C.chainRows(head, [C.eventRow(fresh, "row-n1", 1795600000001)], C.EVENT_CHAIN_IDX);
+  const width = C.EVENT_HEADERS.length;
+  const mixed = [...old.map((r) => r.concat(Array(width - r.length).fill(""))), ...newRows];
+  assert.equal(C.chainSummary(mixed, C.EVENT_CHAIN_IDX).chain_ok, true);
+  mixed[12][C.EVENT_HEADERS.indexOf("region")] = "Cluj"; // edit a new who-visits cell
+  assert.equal(C.chainSummary(mixed, C.EVENT_CHAIN_IDX).first_broken_row, 14);
 });

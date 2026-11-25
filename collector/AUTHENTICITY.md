@@ -23,11 +23,20 @@ lib/collect.ts                       doPost → cleanEvents → classifySource  
 | Page path, landing page, event name, click label | IP address (Apps Script never sees it) |
 | Referrer **host** only (`l.facebook.com`) | Full referrer URL, its path or query |
 | utm_source / medium / campaign / content from our own links | User-agent string, fingerprint |
-| Device bucket (phone / tablet / desktop), browser family | What people type into fields (except form answers they send) |
+| Device bucket (phone / tablet / desktop), OS family, browser family, in-app browser (Facebook, Instagram, WhatsApp…), screen-width bucket, language, time zone | What people type into fields (except form answers they send) |
+| Approximate location: country (from the time zone, or after Accept from one IP lookup) and region / county (only after Accept) | IP address, city, coordinates (the browser drops them from the lookup reply before sending) |
 | Site version and git commit of the page | |
 | Form answers (survey, pilot, updates) in the `forms` tab | Free-text answers in the public stats (only counted) |
 
-Visitors with Do-Not-Track or Global Privacy Control switched on are not recorded at all. The owner's own visits (test mode) are stored but excluded from every number.
+Visitors with Do-Not-Track or Global Privacy Control switched on are not recorded at all. The owner's own visits (test mode, automated checks, links tagged `utm_source=selftest` / `probe` / `test`) are stored but kept out of every real number; /analytics/ shows them on their own under **Test**.
+
+**Approximate location, in detail.** Without consent the country is guessed from the browser's time zone
+(`Europe/Bucharest` → Romania), with no network call. Only after the visitor clicks **Accept** on the consent
+bar, the browser asks a free geo-IP service once per session (`ipwho.is`, then `ipapi.co`, 3 s timeout) and
+keeps three fields of the reply: country code, country name and region. The IP address, city and
+coordinates in that reply are discarded in the browser and never reach the collector. Each country row on
+/analytics/ says how it was found ("IP lookup" or "time zone"). Region is the first level below country
+(county / județ in Romania, state elsewhere) as the service reports it.
 
 ## How the source of a visit is decided
 

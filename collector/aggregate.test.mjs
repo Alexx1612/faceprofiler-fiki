@@ -172,3 +172,64 @@ test("visitors who came through a test-tagged link (utm_source=selftest/probe) a
   assert.equal(out.versions.all.visitors, 1);
   assert.deepEqual(out.versions.all.sources.map((s) => s.source), ["whatsapp"]);
 });
+
+test("who visits: one count per visitor, IP country replaces the time-zone guess, regions per country", () => {
+  const T = Date.UTC(2026, 10, 26, 7, 0); // Thursday 09:00 in Bucharest
+  let k = 0;
+  const e = (anon, extra = {}, min = 0) => ({ id: `w${k++}`, anon, session: `${anon}1`, event: "$pageview", ts: T + min * 60000, version: "v1", path: "/landing/", device: "phone", ...extra });
+  const events = [
+    e("A", { os: "ios", browser: "safari", in_app: "instagram", screen: "400-767", lang: "ro", tz: "Europe/Bucharest", country: "RO", country_name: "Romania", geo_how: "tz" }),
+    e("A", { os: "ios", browser: "safari", in_app: "instagram", country: "RO", country_name: "Romania", region: "Cluj", geo_how: "ip" }, 1),
+    e("A", { os: "ios" }, 2), // later events without geo do not erase it
+    e("B", { os: "android", browser: "chrome", country: "RO", country_name: "Romania", region: "Bucharest", geo_how: "ip" }),
+    e("C", { os: "windows", browser: "edge", device: "desktop", tz: "Europe/London", country: "GB", country_name: "United Kingdom", geo_how: "tz" }),
+    e("D", { props: { browser: "Chrome" } }), // a pre-1.3 row: browser only in props, no country
+  ];
+  const w = C.statsFor(events, []).who;
+  assert.deepEqual(w.countries.map((c) => [c.key, c.name, c.visitors]), [["RO", "Romania", 2], ["??", "Unknown", 1], ["GB", "United Kingdom", 1]]);
+  assert.deepEqual(w.countries[0].how, [{ key: "ip", count: 2 }]);
+  assert.deepEqual(w.regions, [{ country: "RO", region: "Bucharest", visitors: 1 }, { country: "RO", region: "Cluj", visitors: 1 }]);
+  assert.deepEqual(Object.fromEntries(w.os.map((x) => [x.key, x.count])), { ios: 1, android: 1, windows: 1, unknown: 1 });
+  assert.deepEqual(Object.fromEntries(w.browsers.map((x) => [x.key, x.count])), { safari: 1, chrome: 2, edge: 1 });
+  assert.deepEqual(w.in_app, [{ key: "instagram", count: 1 }]);
+  assert.deepEqual(Object.fromEntries(w.devices.map((x) => [x.key, x.count])), { phone: 3, desktop: 1 });
+});
+
+test("hour heatmap counts sessions by weekday and hour in Romanian time", () => {
+  const thu0700utc = Date.UTC(2026, 10, 26, 7, 0); // Thu 09:00 EET
+  const sat2330utc = Date.UTC(2026, 10, 28, 23, 30); // Sun 01:30 EET
+  const ev = (anon, ts) => ({ id: anon, anon, session: anon, event: "$pageview", ts, version: "v1", path: "/" });
+  const h = C.statsFor([ev("a", thu0700utc), ev("b", thu0700utc + 60000), ev("c", sat2330utc)], []).hours;
+  assert.equal(h.tz, "Europe/Bucharest");
+  assert.equal(h.grid[3][9], 2);
+  assert.equal(h.grid[6][1], 1);
+  assert.equal(h.grid.flat().reduce((a, b) => a + b, 0), 3);
+});
+
+test("test traffic is aggregated on its own, real numbers stay clean", () => {
+  const T = Date.UTC(2026, 10, 26);
+  const ev = (anon, extra = {}) => ({ id: `x${anon}${extra.event || ""}`, anon, session: anon, event: "$pageview", ts: T, version: "v1", path: "/landing/", ...extra });
+  const out = C.aggregate([ev("R"), ev("T1", { test: true }), ev("T2", { utm_source: "selftest" }), ev("T2", { event: "survey_opened", ts: T + 1000 })], [], T);
+  assert.equal(out.versions.all.visitors, 1);
+  assert.equal(out.test_visitors, 2);
+  assert.equal(out.test.visitors, 2);
+  assert.equal(out.test.pageviews, 2);
+  assert.equal(out.test_events, 4 - 1);
+});
+
+test("lead rate is per visitor and counts only newsletter / pilot, not the survey", () => {
+  const T = Date.UTC(2026, 10, 26);
+  let k = 0;
+  const e = (anon, session, event) => ({ id: `c${k++}`, anon, session, event, ts: T + k * 1000, version: "v1.18", path: "/landing/", device: "phone", utm_source: "whatsapp" });
+  const events = [
+    e("A", "A1", "$pageview"), e("A", "A1", "updates_form_submitted"), e("A", "A2", "$pageview"), e("A", "A2", "updates_form_submitted"), // same person twice
+    e("B", "B1", "$pageview"), e("B", "B1", "survey_submitted"), // survey only
+    e("C", "C1", "$pageview"), e("C", "C1", "pilot_requested"),
+    e("D", "D1", "$pageview"),
+  ];
+  const wa = C.aggregate(events, [], T).versions.all.sources.find((s) => s.source === "whatsapp");
+  assert.equal(wa.visitors, 4);
+  assert.equal(wa.conversions, 2); // A (once) and C
+  assert.equal(wa.conversion_rate, 0.5);
+  assert.deepEqual(wa.by_form, { newsletter: 1, pilot: 1, survey: 1 });
+});

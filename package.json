@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "deploy": "node scripts/deploy-pages.mjs",
-    "test:collector": "node --test collector/aggregate.test.mjs collector/verify.test.mjs collector/code-links.test.mjs collector/no-real-names.test.mjs",
+    "test:collector": "node --test collector/aggregate.test.mjs collector/verify.test.mjs collector/code-links.test.mjs collector/no-real-names.test.mjs collector/pilot.test.mjs",
     "predeploy": "npm run test:collector",
     "prebuild": "node scripts/code-links.mjs"
   },

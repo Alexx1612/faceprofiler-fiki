@@ -7,7 +7,11 @@
  *   visitor accepts the consent bar; after Accept it moves to localStorage. Never derived from the device.
  * - Session id: new after 30 minutes without events. Every event carries the site version (lib/versions.ts),
  *   path, landing page of the session, referring host (not the full URL, and none for our own pages), utm_* from the landing URL
- *   (kept for the session), device bucket and browser family. No IP, no user-agent string.
+ *   (kept for the session), device bucket, OS and browser family, in-app browser (Facebook, Instagram…),
+ *   screen-width bucket, language and time zone. No IP, no user-agent string.
+ * - Approximate location: the country is guessed from the browser's time zone (no network call). Only after
+ *   the visitor clicks Accept, one lookup per session asks a free geo-IP service for country and region;
+ *   only the country code, country name and region are kept and sent, never the IP, city or coordinates.
  * - $pageview on load and on client-side navigation, $pageleave with time on page, $autocapture clicks
  *   on links and buttons with a stable label (data-track, else aria-label, else visible text; never input
  *   values or DOM paths), so click totals add up across site versions.
@@ -21,10 +25,10 @@ import { siteVersion } from "@/lib/versions";
 
 export const collectUrl = process.env.NEXT_PUBLIC_COLLECT_URL ?? "";
 /** The collector/Code.gs version this site expects; /analytics/ asks the owner to update the Apps Script when it reports an older one. Kept equal to COLLECTOR_VERSION by a test. */
-export const EXPECTED_COLLECTOR = "1.2";
+export const EXPECTED_COLLECTOR = "1.3";
 const build = process.env.NEXT_PUBLIC_SITE_BUILD ?? "";
 const SESSION_IDLE_MS = 30 * 60 * 1000;
-const K = { test: "nauino:test", anon: "nauino:aid", consent: "nauino:consent", session: "nauino:sid", seen: "nauino:seen", utm: "nauino:utm", landing: "nauino:land" };
+const K = { test: "nauino:test", anon: "nauino:aid", consent: "nauino:consent", session: "nauino:sid", seen: "nauino:seen", utm: "nauino:utm", landing: "nauino:land", geo: "nauino:geo" };
 
 type Props = Record<string, unknown>;
 type Event = Record<string, unknown> & { event: string; props?: Props };
@@ -103,13 +107,112 @@ function device(): string {
 
 function browser(): string {
   const ua = navigator.userAgent;
-  if (/Edg\//.test(ua)) return "edge";
+  if (/Edg(A|iOS)?\//.test(ua)) return "edge";
   if (/OPR\//.test(ua)) return "opera";
   if (/SamsungBrowser/.test(ua)) return "samsung";
-  if (/Firefox\//.test(ua)) return "firefox";
-  if (/Chrome\//.test(ua)) return "chrome";
+  if (/Firefox\/|FxiOS\//.test(ua)) return "firefox";
+  if (/Chrome\/|CriOS\//.test(ua)) return "chrome";
   if (/Safari\//.test(ua)) return "safari";
   return "other";
+}
+
+/** Operating system family from the user agent (the string itself is never sent). */
+function os(): string {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
+  if (/Android/.test(ua)) return "android";
+  if (/Windows/.test(ua)) return "windows";
+  if (/CrOS/.test(ua)) return "chromeos";
+  if (/Mac OS X|Macintosh/.test(ua)) return "macos";
+  if (/Linux/.test(ua)) return "linux";
+  return "other";
+}
+
+/** The app whose built-in browser opened the page, if any (links shared in chats and feeds). */
+function inApp(): string {
+  const ua = navigator.userAgent;
+  if (/FBAN|FBAV|FB_IAB/.test(ua)) return "facebook";
+  if (/Instagram/.test(ua)) return "instagram";
+  if (/WhatsApp/i.test(ua)) return "whatsapp";
+  if (/LinkedInApp/.test(ua)) return "linkedin";
+  if (/TikTok|musical_ly|BytedanceWebview/.test(ua)) return "tiktok";
+  if (/Snapchat/.test(ua)) return "snapchat";
+  if (/GSA\//.test(ua)) return "google-app";
+  if (/; wv\)/.test(ua)) return "webview";
+  return "";
+}
+
+function screenBucket(): string {
+  const w = screen?.width || window.innerWidth;
+  return w < 360 ? "<360" : w < 400 ? "360-399" : w < 768 ? "400-767" : w < 1024 ? "768-1023" : w < 1440 ? "1024-1439" : "1440+";
+}
+
+/** Common time zones → country (code, name). Unknown zones still send the zone itself. */
+const TZ_COUNTRY: Record<string, [string, string]> = {
+  "Europe/Bucharest": ["RO", "Romania"], "Europe/Chisinau": ["MD", "Moldova"], "Europe/London": ["GB", "United Kingdom"],
+  "Europe/Dublin": ["IE", "Ireland"], "Europe/Berlin": ["DE", "Germany"], "Europe/Paris": ["FR", "France"],
+  "Europe/Rome": ["IT", "Italy"], "Europe/Madrid": ["ES", "Spain"], "Europe/Lisbon": ["PT", "Portugal"],
+  "Europe/Vienna": ["AT", "Austria"], "Europe/Budapest": ["HU", "Hungary"], "Europe/Sofia": ["BG", "Bulgaria"],
+  "Europe/Athens": ["GR", "Greece"], "Europe/Amsterdam": ["NL", "Netherlands"], "Europe/Brussels": ["BE", "Belgium"],
+  "Europe/Warsaw": ["PL", "Poland"], "Europe/Prague": ["CZ", "Czechia"], "Europe/Zurich": ["CH", "Switzerland"],
+  "Europe/Stockholm": ["SE", "Sweden"], "Europe/Oslo": ["NO", "Norway"], "Europe/Copenhagen": ["DK", "Denmark"],
+  "Europe/Helsinki": ["FI", "Finland"], "Europe/Istanbul": ["TR", "Turkey"], "Europe/Kyiv": ["UA", "Ukraine"],
+  "Europe/Kiev": ["UA", "Ukraine"], "Europe/Belgrade": ["RS", "Serbia"], "Europe/Bratislava": ["SK", "Slovakia"],
+  "America/New_York": ["US", "United States"], "America/Chicago": ["US", "United States"], "America/Denver": ["US", "United States"],
+  "America/Los_Angeles": ["US", "United States"], "America/Toronto": ["CA", "Canada"], "Asia/Dubai": ["AE", "United Arab Emirates"],
+  "Australia/Sydney": ["AU", "Australia"],
+};
+
+function timeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  } catch {
+    return "";
+  }
+}
+
+type Geo = { country: string; country_name: string; region: string; geo_how: "ip" | "tz" | "" };
+
+/** Approximate location: the IP lookup result for this session when there is one, else the time-zone guess. */
+function geo(tz: string): Geo {
+  try {
+    const saved = JSON.parse(store.get("session", K.geo) ?? "null") as Geo | null;
+    if (saved?.country) return saved;
+  } catch {
+    /* ignore */
+  }
+  const c = TZ_COUNTRY[tz];
+  return c ? { country: c[0], country_name: c[1], region: "", geo_how: "tz" } : { country: "", country_name: "", region: "", geo_how: "" };
+}
+
+let geoAsked = false;
+/**
+ * After consent only: one lookup per session to a free geo-IP service (ipwho.is, then ipapi.co), 3 s timeout.
+ * Keeps country code, country name and region; the IP, city and coordinates in the reply are dropped here.
+ */
+async function lookupGeo() {
+  if (geoAsked || store.get("local", K.consent) !== "granted" || store.get("session", K.geo)) return;
+  geoAsked = true;
+  const tries: [string, (j: Record<string, unknown>) => Geo | null][] = [
+    ["https://ipwho.is/?fields=success,country_code,country,region", (j) => (j.success === false ? null : { country: String(j.country_code ?? ""), country_name: String(j.country ?? ""), region: String(j.region ?? ""), geo_how: "ip" })],
+    ["https://ipapi.co/json/", (j) => (j.error ? null : { country: String(j.country_code ?? ""), country_name: String(j.country_name ?? ""), region: String(j.region ?? ""), geo_how: "ip" })],
+  ];
+  for (const [url, read] of tries) {
+    try {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 3000);
+      const r = await fetch(url, { signal: ctl.signal, credentials: "omit", referrerPolicy: "no-referrer" });
+      clearTimeout(t);
+      if (!r.ok) continue;
+      const g = read(await r.json());
+      if (g && /^[A-Z]{2}$/.test(g.country)) {
+        store.set("session", K.geo, JSON.stringify({ ...g, country_name: g.country_name.slice(0, 40), region: g.region.slice(0, 60) }));
+        return;
+      }
+    } catch {
+      /* blocked, offline or rate-limited: keep the time-zone guess */
+    }
+  }
 }
 
 // @provenance:capture:start
@@ -160,6 +263,13 @@ function utm(): Record<string, string> {
   }
 }
 
+/** Who is visiting: device facts and approximate location, the same on every event of the session. */
+function who() {
+  const tz = timeZone();
+  const lang = (navigator.language || "").slice(0, 2).toLowerCase();
+  return { os: os(), browser: browser(), in_app: inApp(), screen: screenBucket(), lang: /^[a-z]{2}$/.test(lang) ? lang : "", tz, ...geo(tz) };
+}
+
 /** Fields sent with every event: raw source facts (referrer host, utm_*, landing page) plus context. */
 function base(now: number) {
   const session = sessionId(now);
@@ -174,6 +284,7 @@ function base(now: number) {
     landing_path: landingPath(session),
     referrer_host: referrerHost(),
     device: device(),
+    ...who(),
     ...utm(),
     ...(testMode() ? { test: true } : {}),
   };
@@ -195,7 +306,7 @@ function flush(beacon = false) {
 export function collect(event: string, props?: Props, label?: string) {
   if (!started) return;
   const now = Date.now();
-  queue.push({ ...base(now), event, label: label ?? "", props: { browser: browser(), ...props } });
+  queue.push({ ...base(now), event, label: label ?? "", props: { ...props } });
   if (queue.length >= 20) flush();
 }
 
@@ -238,6 +349,7 @@ export function startCollect() {
   const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
   if (nav.globalPrivacyControl || nav.doNotTrack === "1") return;
   started = true;
+  void lookupGeo();
   pageview();
   for (const m of ["pushState", "replaceState"] as const) {
     const orig = history[m].bind(history);
@@ -262,7 +374,10 @@ export function startCollect() {
 /** Remember the consent choice; after Accept the anonymous id may persist across visits. */
 export function setCollectConsent(accept: boolean) {
   store.set("local", K.consent, accept ? "granted" : "denied");
-  if (accept) store.set("local", K.anon, anonId());
+  if (accept) {
+    store.set("local", K.anon, anonId());
+    void lookupGeo();
+  }
 }
 
 export function collectConsent(): "granted" | "denied" | "pending" {
