@@ -79,6 +79,32 @@ export function setTestMode(on: boolean) {
   window.dispatchEvent(new CustomEvent("nauino:test", { detail: on }));
 }
 
+/**
+ * The team's own accounts count as test traffic: SHA-256 hashes (hex) of their e-mails, Gmail-normalised,
+ * from NEXT_PUBLIC_TEST_EMAIL_HASHES (comma list, set in the git-ignored .env.local). Only hashes ship in the
+ * site, never the addresses.
+ */
+const testEmailHashes = (process.env.NEXT_PUBLIC_TEST_EMAIL_HASHES ?? "").split(",").map((h) => h.trim().toLowerCase()).filter(Boolean);
+
+/** Gmail ignores dots and "+tags": a.b+x@gmail.com is ab@gmail.com (same rule as collector/Owner.gs). */
+export function sameMailbox(email: string): string {
+  const e = email.trim().toLowerCase();
+  const at = e.lastIndexOf("@");
+  if (at < 0) return e;
+  const name = e.slice(0, at), domain = e.slice(at + 1);
+  return domain === "gmail.com" || domain === "googlemail.com" ? `${name.split("+")[0].replace(/\./g, "")}@gmail.com` : e;
+}
+
+/** After a Google sign-in: if it is one of the team's accounts, switch this browser to test mode. */
+export async function markTestAccount(email: string): Promise<boolean> {
+  if (!testEmailHashes.length || typeof crypto === "undefined" || !crypto.subtle) return false;
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sameMailbox(email)));
+  const hex = Array.from(new Uint8Array(digest), (x) => x.toString(16).padStart(2, "0")).join("");
+  if (!testEmailHashes.includes(hex)) return false;
+  setTestMode(true);
+  return true;
+}
+
 let memoryAnon = "";
 /** Anonymous id: localStorage after consent, else this tab's sessionStorage (cookieless). */
 function anonId(): string {

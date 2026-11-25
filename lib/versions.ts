@@ -11,6 +11,15 @@ export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
   {
+    version: "v1.22",
+    date: "2026-11-26",
+    changes: [
+      "The team's own Google accounts switch their browser to test mode on sign-in (only an e-mail hash ships)",
+      "Analytics owner tabs wrap instead of running off the edge; clearer TEST MODE label",
+      "Deploys keep the previous version's chunks, so pages cached before a deploy no longer crash",
+    ],
+  },
+  {
     version: "v1.21",
     date: "2026-11-26",
     changes: [

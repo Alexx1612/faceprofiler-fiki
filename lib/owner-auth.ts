@@ -11,7 +11,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
-import { collectUrl } from "@/lib/collect";
+import { collectUrl, markTestAccount, setTestMode } from "@/lib/collect";
 import { readIdToken, type GoogleUser } from "@/lib/google-auth";
 
 const KEY = "nauino:owner";
@@ -46,6 +46,9 @@ export function useOwner() {
       /* memory only */
     }
     setUser(u);
+    // the owner's own visits are always test traffic, whichever browser they sign in from
+    setTestMode(true);
+    void markTestAccount(u.email);
   }, []);
   const signOut = useCallback(() => {
     try {

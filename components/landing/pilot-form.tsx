@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { GoogleSignIn } from "@/components/landing/google-signin";
 import { sendLead, track } from "@/lib/analytics";
-import { collectForm, collectUrl } from "@/lib/collect";
+import { collectForm, collectUrl, markTestAccount } from "@/lib/collect";
 import { asset, team } from "@/lib/content";
 import { googleClientId, loadGoogleId, type GoogleUser } from "@/lib/google-auth";
 
@@ -89,6 +89,7 @@ export function PilotForm() {
           <GoogleSignIn
             onUser={(u) => {
               setUser(u);
+              void markTestAccount(u.email); // the team's own accounts count as test traffic
               track("pilot_signed_in", { with: "google" });
             }}
             onUnavailable={() => setGoogle("off")}
