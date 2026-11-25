@@ -7,11 +7,12 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
 // First 16 hex digits of sha256 of the lower-case first names (same values as the main repo's guard).
 const REAL_NAME_HASHES = new Set(["0a92efb1b91ac02c", "15acfdc75fdb8885"]);
-const ROOT = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const DIRS = ["app", "components", "lib", "collector", "scripts", "public"];
 const EXT = /\.(tsx?|mjs|js|gs|json|md|txt|css|html)$/;
 

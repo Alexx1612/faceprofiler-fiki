@@ -11,6 +11,14 @@ export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
   {
+    version: "v1.15",
+    date: "2026-11-25",
+    changes: [
+      "PostHog connected (EU cloud): web analytics, funnel and session replay for M5",
+      "Pilot form asks for consent before sending",
+    ],
+  },
+  {
     version: "v1.14",
     date: "2026-11-26",
     changes: [

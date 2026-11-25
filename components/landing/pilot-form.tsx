@@ -71,6 +71,10 @@ export function PilotForm() {
           <option>Not sure</option>
         </select>
       </label>
+      <label className="lp-form__check">
+        <input type="checkbox" required />
+        <span>I agree that Nau-ino may e-mail me about this pilot. My details are not shared.</span>
+      </label>
       <button type="submit" className="lp-btn" disabled={busy}>
         {busy ? "Sending…" : "Book a pilot"}
       </button>
