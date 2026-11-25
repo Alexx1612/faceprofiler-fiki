@@ -247,3 +247,91 @@ export const m4Changes: { id: string; screen: string; change: string; why: strin
   { id: "W4", screen: "Schedule (new)", change: "Shift hours and after hours; enrolled workers raise no alerts on shift, restricted rooms alert at any hour.", why: "A production hall is busy by day and empty at night and at weekends.", source: "draft" },
   { id: "W5", screen: "Settings", change: "Escalation list: guard, then security company, then principal, with minutes between them.", why: "Who comes at night was the open question in M2.", source: "M2" },
 ];
+
+/**
+ * Online quick survey on the landing page (Mom-Test questions: past facts only), as of 26 Nov 2026.
+ * Real, anonymous answers from the collector (test traffic left out), counted per question; free-text
+ * answers are not published. Separate from the six interviews and NOT used to fill their results above.
+ * Limits: small sample, mostly reached through WhatsApp; the students are not buyers. Update with
+ * `python tools/analytics_db.py` in the main repo, then copy the counts from the v_survey_summary view.
+ */
+export const m4Survey = {
+  asOf: "26 Nov 2026",
+  n: 14,
+  roles: [
+    ["Teacher", 7],
+    ["University student", 6],
+    ["Other", 1],
+  ] as [string, number][],
+  questions: [
+    {
+      id: "guarded",
+      q: "Who guards your school after classes end?",
+      n: 14,
+      answers: [["A guard on site", 4], ["Nobody", 3], ["I don't know", 3], ["An alarm only", 2], ["Cameras only", 2]],
+      relates: "Context for A1-A2",
+    },
+    {
+      id: "incident_night",
+      q: "In the last 3 months, an incident at night (break-in, vandalism, intruder)?",
+      n: 14,
+      answers: [["No", 13], ["I don't know", 1]],
+      relates: "Context",
+    },
+    {
+      id: "incident_day",
+      q: "In the last 3 months, an incident during the day (fights, theft, strangers)?",
+      n: 14,
+      answers: [["No", 11], ["Yes, once", 2], ["I don't know", 1]],
+      relates: "Context",
+    },
+    {
+      id: "noticed",
+      q: "The last time, how was it noticed, and how late?",
+      n: 2,
+      answers: [["On the spot, by a guard or teacher", 1], ["Days later", 1]],
+      relates: "A1",
+    },
+    {
+      id: "resolved",
+      q: "How was it resolved?",
+      n: 2,
+      answers: [["Resolved, but late", 1], ["It was not resolved", 1]],
+      relates: "A2",
+    },
+    {
+      id: "alert_night",
+      q: "Today, if someone gets into the school at night, who finds out and how?",
+      n: 14,
+      answers: [["The alarm calls the security company", 4], ["The guard calls the principal", 4], ["Nobody, until the morning", 3], ["I don't know", 3]],
+      relates: "A1-A3",
+    },
+    {
+      id: "alert_day",
+      q: "At the last daytime incident, how did the staff find out?",
+      n: 14,
+      answers: [["A teacher or the guard saw it", 5], ["A pupil told a teacher", 3], ["There was no such incident", 3], ["I don't know", 3]],
+      relates: "A1",
+    },
+    {
+      id: "refused",
+      q: "Has your school ever turned down a security or camera solution? Why? (teachers)",
+      n: 7,
+      answers: [["Never turned one down", 4], ["I don't know", 2], ["Parents or staff objected (privacy)", 1]],
+      relates: "A4-A5",
+    },
+    {
+      id: "decided",
+      q: "Who decided the last spending on guarding or cameras? (teachers and staff)",
+      n: 7,
+      answers: [["The parents' association", 4], ["I don't know", 2], ["The principal", 1]],
+      relates: "A7",
+    },
+  ] as { id: string; q: string; n: number; answers: [string, number][]; relates: string }[],
+  takeaways: [
+    "Who pays: in 4 of 7 teachers' answers the parents' association decided the last spending on guarding or cameras, not the principal. The pilot pitch should reach parents' associations too (relates to A7).",
+    "Nights are not covered everywhere: 3 of 14 say nobody finds out until the morning, and 3 say nobody guards the school after classes (supports the need behind A1-A2).",
+    "Incidents are mostly in the daytime: 2 daytime incidents in 3 months and no night incidents reported; one was noticed days later, and neither was resolved in time.",
+    "Privacy was the reason for one refusal of a camera solution (1 of 7 teachers), so staff-only enrolment and blurring remain important (A4-A5).",
+  ],
+};

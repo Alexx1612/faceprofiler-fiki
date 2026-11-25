@@ -3,7 +3,7 @@
 import { ArrowDown, ArrowRight } from "lucide-react";
 
 import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
-import { m4Changes, m4Conclusions, m4Flows, m4Guide, m4Hypotheses, m4Method, m4Participants, m4Personas, m4Quotes, m4Stories, m4UseCases, type Persona, type Source } from "@/lib/m4";
+import { m4Changes, m4Conclusions, m4Flows, m4Guide, m4Hypotheses, m4Method, m4Participants, m4Personas, m4Quotes, m4Stories, m4Survey, m4UseCases, type Persona, type Source } from "@/lib/m4";
 import { cn } from "@/lib/utils";
 import { NextArrow, TabHint, TabLabel } from "./tab-hint";
 
@@ -418,9 +418,63 @@ function Wireframe() {
   );
 }
 
+
+/** The landing page's quick survey (Mom-Test questions, past facts): answers per question, real visitors only. */
+function Survey() {
+  const pct = (n: number, of: number) => (of ? Math.round((n / of) * 100) : 0);
+  return (
+    <div className="flex flex-col gap-4">
+      <div className={box}>
+        <p className={h4}>Online quick survey · n = {m4Survey.n} · as of {m4Survey.asOf}</p>
+        <p className="text-sm text-neutral-300">
+          Short questions about facts (who guards the school, the last incident, who decided the last spending), asked on the landing page in English and
+          Romanian. Anonymous; test traffic left out; free-text answers not shown. It complements the six interviews and does not replace them: the sample is
+          small and was reached mostly through WhatsApp, and the students are not buyers.
+        </p>
+        <p className="jet mt-2 text-xs text-sky-300">
+          Who answered: {m4Survey.roles.map(([r, n]) => `${r} ${n}`).join(" · ")}
+        </p>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {m4Survey.takeaways.map((t) => (
+          <div key={t} className={cn(box, "border-sky-400/30 text-sm text-neutral-200")}>
+            {t}
+          </div>
+        ))}
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {m4Survey.questions.map((q) => (
+          <div key={q.id} className={box}>
+            <p className="text-sm font-semibold text-white">{q.q}</p>
+            <p className="jet mt-1 text-xs text-neutral-400">
+              n = {q.n} · {q.relates}
+            </p>
+            <ul className="mt-3 flex flex-col gap-2">
+              {q.answers.map(([a, n]) => (
+                <li key={a} className="text-sm">
+                  <div className="flex justify-between gap-3 text-neutral-200">
+                    <span>{a}</span>
+                    <span className="tabular-nums text-neutral-400">
+                      {n} · {pct(n, q.n)}%
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 rounded-full bg-white/10">
+                    <div className="h-1.5 rounded-full bg-sky-400" style={{ width: `${pct(n, q.n)}%` }} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const TABS = [
   { label: "Interviews", el: <Interviews /> },
   { label: "Findings", el: <Findings /> },
+  { label: "Online survey", el: <Survey /> },
   { label: "Personas", el: <Personas /> },
   { label: "User stories", el: <Stories /> },
   { label: "Use cases & flows", el: <UseCases /> },
