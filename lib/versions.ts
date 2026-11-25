@@ -11,6 +11,15 @@ export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
   {
+    version: "v1.16",
+    date: "2026-11-25",
+    changes: [
+      "Landing: one “Get notified” sign-up (e-mail, optional role) replaces the updates and pilot forms; hero and nav buttons say “Get notified”",
+      "Pilot requests by an e-mail link under the sign-up",
+      "PostHog counts visitors who have not answered the cookie bar, without cookies",
+    ],
+  },
+  {
     version: "v1.15",
     date: "2026-11-25",
     changes: [

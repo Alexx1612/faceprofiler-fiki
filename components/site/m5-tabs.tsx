@@ -64,7 +64,7 @@ function Leads() {
           </div>
         ))}
       </div>
-      <Shot s={{ src: "/campaign/landing-updates.jpg", width: 1440, height: 639, alt: "The launch-updates sign-up section on the landing page" }} caption="Landing page: the new “Not ready for a pilot yet?” sign-up, next to the pilot form." />
+      <Shot s={{ src: "/campaign/landing-signup.png", width: 808, height: 562, alt: "The “Get notified” sign-up on the landing page" }} caption="Landing page: an e-mail field, an optional role and a “Get notified” button; school directors can ask for the free pilot by e-mail." />
       <div className="flex flex-wrap gap-2">
         <Link href="/landing/#updates" className="rounded-full bg-sky-600 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-sky-500">
           Open the sign-up on the landing page

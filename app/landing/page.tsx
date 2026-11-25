@@ -6,7 +6,6 @@ import Link from "next/link";
 import { DemoReel } from "@/components/landing/demo-reel";
 import { HeroCopy } from "@/components/landing/hero-copy";
 import { NightLive } from "@/components/landing/night-live";
-import { PilotForm } from "@/components/landing/pilot-form";
 import { SpotGame } from "@/components/landing/spot-game";
 import { Tour } from "@/components/landing/tour";
 import { SurveyButton } from "@/components/landing/survey";
@@ -57,8 +56,8 @@ export default function Landing() {
             <a href="#updates">Updates</a>
           </nav>
           <SurveyButton />
-          <TrackedLink href="#pilot" event="cta_book_pilot_click" props={{ place: "nav" }} className="lp-btn lp-btn--sm lp-nav__cta">
-            Book a pilot
+          <TrackedLink href="#updates" event="cta_book_pilot_click" props={{ place: "nav" }} className="lp-btn lp-btn--sm lp-nav__cta">
+            Get notified
           </TrackedLink>
         </div>
       </header>
@@ -81,11 +80,11 @@ export default function Landing() {
             <div>
               <HeroCopy />
               <div className="lp-actions">
-                <TrackedLink href="#pilot" event="cta_book_pilot_click" props={{ place: "hero" }} className="lp-btn">
-                  Book a pilot
+                <TrackedLink href="#updates" event="cta_book_pilot_click" props={{ place: "hero" }} className="lp-btn">
+                  Get notified
                 </TrackedLink>
               </div>
-              <p className="lp-hero__note">Free for 30 days, on your own cameras.</p>
+              <p className="lp-hero__note">One e-mail when the free pilot opens.</p>
             </div>
 
             <NightLive />
@@ -162,46 +161,33 @@ export default function Landing() {
         </section>
 
         <section id="updates" className="lp-section">
-          <div className="lp-wrap lp-updates">
-            <div>
-              <h2 className="lp-h2">Not ready for a pilot yet?</h2>
-              <p className="lp-sub">Leave an e-mail and we write once, when the pilot opens in your town. No spam, no sharing.</p>
-              <ul className="lp-steps">
+          <div className="lp-wrap">
+            <div className="lp-glass lp-signup">
+              <span className="lp-chip">Coming soon</span>
+              <h2 className="lp-h2">Hear first when <span style={{ whiteSpace: "nowrap" }}>Nau-ino</span> opens.</h2>
+              <p className="lp-sub">One e-mail when the free pilot starts near you.</p>
+              <UpdatesForm />
+              <ul className="lp-signup__facts">
                 <li>
                   <CheckIcon />
-                  For parents, teachers and school staff.
+                  Faces stay in the building
                 </li>
                 <li>
                   <CheckIcon />
-                  Phone is optional: only if you want a call back.
-                </li>
-              </ul>
-            </div>
-            <UpdatesForm />
-          </div>
-        </section>
-
-        <section id="pilot" className="lp-section">
-          <div className="lp-wrap lp-pilot">
-            <div>
-              <h2 className="lp-h2">Try it for 30 days, free.</h2>
-              <p className="lp-sub">On your own cameras, before anyone pays anything.</p>
-              <ul className="lp-steps">
-                <li>
-                  <CheckIcon />
-                  We visit and connect two or three cameras.
-                </li>
-                <li>
-                  <CheckIcon />
-                  You enrol the staff who are in the building at night.
-                </li>
-                <li>
-                  <CheckIcon />
-                  After 30 days we show you what it flagged, and you decide.
+                  No spam, no sharing
                 </li>
               </ul>
+              <p className="lp-signup__pilot">
+                Run a school?{" "}
+                <TrackedLink
+                  href={`mailto:${team[1].email}?subject=${encodeURIComponent("Nau-ino: free 30-day pilot")}`}
+                  event="pilot_email_click"
+                  props={{ place: "signup" }}
+                >
+                  Ask for a free 30-day pilot
+                </TrackedLink>
+              </p>
             </div>
-            <PilotForm />
           </div>
         </section>
       </main>

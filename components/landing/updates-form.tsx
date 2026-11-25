@@ -6,32 +6,28 @@ import { sendLead, track } from "@/lib/analytics";
 import { team } from "@/lib/content";
 
 /**
- * "Get launch updates" sign-up (Milestone 5 lead collection).
- *
- * Methodology: sends e-mail, optional phone and role to Formspree when a form ID is configured;
- * otherwise opens the visitor's e-mail app with the same fields (like the pilot form), so the page never
- * has a dead button. `_gotcha` is Formspree's honeypot: bots fill it, people never see it.
+ * "Get notified" sign-up (Milestone 5 lead collection): e-mail, an optional role, one button.
+ * Event names stay `updates_form_submitted` so the PostHog funnel and the collector's funnel keep working.
  */
 export function UpdatesForm() {
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [msg, setMsg] = useState("Only the team sees this. One e-mail when the pilot opens, unsubscribe any time.");
+  const [msg, setMsg] = useState("Unsubscribe any time.");
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
     const fd = new FormData(form);
     if (fd.get("_gotcha")) return;
-    const data = { email: String(fd.get("email") ?? ""), phone: String(fd.get("phone") ?? ""), role: String(fd.get("role") ?? "") };
+    const data = { email: String(fd.get("email") ?? ""), role: String(fd.get("role") ?? "") };
     setState("sending");
     try {
       const how = await sendLead("updates", data);
-      track("updates_form_submitted", { role: data.role, with_phone: Boolean(data.phone), via: how });
+      track("updates_form_submitted", { role: data.role || "not given", via: how });
       if (how === "mailto") {
-        const body = [`E-mail: ${data.email}`, `Phone: ${data.phone}`, `Role: ${data.role}`].join("\n");
-        window.location.href = `mailto:${team[1].email}?subject=${encodeURIComponent("Nau-ino launch updates")}&body=${encodeURIComponent(body)}`;
+        window.location.href = `mailto:${team[1].email}?subject=${encodeURIComponent("Nau-ino launch updates")}&body=${encodeURIComponent(`E-mail: ${data.email}\nRole: ${data.role}`)}`;
         setMsg("Your e-mail app should open now. Press send there to sign up.");
       } else {
-        setMsg("Thank you. You are on the list.");
+        setMsg("Thank you. We will write once, when the pilot opens.");
         form.reset();
       }
       setState("sent");
@@ -42,22 +38,16 @@ export function UpdatesForm() {
   };
 
   return (
-    <form className="lp-glass lp-form" onSubmit={submit} aria-label="Get launch updates">
-      <label>
-        E-mail
-        <input name="email" type="email" required autoComplete="email" placeholder="name@school.ro" />
-      </label>
-      <div className="lp-form__two">
-        <label>
-          Phone (optional)
-          <input name="phone" type="tel" autoComplete="tel" placeholder="07xx xxx xxx" />
+    <form className="lp-notify" onSubmit={submit} aria-label="Get notified when Nau-ino launches">
+      <div className="lp-notify__row">
+        <label className="lp-notify__field">
+          <span className="sr-only">E-mail</span>
+          <input name="email" type="email" required autoComplete="email" placeholder="you@email.com" />
         </label>
-        <label>
-          I am
-          <select name="role" defaultValue="" required>
-            <option value="" disabled>
-              Choose one
-            </option>
+        <label className="lp-notify__field">
+          <span className="sr-only">I am (optional)</span>
+          <select name="role" defaultValue="">
+            <option value="">I am… (optional)</option>
             <option>Parent</option>
             <option>Teacher</option>
             <option>School staff or director</option>
@@ -65,15 +55,11 @@ export function UpdatesForm() {
             <option>Other</option>
           </select>
         </label>
+        <input name="_gotcha" tabIndex={-1} autoComplete="off" aria-hidden="true" className="lp-hp" />
+        <button type="submit" className="lp-btn" disabled={state === "sending"}>
+          {state === "sending" ? "Sending…" : state === "sent" ? "You're on the list ✓" : "Get notified"}
+        </button>
       </div>
-      <input name="_gotcha" tabIndex={-1} autoComplete="off" aria-hidden="true" className="lp-hp" />
-      <label className="lp-form__check">
-        <input name="consent" type="checkbox" required />
-        <span>I agree that Nau-ino may e-mail me about the pilot and launch. My details are not shared.</span>
-      </label>
-      <button type="submit" className="lp-btn" disabled={state === "sending"}>
-        {state === "sending" ? "Sending…" : "Keep me updated"}
-      </button>
       <p className={state === "error" ? "lp-form__note lp-form__note--error" : "lp-form__note"} role="status">
         {msg}
       </p>

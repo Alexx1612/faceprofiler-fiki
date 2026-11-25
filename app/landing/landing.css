@@ -923,6 +923,118 @@
   }
 }
 
+/* "Get notified" sign-up: a centred card, e-mail, optional role and button on one row (stacked on phones). */
+.lp-signup {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-md);
+  max-width: 760px;
+  margin-inline: auto;
+  padding: var(--space-2xl) var(--space-lg);
+  text-align: center;
+}
+
+.lp-signup .lp-sub {
+  margin-top: calc(-1 * var(--space-xs));
+}
+
+.lp-notify {
+  display: grid;
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: 640px;
+  margin-top: var(--space-sm);
+}
+
+.lp-notify__row {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+@media (min-width: 640px) {
+  .lp-notify__row {
+    grid-template-columns: minmax(0, 1fr) 190px auto;
+  }
+}
+
+.lp-notify input[type="email"],
+.lp-notify select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-card);
+  color: var(--color-well-ink);
+  font: inherit;
+  font-size: 16px;
+}
+
+.lp-notify select {
+  padding-right: 36px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23565b6b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  cursor: pointer;
+}
+
+.lp-notify select:has(option[value=""]:checked) {
+  color: var(--color-well-muted);
+}
+
+.lp-notify option {
+  color: var(--color-well-ink);
+}
+
+.lp-notify input[type="email"]::placeholder {
+  color: var(--color-well-muted);
+}
+
+.lp-notify input[type="email"]:focus-visible,
+.lp-notify select:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px color-mix(in oklab, var(--color-focus) 30%, transparent);
+}
+
+.lp-signup__facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-xs) var(--space-lg);
+  font-size: 14px;
+  color: var(--color-ink-2);
+}
+
+.lp-signup__facts li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lp-signup__facts svg {
+  width: 18px;
+  height: 18px;
+  color: var(--color-accent);
+}
+
+.lp-signup__pilot {
+  padding-top: var(--space-md);
+  border-top: 1px solid color-mix(in oklab, var(--color-light) 10%, transparent);
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.lp-signup__pilot a {
+  color: var(--color-accent);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+
 .lp-steps {
   list-style: none;
   margin: var(--space-lg) 0 0;
