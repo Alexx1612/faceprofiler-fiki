@@ -129,6 +129,7 @@ function append_(name, headers, rows) {
 // @provenance:store:end
 
 function doGet(e) {
+  if (e && e.parameter && e.parameter.token && typeof privateRoute_ === "function") return json_(privateRoute_(e.parameter)); // Owner.gs: owner-only views
   if (!e || !e.parameter || e.parameter.stats !== "1") return json_({ ok: true, service: "nau-ino collector", version: COLLECTOR_VERSION });
   var cache = CacheService.getScriptCache();
   var hit = cache.get("stats");
