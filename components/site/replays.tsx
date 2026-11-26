@@ -11,7 +11,7 @@
  * clicks, rage clicks (PostHog's rule) and form events; the event list beside it jumps the player there.
  * Inputs and form text were masked at recording time (lib/replay.ts), so they never reach this page.
  */
-import { Lock, Play, Radio, RefreshCw } from "lucide-react";
+import { Lock, Play, Radio, RefreshCw, Star } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { GoogleSignIn } from "@/components/landing/google-signin";
@@ -24,7 +24,7 @@ type Fail = { ok: false; error: string };
 type LiveSession = { anon: string; path: string; device: string; country: string; source: string; test: boolean; seconds_active: number; last_seen_s: number };
 type ReplayRow = {
   session: string; anon: string; version: string; test: boolean; started_at: number; duration_ms: number; chunks: number;
-  pages: number; first_path: string; device: string; source: string; country: string; clicks: number; rage_clicks: number;
+  pages: number; first_path: string; device: string; source: string; country: string; clicks: number; rage_clicks: number; starred?: boolean;
 };
 type RrEvent = { type: number; timestamp: number; data?: { href?: string; width?: number; height?: number } };
 type AnalyticsEvent = { ts: number; event: string; path?: string; label?: string };
@@ -143,8 +143,71 @@ function LiveNow({ token }: { token: string }) {
   );
 }
 
+/*
+ * Stars: the owner marks replays worth keeping (e.g. for a showcase). Saved in the collector (Replay.gs op=star,
+ * column "starred"; starred sessions survive the 30-day clean-up) and mirrored in this browser, so starring also
+ * works before the new Replay.gs is pasted (then it is only kept in this browser).
+ */
+const STAR_KEY = "nauino:stars";
+
+function localStars(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(STAR_KEY) ?? "[]") as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveLocalStars(set: Set<string>) {
+  try {
+    localStorage.setItem(STAR_KEY, JSON.stringify([...set]));
+  } catch {
+    /* storage blocked: the collector copy still counts */
+  }
+}
+
+/** Star state for the list and the player: server flag OR this browser's copy; toggle writes both. */
+function useStars(token: string) {
+  const [local, setLocal] = useState<Set<string>>(() => new Set());
+  const [server, setServer] = useState<Record<string, boolean>>({});
+  const [saved, setSaved] = useState<"collector" | "browser" | "">("");
+  useEffect(() => setLocal(localStars()), []);
+  const isStarred = useCallback((r: ReplayRow) => (r.session in server ? server[r.session] : Boolean(r.starred)) || local.has(r.session), [local, server]);
+  const toggle = useCallback(
+    async (r: ReplayRow) => {
+      const on = !isStarred(r);
+      const next = new Set(local);
+      if (on) next.add(r.session);
+      else next.delete(r.session);
+      setLocal(next);
+      saveLocalStars(next);
+      setServer((m) => ({ ...m, [r.session]: on }));
+      const res = await ownerFetch<{ ok: boolean; starred?: boolean }>(token, { route: "replays", op: "star", session: r.session, on: on ? "1" : "0" });
+      setSaved(!failed(res) && typeof (res as { starred?: boolean }).starred === "boolean" ? "collector" : "browser");
+    },
+    [isStarred, local, token],
+  );
+  return { isStarred, toggle, saved };
+}
+
+function StarButton({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      aria-label={on ? `Unstar ${label}` : `Star ${label}`}
+      title={on ? "Starred: kept past the 30-day clean-up. Click to unstar." : "Star this replay to keep it"}
+      className="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/10"
+    >
+      <Star className={`size-4 ${on ? "fill-amber-300 text-amber-300" : "text-neutral-500"}`} aria-hidden />
+    </button>
+  );
+}
+
 function ReplayList({ token }: { token: string }) {
-  const [which, setWhich] = useState<"real" | "test" | "all" | "showcase">("real");
+  const stars = useStars(token);
+  const [which, setWhich] = useState<"real" | "test" | "all" | "showcase" | "starred">("real");
   const [days, setDays] = useState("7");
   const [minS, setMinS] = useState("0");
   const [path, setPath] = useState("");
@@ -153,23 +216,29 @@ function ReplayList({ token }: { token: string }) {
   const [open, setOpen] = useState<ReplayRow | null>(null);
   const load = useCallback(async () => {
     setRows(null);
-    const r = await ownerFetch<{ ok: true; sessions: ReplayRow[] }>(token, { route: "replays", op: "list", test: which === "showcase" ? "all" : which, days, min_s: minS, path });
+    const r = await ownerFetch<{ ok: true; sessions: ReplayRow[] }>(token, { route: "replays", op: "list", test: which === "showcase" || which === "starred" ? "all" : which, days: which === "starred" ? "30" : days, min_s: minS, path, ...(which === "starred" ? { starred: "1" } : {}) });
     if (failed(r)) return setError(explain(r.error));
     setError("");
     // showcases are the team's own recordings (lib/replay.ts): session ids start with "show_"
-    setRows((r.sessions ?? []).filter((x) => (which === "showcase" ? x.session.startsWith("show_") : which === "real" || !x.session.startsWith("show_") || which === "all")));
+    const all = r.sessions ?? [];
+    const mine = localStars();
+    setRows(
+      all.filter((x) =>
+        which === "starred" ? x.starred || mine.has(x.session) : which === "showcase" ? x.session.startsWith("show_") : which === "real" || !x.session.startsWith("show_") || which === "all",
+      ),
+    );
   }, [token, which, days, minS, path]);
   useEffect(() => {
     void load();
   }, [load]);
 
-  if (open) return <ReplayPlayer token={token} row={open} onBack={() => setOpen(null)} />;
+  if (open) return <ReplayPlayer token={token} row={open} onBack={() => setOpen(null)} starred={stars.isStarred(open)} onStar={() => void stars.toggle(open)} />;
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        {(["real", "test", "showcase", "all"] as const).map((w) => (
+        {(["real", "test", "showcase", "starred", "all"] as const).map((w) => (
           <button key={w} type="button" onClick={() => setWhich(w)} className={`${chip} ${which === w ? chipOn : chipOff}`} aria-pressed={which === w}>
-            {w === "real" ? "Real" : w === "test" ? "Test" : w === "showcase" ? "Showcase" : "All"}
+            {w === "real" ? "Real" : w === "test" ? "Test" : w === "showcase" ? "Showcase" : w === "starred" ? "★ Starred" : "All"}
           </button>
         ))}
         <label className="text-xs text-neutral-400">
@@ -203,17 +272,21 @@ function ReplayList({ token }: { token: string }) {
           <RefreshCw className="size-3.5" aria-hidden /> Refresh
         </button>
       </div>
+      {stars.saved === "browser" && (
+        <p className="mb-2 text-xs text-amber-200">Star saved in this browser only: paste the new Replay.gs in Apps Script to keep stars on every device.</p>
+      )}
       {error ? (
         <p className="text-sm text-amber-200">{error}</p>
       ) : !rows ? (
         <p className="text-sm text-neutral-400">Loading…</p>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-neutral-400">{which === "showcase" ? "No showcases yet. Sign in with the team account and press the red record button next to your e-mail at the top." : "No recordings match. Visitors are recorded only after they accept cookies."}</p>
+        <p className="text-sm text-neutral-400">{which === "starred" ? "No starred replays yet. Press the star next to a replay to keep it here." : which === "showcase" ? "No showcases yet. Sign in with the team account and press the red record button next to your e-mail at the top." : "No recordings match. Visitors are recorded only after they accept cookies."}</p>
       ) : (
         <ul className="divide-y divide-white/10">
           {rows.map((r) => (
-            <li key={r.session}>
-              <button type="button" onClick={() => setOpen(r)} className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-left hover:bg-white/[0.04]">
+            <li key={r.session} className="flex items-center gap-1">
+              <StarButton on={stars.isStarred(r)} onClick={() => void stars.toggle(r)} label={`replay from ${when(r.started_at)}`} />
+              <button type="button" onClick={() => setOpen(r)} className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-left hover:bg-white/[0.04]">
                 <Play className="size-4 shrink-0 text-sky-300" aria-hidden />
                 <span className="w-24 text-xs tabular-nums text-neutral-400">{when(r.started_at)}</span>
                 <span className="w-12 text-sm tabular-nums text-neutral-100">{clock(r.duration_ms)}</span>
@@ -237,7 +310,7 @@ function ReplayList({ token }: { token: string }) {
 
 type PlayerApi = { goto: (t: number, play?: boolean) => void; $destroy: () => void; triggerResize: () => void };
 
-function ReplayPlayer({ token, row, onBack }: { token: string; row: ReplayRow; onBack: () => void }) {
+function ReplayPlayer({ token, row, onBack, starred, onStar }: { token: string; row: ReplayRow; onBack: () => void; starred: boolean; onStar: () => void }) {
   const [events, setEvents] = useState<RrEvent[] | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsEvent[]>([]);
   const [error, setError] = useState("");
@@ -305,6 +378,7 @@ function ReplayPlayer({ token, row, onBack }: { token: string; row: ReplayRow; o
         <button type="button" onClick={onBack} className={`${chip} ${chipOff}`}>
           ← All replays
         </button>
+        <StarButton on={starred} onClick={onStar} label="this replay" />
         <span className="text-neutral-300">
           {when(row.started_at)} · {clock(row.duration_ms)} · {row.first_path} · {row.device} {flag(row.country)} · {row.source}
         </span>

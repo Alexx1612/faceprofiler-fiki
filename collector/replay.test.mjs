@@ -68,6 +68,14 @@ test("replay list filter: real by default, days, minimum duration, path; newest 
   assert.equal(R.filterReplays(rows, {}, T)[0].anon, "abcdef");
 });
 
+test("starred replays: only starred with starred=1, of any age and kind; flag on every row", () => {
+  const row = (session, started, test, starred) => ({ session, anon: "abcdefgh", started_at: String(started), last_at: String(started + 1000), duration_ms: "1000", test: test ? "true" : "false", first_path: "/landing/", chunks: "1", pages: "1", clicks: "0", rage_clicks: "0", starred: starred ? "true" : "" });
+  const rows = [row("old", T - 60 * 86400000, false, true), row("new", T - 1000, false, false), row("show", T - 500, true, true)];
+  assert.deepEqual(Array.from(R.filterReplays(rows, { starred: "1" }, T), (r) => r.session), ["show", "old"]);
+  assert.equal(R.filterReplays(rows, {}, T)[0].starred, false);
+  assert.deepEqual(Object.keys(R.starredSet(rows)).sort(), ["old", "show"]);
+});
+
 test("live now: sessions active in the last 2 minutes, latest page first-seen order", () => {
   const ev = (session, ts, path, extra = {}) => ({ session, anon: `anon-${session}`, ts, path, device: "phone", source: "whatsapp", ...extra });
   const events = [ev("s1", T - 90000, "/landing/"), ev("s1", T - 10000, "/M5/"), ev("s2", T - 200000, "/"), ev("s3", T - 5000, "/landing/", { test: "true", country: "RO" })];

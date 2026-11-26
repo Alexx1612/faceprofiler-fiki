@@ -1180,58 +1180,79 @@ function FullView({
         <p className="text-sm text-neutral-400">This collector does not report test traffic separately yet (collector 1.3 does).</p>
       </div>
     );
+  // 5 tabs (owner) / 3 (guest): related views stacked on one tab, each under its own small heading
+  const part = (title: string, el: React.ReactNode) => (
+    <section key={title} className="flex flex-col gap-3">
+      <h3 className="text-xs font-semibold tracking-wider text-neutral-400 uppercase">{title}</h3>
+      {el}
+    </section>
+  );
+  const stack = (parts: React.ReactNode[]) => <div className="flex flex-col gap-8">{parts}</div>;
   const tabs = [
     {
-      label: "Trend",
-      el: (
-        <div className="flex flex-col gap-6">
-          <Daily s={s} />
-          <Hours s={s} />
-        </div>
-      ),
+      label: "Traffic",
+      el: stack([
+        part(
+          "Trend",
+          <div className="flex flex-col gap-6">
+            <Daily s={s} />
+            <Hours s={s} />
+          </div>,
+        ),
+        part("Versions", <Versions data={data} current={siteVersion} />),
+      ]),
     },
     {
-      label: "Pages & clicks",
-      el: (
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className={box}>
-            <p className={h4}>Top pages</p>
-            <CountList items={s.top_pages ?? []} />
-          </div>
-          <div className={box}>
-            <p className={h4}>Top clicks</p>
-            <CountList items={s.clicks ?? []} />
-          </div>
-          <div className={box}>
-            <p className={h4}>Devices</p>
-            <CountList items={s.devices} />
-          </div>
-        </div>
-      ),
+      label: owner ? "Pages & behaviour" : "Pages & clicks",
+      el: stack([
+        part(
+          "Pages & clicks",
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className={box}>
+              <p className={h4}>Top pages</p>
+              <CountList items={s.top_pages ?? []} />
+            </div>
+            <div className={box}>
+              <p className={h4}>Top clicks</p>
+              <CountList items={s.clicks ?? []} />
+            </div>
+            <div className={box}>
+              <p className={h4}>Devices</p>
+              <CountList items={s.devices} />
+            </div>
+          </div>,
+        ),
+        ...(owner
+          ? [
+              part("Heatmap", <HeatmapView b={s.behaviour} />),
+              part("Frustration", <FrustrationView b={s.behaviour} />),
+              part("Scroll & retention", <RetentionView b={s.behaviour} />),
+            ]
+          : []),
+      ]),
     },
     {
-      label: "Funnel & forms",
-      el: (
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className={box}>
-            <p className={h4}>Funnel</p>
-            <Funnel s={s} />
-          </div>
-          <div className={box}>
-            <p className={h4}>Forms sent</p>
-            <CountList items={s.forms} empty="No forms sent yet." />
-          </div>
-        </div>
-      ),
+      label: "Conversions",
+      el: stack([
+        part(
+          "Funnel & forms",
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className={box}>
+              <p className={h4}>Funnel</p>
+              <Funnel s={s} />
+            </div>
+            <div className={box}>
+              <p className={h4}>Forms sent</p>
+              <CountList items={s.forms} empty="No forms sent yet." />
+            </div>
+          </div>,
+        ),
+        part("Survey", <Survey s={s} />),
+        part("Game", <Game s={s} />),
+      ]),
     },
-    { label: "Survey", el: <Survey s={s} /> },
-    { label: "Game", el: <Game s={s} /> },
-    { label: "Versions", el: <Versions data={data} current={siteVersion} /> },
     ...(owner
       ? [
-          { label: "Heatmap", el: <HeatmapView b={s.behaviour} /> },
-          { label: "Frustration", el: <FrustrationView b={s.behaviour} /> },
-          { label: "Scroll & retention", el: <RetentionView b={s.behaviour} /> },
           { label: "Inbox", el: <Inbox token={owner.token} /> },
           { label: "Replays & live", el: <ReplaysPanel /> },
         ]

@@ -10,6 +10,7 @@
 export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
+  { version: "v1.42", date: "2026-11-26", changes: ["Analytics: 5 tabs instead of 11 (Traffic, Pages & behaviour, Conversions, Inbox, Replays & live)", "Replays: star the ones you like (kept past the 30-day clean-up) and a Starred filter"] },
   { version: "v1.41", date: "2026-11-26", changes: ["Wide screens: the project pages scale up (text and width), 112.5% from 1700 px and 125% from 2100 px"] },
   { version: "v1.40", date: "2026-11-26", changes: ["Landing: the newsletter form (Google, or e-mail and/or phone; school and role optional) is the sign-up again after a parallel v1.38 had put back the older \"Get notified\" card"] },
   { version: "v1.39", date: "2026-11-26", changes: ["Newsletter form accepts phone numbers with dashes, dots or brackets; collector e-mails (Pilot.gs) use the newsletter wording"] },

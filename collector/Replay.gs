@@ -7,7 +7,8 @@
  * session in the sheet `replays` keeps the summary (times, chunks, bytes, first page, device, source,
  * clicks, rage clicks). Nothing about replays is ever part of the public `?stats=1` answer: the list, the
  * recordings and the live view are private routes (Owner.gs) that need a Google sign-in listed in
- * OWNER_EMAILS. `pruneReplays_` deletes sessions older than RETENTION_DAYS (run it from a daily trigger).
+ * OWNER_EMAILS. `pruneReplays_` deletes sessions older than RETENTION_DAYS (run it from a daily trigger),
+ * except the ones the owner starred (op=star; column `starred`), which are kept until unstarred.
  */
 
 var REPLAY_ROOT = "Nau-ino replays";
@@ -18,7 +19,7 @@ var RETENTION_DAYS = 30;
 var LIVE_WINDOW_MS = 2 * 60 * 1000;
 var REPLAY_HEADERS = [
   "session", "anon", "version", "test", "day", "started_at", "last_at", "duration_ms", "chunks", "bytes",
-  "first_path", "pages", "device", "source", "country", "clicks", "rage_clicks",
+  "first_path", "pages", "device", "source", "country", "clicks", "rage_clicks", "starred",
 ];
 
 /** doPost hook: store one replay chunk (body is the raw JSON text, up to REPLAY_MAX_BYTES). */
@@ -65,18 +66,26 @@ function dayFolder_(day) {
 /** Delete replay folders and rows older than RETENTION_DAYS. Add a daily time trigger for this. */
 function pruneReplays_() {
   var cutoff = new Date().getTime() - RETENTION_DAYS * 86400000;
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("replays");
+  var rows = !sh || sh.getLastRow() < 2 ? [] : sh.getRange(2, 1, sh.getLastRow() - 1, REPLAY_HEADERS.length).getValues();
+  var keep = starredSet(rows.map(function (r) { return rowToReplay(r.map(String)); }));
   var root = rootFolder_();
   var days = root.getFolders();
   while (days.hasNext()) {
     var f = days.next();
     var t = Date.parse(f.getName() + "T00:00:00Z");
-    if (isFinite(t) && t < cutoff) f.setTrashed(true);
+    if (!isFinite(t) || t >= cutoff) continue;
+    var files = f.getFiles(), left = 0;
+    while (files.hasNext()) {
+      var file = files.next();
+      if (keep[file.getName().replace(/_\d+\.json$/, "")]) left++;
+      else file.setTrashed(true);
+    }
+    if (!left) f.setTrashed(true);
   }
-  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("replays");
-  if (!sh || sh.getLastRow() < 2) return;
-  var rows = sh.getRange(2, 1, sh.getLastRow() - 1, REPLAY_HEADERS.length).getValues();
   for (var i = rows.length - 1; i >= 0; i--) {
-    if (Number(rows[i][REPLAY_HEADERS.indexOf("last_at")]) < cutoff) sh.deleteRow(i + 2);
+    var r = rowToReplay(rows[i].map(String));
+    if (Number(r.last_at) < cutoff && !keep[r.session]) sh.deleteRow(i + 2);
   }
 }
 
@@ -99,8 +108,20 @@ PRIVATE_ROUTES.replays = function (params) {
     return rowToReplay(r.map(String));
   });
   if (params.op === "get") return replayGet_(rows, String(params.session || ""), Number(params.part || 0));
+  if (params.op === "star") return replayStar_(sh, rows, String(params.session || ""), params.on === "1");
   return { ok: true, sessions: filterReplays(rows, params, new Date().getTime()) };
 };
+
+/** Star or unstar one session (owner only): writes "true" / "" in the `starred` column. */
+function replayStar_(sh, rows, session, on) {
+  var i = -1;
+  rows.forEach(function (r, k) { if (r.session === session) i = k; });
+  if (!sh || i < 0) return { ok: false, error: "no such session" };
+  var col = REPLAY_HEADERS.indexOf("starred") + 1;
+  if (String(sh.getRange(1, col).getValue()) !== "starred") sh.getRange(1, col).setValue("starred");
+  sh.getRange(i + 2, col).setNumberFormat("@").setValue(on ? "true" : "");
+  return { ok: true, session: session, starred: on };
+}
 
 PRIVATE_ROUTES.live = function () {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -245,8 +266,20 @@ function rowToReplay(cells) {
   return o;
 }
 
-/** List filter: test=real|test|all (default real), days (default 7), min_s, path substring; newest first, max 100. */
+/** Sessions the owner starred, as a lookup {session: true}. */
+function starredSet(rows) {
+  var out = {};
+  rows.forEach(function (r) { if (String(r.starred) === "true") out[r.session] = true; });
+  return out;
+}
+
+/** List filter: test=real|test|all (default real), days (default 7), min_s, path substring; starred=1 = only starred
+ * sessions, of any age and kind; newest first, max 100. */
 function filterReplays(rows, params, now) {
+  if (String(params.starred || "") === "1") {
+    rows = rows.filter(function (r) { return String(r.starred) === "true"; });
+    params = { test: "all", days: "100000", min_s: params.min_s, path: params.path };
+  }
   var which = String(params.test || "real");
   var days = Number(params.days || 7);
   var minMs = Number(params.min_s || 0) * 1000;
@@ -267,7 +300,7 @@ function filterReplays(rows, params, now) {
         session: r.session, anon: String(r.anon).slice(0, 6), version: r.version, test: isTest(r.test),
         started_at: Number(r.started_at), duration_ms: Number(r.duration_ms), chunks: Number(r.chunks),
         pages: Number(r.pages), first_path: r.first_path, device: r.device, source: r.source, country: r.country,
-        clicks: Number(r.clicks), rage_clicks: Number(r.rage_clicks),
+        clicks: Number(r.clicks), rage_clicks: Number(r.rage_clicks), starred: String(r.starred) === "true",
       };
     });
 }
@@ -316,6 +349,7 @@ function pageBySize(sizes, maxBytes) {
 
 if (typeof module !== "undefined") {
   module.exports = {
+    starredSet: starredSet,
     cleanChunk: cleanChunk, chunkStats: chunkStats, rageClicks: rageClicks, mergeReplayRow: mergeReplayRow,
     filterReplays: filterReplays, liveSessions: liveSessions, pageBySize: pageBySize, REPLAY_HEADERS: REPLAY_HEADERS,
   };
