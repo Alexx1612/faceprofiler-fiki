@@ -77,6 +77,7 @@ function Interviews() {
           ))}
         </div>
         <p className="mt-3 text-sm text-neutral-400">{m2Interviews2.how}</p>
+        <p className="mt-2 text-sm text-neutral-300">{m2Interviews2.momTest}</p>
         <p className="mt-2 rounded-xl border border-sky-300/15 bg-sky-400/[0.07] p-3 text-sm text-white">{m2Interviews2.learned}</p>
       </div>
     </div>

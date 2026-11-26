@@ -263,6 +263,7 @@ export const m5Log: LogEntry[] = [
     where: "r/IMadeThis, r/Startup_Ideas, r/WeirdStartups, r/ProductHunters, r/EntrepreneurRideAlong, r/roastmystartup, r/Business_Ideas",
     status: "posted",
     date: "26 Nov, morning",
+    permalink: "https://www.reddit.com/user/PontiusMax/",
     screenshot: { src: "/campaign/reddit-profil-sterse-content-policy-1.png", width: 882, height: 1180, alt: "Our Reddit profile: posts removed by Reddit for the content policy" },
     note: "Four removed by Reddit itself (“content policy”: a new account posting in several places looks like spam), one by the subreddit's filter, two still awaiting moderator approval. r/indiehackers, r/edtech and r/AppIdeas did not let a new account post at all (r/AppIdeas: accounts under a month and 50 karma). We stopped there to avoid an account suspension.",
   },

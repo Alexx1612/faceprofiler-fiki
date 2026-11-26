@@ -34,7 +34,7 @@ export const m2Interviews = {
 /** Second series: the people on site at night and a private building. Full notes on the M4 page (G1, H1). */
 export const m2Interviews2 = {
   title: "Second series: the night shift and a private building",
-  why: "The first series heard about night risks only second-hand. We talked to the person who is actually there at night, and to a small owner outside schools, to test whether the problem goes beyond one segment.",
+  why: "The first series was school staff who work in the daytime. We talked to the person who is actually there at night, and to a small owner outside schools, to test whether the problem goes beyond one segment.",
   people: [
     {
       code: "G1",
@@ -48,6 +48,8 @@ export const m2Interviews2 = {
     },
   ],
   how: "Same method: face-to-face, one person at a time, about real past events first, notes taken during the conversation. Full notes on the M4 page.",
+  momTest:
+    "Mom Test check: we asked about what already happened (G1's last incident, how he found out, who came; how H1 checks on his people today), not whether they like our idea. H1 saying he wants night alerts is an opinion, so we count it as weak. Neither was asked yet about money or a next step (a pilot, an introduction); that is the gap to close.",
   learned: "Confirmed the night problem from the person on duty: cameras and a guard on site were not enough, the alert has to reach someone at once. H1 shows the same need outside schools, plus daytime remote supervision.",
 };
 
