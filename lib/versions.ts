@@ -10,6 +10,7 @@
 export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
+  { version: "v1.30", date: "2026-11-26", changes: ["\"Continue with Google\" button no longer cut off on the pilot form (phone and desktop)"] },
   {
     version: "v1.29",
     date: "2026-11-26",

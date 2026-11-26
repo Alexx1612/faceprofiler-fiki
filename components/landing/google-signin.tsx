@@ -30,7 +30,8 @@ export function GoogleSignIn({ onUser, onUnavailable }: { onUser: (u: GoogleUser
           if (u) cb.current.onUser(u);
         },
       });
-      const width = Math.min(360, Math.max(240, Math.floor(box.current.getBoundingClientRect().width || 320)));
+      // Google draws the button about 20 px wider than asked (its own margin), so ask for less than the box
+      const width = Math.min(320, Math.max(200, Math.floor(box.current.getBoundingClientRect().width || 320) - 24));
       id.renderButton(box.current, { type: "standard", theme: "filled_black", size: "large", shape: "pill", text: "continue_with", logo_alignment: "left", width });
     });
     return () => {
