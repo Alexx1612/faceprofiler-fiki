@@ -11,7 +11,7 @@ import { googleClientId, loadGoogleId, type GoogleUser } from "@/lib/google-auth
 
 /**
  * "Subscribe to the newsletter (to be invited for a pilot)": the only sign-up on the landing page. Continue with Google, or leave an e-mail and/or a phone
- * number (at least one), plus school, role and consent.
+ * number (at least one), plus consent; school and role are optional.
  *
  * Methodology: with Google sign-in the e-mail comes from Google, not from a text field; the ID token goes
  * with the request to our collector, which verifies it with Google (collector/Pilot.gs) and e-mails the
@@ -130,11 +130,13 @@ export function PilotForm() {
           {!user && (
             <label>
               E-mail
-              <input name="email" type="email" autoComplete="email" placeholder="name@school.ro" />
+              <input name="email" type="email" autoComplete="email" placeholder="you@example.com" />
             </label>
           )}
           <label>
-            Phone {user ? <span className="lp-form__opt">(optional, if you want a call)</span> : null}
+            <span>
+              Phone {user ? <span className="lp-form__opt">(optional, if you want a call)</span> : null}
+            </span>
             <input
               name="phone"
               type="tel"
@@ -158,13 +160,17 @@ export function PilotForm() {
         )}
         <div className="lp-form__two">
           <label>
-            School or organisation
-            <input name="school" required autoComplete="organization" placeholder="School no. 7, Cluj" />
+            <span>
+              School or organisation <span className="lp-form__opt">(optional)</span>
+            </span>
+            <input name="school" autoComplete="organization" placeholder="School no. 7, Cluj" />
           </label>
           <label>
-            Your role
+            <span>
+              Your role <span className="lp-form__opt">(optional)</span>
+            </span>
             <select name="role" defaultValue="">
-              <option value="">Choose one</option>
+              <option value="">Prefer not to say</option>
               <option>Principal or director</option>
               <option>Administrator</option>
               <option>Teacher</option>

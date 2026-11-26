@@ -10,6 +10,7 @@
 export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
+  { version: "v1.37", date: "2026-11-26", changes: ["Newsletter form: school and role are optional; only an e-mail or a phone number (or Google) and consent are needed"] },
   { version: "v1.36", date: "2026-11-26", changes: ["Newsletter wording everywhere: M3 landing description, M5 event notes, analytics funnel step \"Subscribe or survey opened\""] },
   { version: "v1.35", date: "2026-11-26", changes: ["The sign-up is now \"Subscribe to newsletter (to be invited for a pilot)\" on the home and landing pages", "Game intro explains the three steps in plain words", "Team accounts can record a showcase of the site (red record button next to the e-mail; REC pill with Stop); recordings include the game and the videos and appear under Showcase in Analytics → Replays"] },
   { version: "v1.34", date: "2026-11-26", changes: ["Landing: one \"Book a pilot\" form replaces the separate \"Get notified\" card: continue with Google, or leave an e-mail and/or a phone number"] },
