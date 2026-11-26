@@ -247,3 +247,13 @@ p, li, figcaption {
   .m4w-ping, .m4w-pulse { animation: none; }
   .m4w-travel { animation: none; top: 12px; }
 }
+
+/* Wide screens: the fiki pages scale up (text, spacing and the 90rem content width all use rem), so a
+   2000 px+ monitor is not a narrow column of small text. Phones and laptops keep 16 px. The landing page
+   sizes its text in px and keeps its own width. */
+@media (min-width: 1700px) {
+  html { font-size: 112.5%; }
+}
+@media (min-width: 2100px) {
+  html { font-size: 125%; }
+}

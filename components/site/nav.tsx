@@ -122,7 +122,7 @@ export function Nav({ home = true }: { home?: boolean }) {
         scrolled ? "border-b border-white/[0.06] bg-[#070f1f]/75 backdrop-blur-xl" : "bg-transparent"
       )}
     >
-      <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-2 px-3 sm:gap-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-[90rem] items-center gap-2 px-3 sm:gap-4 sm:px-6">
         <Link href={home ? "#top" : "/"} className="flex min-h-11 shrink-0 items-center gap-2 font-semibold tracking-tight text-white">
           <Logo className="size-6 text-sky-400" />
           {project.name}

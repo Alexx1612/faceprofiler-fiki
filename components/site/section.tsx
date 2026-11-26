@@ -23,7 +23,7 @@ export function Section({
 }) {
   const H = level === 1 ? "h1" : "h2";
   return (
-    <section id={id} className={cn("relative mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 sm:py-8", className)}>
+    <section id={id} className={cn("relative mx-auto w-full max-w-[90rem] px-4 py-6 sm:px-6 sm:py-8", className)}>
       <div className="mb-4 max-w-4xl">
         {eyebrow && <NeumorphEyebrow intent="night">{eyebrow}</NeumorphEyebrow>}
         <H className="font-heading mt-1 mb-2 text-xl font-semibold tracking-tight text-balance text-neutral-100 sm:text-2xl lg:text-3xl">{title}</H>

@@ -62,7 +62,7 @@ export function Team() {
 export function Footer() {
   return (
     <footer className="border-t border-white/10">
-      <div className="mx-auto flex max-w-[1440px] flex-col gap-3 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="mx-auto flex max-w-[90rem] flex-col gap-3 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex items-center gap-2 font-semibold text-white">
           <Logo className="size-5 text-sky-400" /> {project.name}
         </div>
