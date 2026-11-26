@@ -207,14 +207,14 @@ export const measured = [
 /** Business metrics we will track from the first pilot (targets are assumptions). */
 export const tracked = [
   { label: "Cameras under contract", target: "150 by month 12", why: "Revenue grows per camera." },
-  { label: "Monthly recurring revenue", target: "€2,500 by month 12", why: "Shows the business pays for itself." },
+  { label: "Monthly recurring revenue", target: "$1,000 by month 12", why: "Shows the business pays for itself." },
   { label: "Pilot → paying customer", target: "≥ 40%", why: "Proves the product solves a real problem." },
   { label: "False alerts per camera per week", target: "< 1", why: "Too many false alarms and staff stop looking." },
   { label: "Time to find a person in a day of video", target: "< 2 min", why: "Today it takes hours by hand." },
   { label: "Monthly churn", target: "< 2%", why: "Customers stay when alerts are useful." },
 ];
 
-/** First-year cost estimate in EUR. */
+/** First-year cost estimate in USD. */
 export const costs = [
   { label: "Team (3 people, part-time)", amount: 36000, kind: "Fixed", note: "Development, sales, support" },
   { label: "Model licences, legal & GDPR", amount: 6000, kind: "Fixed", note: "Commercial face-model licence, DPIA, contracts" },
@@ -232,8 +232,8 @@ export const plans = [
     id: "starter",
     name: "Starter",
     description: "Small shops, offices and kindergartens",
-    priceMonthly: "€12",
-    priceYearly: "€10",
+    priceMonthly: "$6",
+    priceYearly: "$5",
     featuresLabel: "Up to 8 cameras",
     features: [
       { text: "Face check and Unknown_N alerts" },
@@ -245,8 +245,8 @@ export const plans = [
     id: "business",
     name: "Business",
     description: "Malls, chains and restricted sites",
-    priceMonthly: "€19",
-    priceYearly: "€15",
+    priceMonthly: "$8",
+    priceYearly: "$7",
     badge: "Recommended",
     featuresLabel: "Everything in Starter, plus",
     features: [
@@ -254,6 +254,20 @@ export const plans = [
       { text: "Person search in recordings" },
       { text: "Traffic and attention reports" },
       { text: "App and SMS alerts" },
+    ],
+  },
+  {
+    id: "school",
+    name: "Whole school",
+    description: "All cameras of a school with more than 10",
+    priceMonthly: "$40",
+    priceYearly: "$40",
+    unit: "per school / month",
+    featuresLabel: "Everything in Business, for every camera",
+    features: [
+      { text: "One flat price, however many cameras" },
+      { text: "Night guard phone alerts" },
+      { text: "Morning report for the principal" },
     ],
   },
   {
@@ -272,9 +286,9 @@ export const plans = [
 ];
 
 export const otherRevenue = [
-  { title: "Setup & enrolment", text: "One-time fee per site for installation, camera tuning and enrolling staff.", price: "€300-1,000" },
-  { title: "Edge box", text: "A pre-configured mini-PC for sites without a spare computer, sold with a margin.", price: "from €900" },
-  { title: "Analytics reports", text: "Monthly footfall, dwell and attention reports for retail, as an add-on.", price: "€49 / site / month" },
+  { title: "Setup & enrolment", text: "One-time fee per site for installation, camera tuning and enrolling staff.", price: "$300-1,000" },
+  { title: "Edge box", text: "A pre-configured mini-PC for sites without a spare computer, sold with a margin.", price: "from $900" },
+  { title: "Analytics reports", text: "Monthly footfall, dwell and attention reports for retail, as an add-on.", price: "$49 / site / month" },
 ];
 
 /* ---------- v3: fundamentals, validation, technology (see README) ---------- */
@@ -315,8 +329,8 @@ export const operations = {
 /** Lifetime value per customer (assumptions, a 20-camera mall). */
 export const ltv = {
   lines: [
-    { label: "Licence: 20 cameras × €15 × 12 months × 5 years", amount: 18000 },
-    { label: "Analytics reports: €49 × 12 × 5 years", amount: 2940 },
+    { label: "Licence: 20 cameras × $7 × 12 months × 5 years", amount: 8400 },
+    { label: "Analytics reports: $49 × 12 × 5 years", amount: 2940 },
     { label: "Setup & enrolment (one time)", amount: 1000 },
   ],
   cac: 2500,
@@ -367,7 +381,7 @@ export const forecast = {
   examples: [
     { title: "Staffing", text: "Saturday forecast +18% → 2 extra cashiers 16:00–20:00." },
     { title: "Promotions", text: "Promo week forecast +9% over baseline; the real count afterwards shows if it worked." },
-    { title: "Sales estimate", text: "51,200 visitors × 22% conversion × €38 basket ≈ €428,000 for the week." },
+    { title: "Sales estimate", text: "51,200 visitors × 22% conversion × $38 basket ≈ $428,000 for the week." },
     { title: "Energy", text: "Lighting and heating follow the expected occupancy, not a fixed timetable." },
   ],
 };
@@ -384,13 +398,13 @@ export const lifetimes = [
 export const lifetimeCost = {
   years: [0, 1, 2, 3, 4, 5, 6, 7],
   series: [
-    { name: "Nau-ino on existing cameras", values: [1900, 5500, 9100, 12700, 16300, 20800, 24400, 28000] },
+    { name: "Nau-ino on existing cameras", values: [1900, 3580, 5260, 6940, 8620, 11200, 12880, 14560] },
     { name: "Replace with cloud cameras", values: [20000, 24000, 28000, 32000, 36000, 40000, 44000, 48000] },
     { name: "One extra night guard", values: [0, 18000, 36000, 54000, 72000, 90000, 108000, 126000] },
   ],
 };
 export const lifetimeCostNote =
-  "Assumptions: Nau-ino €1,000 setup + €900 edge PC (replaced in year 5) + €15 per camera per month; cloud cameras €800 each + €4,000 install + €200 per camera per year; night guard €1,500 per month.";
+  "Assumptions, in USD: Nau-ino $1,000 setup + $900 edge PC (replaced in year 5) + $7 per camera per month; cloud cameras $800 each + $4,000 install + $200 per camera per year; night guard $1,500 per month.";
 
 /** Distance test with the trained YOLOv8-nano face detector (owner's new examples; aliases only). */
 export const distance = {
@@ -444,7 +458,7 @@ export const pitch = {
     { value: "2 of 5", label: "elderly-care homes would consider fall alerts, so we treat that as an add-on" },
   ],
   market: [
-    { value: "6,293", text: "school units in Romania. At €960 a year each, that’s about €6M a year." },
+    { value: "6,293", text: "school units in Romania. On the $40-a-month whole-school plan ($480 a year), that’s about $3M a year." },
     { value: "$8.5B", text: "global video-analytics market in 2024, $31.0B expected by 2033 (IMARC Group)." },
   ],
   whyNow:

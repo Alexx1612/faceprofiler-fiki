@@ -326,8 +326,8 @@ export function MultiLine({ x, series, caption, title }: { x: number[]; series: 
   const h = 200;
   const ticks = niceTicks(Math.max(...series.flatMap((s) => s.values)), 3);
   const hi = ticks[ticks.length - 1];
-  const money = (v: number) => (v >= 1000 ? `€${fmt(Math.round(v / 1000))}k` : `€${v}`);
-  const text = (i: number) => `${i === 0 ? "Start" : `Year ${x[i]}`}: ` + series.map((s) => `${s.name.split(" ")[0]} €${fmt(s.values[i])}`).join(" · ");
+  const money = (v: number) => (v >= 1000 ? `$${fmt(Math.round(v / 1000))}k` : `$${v}`);
+  const text = (i: number) => `${i === 0 ? "Start" : `Year ${x[i]}`}: ` + series.map((s) => `${s.name.split(" ")[0]} $${fmt(s.values[i])}`).join(" · ");
   return (
     <div>
       <ul className="mb-1 flex flex-wrap gap-x-4 gap-y-1" aria-label="Legend">
@@ -388,7 +388,7 @@ export function MultiLine({ x, series, caption, title }: { x: number[]; series: 
           );
         }}
       </Frame>
-      <NumbersTable head={["", ...series.map((s) => s.name)]} rows={x.map((yr, i) => [i === 0 ? "Start" : `Year ${yr}`, ...series.map((s) => `€${fmt(s.values[i])}`)])} />
+      <NumbersTable head={["", ...series.map((s) => s.name)]} rows={x.map((yr, i) => [i === 0 ? "Start" : `Year ${yr}`, ...series.map((s) => `$${fmt(s.values[i])}`)])} />
     </div>
   );
 }

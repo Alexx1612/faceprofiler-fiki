@@ -27,7 +27,7 @@ import { TrackedTargets } from "./metrics";
 import { Section } from "./section";
 import { NextArrow, TabHint, TabLabel } from "./tab-hint";
 
-const eur = (n: number) => `€${n.toLocaleString("en-US")}`;
+const usd = (n: number) => `$${n.toLocaleString("en-US")}`;
 const box = "rounded-2xl border border-white/10 bg-white/[0.02] p-4";
 const h4 = "mb-2 text-sm font-semibold text-white";
 
@@ -184,11 +184,11 @@ function BusinessModel() {
   return (
     <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,520px)_1fr] lg:items-start">
       <ChangeablePricingSection
-        title="Licence per camera, monthly subscription"
-        plans={plans.map((p) => ({ ...p, unit: p.priceMonthly === "Custom" ? "volume pricing" : undefined }))}
+        title="Licence per camera, or one price for a whole school"
+        plans={plans.map((p) => ({ ...p, unit: p.priceMonthly === "Custom" ? "volume pricing" : p.unit }))}
         defaultPlanId="business"
         unitLabel="per camera / month"
-        footerText="Yearly billing saves about 20%."
+        footerText="Yearly billing: $1 less per camera."
         buttonText="Book a demo"
         onContinue={() => document.getElementById("team")?.scrollIntoView({ behavior: "smooth" })}
       />
@@ -219,7 +219,7 @@ function Financials() {
       <div className={box}>
         <div className="flex items-baseline justify-between">
           <p className={h4}>Costs, first year</p>
-          <p className="text-lg font-semibold text-white">≈ {eur(Math.round(total / 1000) * 1000)}</p>
+          <p className="text-lg font-semibold text-white">≈ {usd(Math.round(total / 1000) * 1000)}</p>
         </div>
         <ul className="flex flex-col gap-2">
           {costs.map((c) => (
@@ -228,7 +228,7 @@ function Financials() {
                 <span className="text-neutral-300">
                   {c.label} <span className="text-neutral-400">· {c.kind}</span>
                 </span>
-                <span className="jet text-neutral-200">{eur(c.amount)}</span>
+                <span className="jet text-neutral-200">{usd(c.amount)}</span>
               </div>
               <div className="mt-1 h-1.5 rounded-full bg-white/[0.05]">
                 <div className="h-full rounded-full bg-[#3987e5]" style={{ width: `${(c.amount / max) * 100}%` }} />
@@ -246,14 +246,14 @@ function Financials() {
           {ltv.lines.map((l) => (
             <li key={l.label} className="flex justify-between gap-2">
               <span>{l.label}</span>
-              <span className="jet shrink-0">{eur(l.amount)}</span>
+              <span className="jet shrink-0">{usd(l.amount)}</span>
             </li>
           ))}
         </ul>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
           {[
-            ["Lifetime value", eur(value)],
-            ["Cost to win", eur(ltv.cac)],
+            ["Lifetime value", usd(value)],
+            ["Cost to win", usd(ltv.cac)],
             ["LTV / CAC", `${(value / ltv.cac).toFixed(1)}×`],
           ].map(([k, v]) => (
             <div key={k} className="rounded-xl bg-white/[0.04] p-2">

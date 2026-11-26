@@ -90,15 +90,15 @@ export function PitchPage() {
       <Section
         id="pitch-model"
         title="Pricing"
-        lead="Plus a one-time setup fee of €300–1,000 per site and an optional pre-installed computer from €900. Our running costs are low because the video is processed on the customer’s computer, not on our servers."
+        lead="$5–8 per camera, or $40 a month for a whole school with more than 10 cameras. Plus a one-time setup fee of $300–1,000 per site and an optional pre-installed computer from $900. Our running costs are low because the video is processed on the customer’s computer, not on our servers."
       >
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((p) => (
             <div key={p.id} className={card}>
               <h3 className="font-heading font-semibold text-neutral-100">{p.name}</h3>
               <p className="mt-1 text-xl font-semibold text-neutral-100">
                 {p.priceYearly}
-                {p.priceYearly !== "Custom" && <span className="text-muted-foreground text-sm font-normal"> per camera per month, billed yearly</span>}
+                {p.priceYearly !== "Custom" && <span className="text-muted-foreground text-sm font-normal"> {p.unit ?? "per camera per month, billed yearly"}</span>}
               </p>
               <p className="text-muted-foreground mt-1 text-sm">{p.description}</p>
             </div>
