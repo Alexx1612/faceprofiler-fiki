@@ -10,7 +10,7 @@ import { roles, ui, visibleQuestions, type Question, type Role } from "@/lib/sur
 const SCALE = [0, 1, 2, 3, 4, 5];
 const GAME_KEY = "nauino-game";
 /** Rounds in "Spot the stranger": 3+1 and 14+1 people (find the new one), then 3 harmful-action scenarios. */
-const GAME_ROUNDS = 5;
+const GAME_ROUNDS = 4;
 const FIND_ROUNDS = 2;
 
 type GameRound = { round: number; people: number; human_ms: number; machine_ms: number; correct: boolean };

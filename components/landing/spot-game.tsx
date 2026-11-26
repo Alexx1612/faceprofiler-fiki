@@ -5,30 +5,32 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
 import { loadGameResults, loadProgress, resetGame, saveGameResult, saveProgress, type GameResult } from "@/lib/game-result";
 import { NEUTRAL, distance, drawCharacter, type Pose } from "@/components/landing/spot-cast";
-import { allScenarios, pickScenario, scenarioById, type Member, type Scenario } from "@/components/landing/spot-scenarios";
+import { ControlRoom, type ControlResult } from "@/components/landing/spot-control";
+import { allMultiCases, allScenarios, pickMultiCase, pickScenario, scenarioById, type Member, type MultiCase, type Scenario } from "@/components/landing/spot-scenarios";
 import { SpotScene, type CueEvent, type SceneResult } from "@/components/landing/spot-scene";
 
 import "@/app/landing/spot-game.css";
 
 /**
- * "Spot the stranger", five rounds: find the one unknown person among 3, then 14 remembered people; then
- * three scenes where you spot the person about to cause harm, from behaviour only.
+ * "Spot the stranger", four rounds: find the one unknown person among 3, then 14 remembered people; then one
+ * scene (with look-alike decoys) where you spot the person about to cause harm, from behaviour only; then the
+ * control room: four cameras, 30 people on the list, one intruder and one person about to cause harm, both
+ * locked in before submitting (spot-control.tsx).
  *
  * Methodology: this component holds the round flow (intro, line-up, scene, result, summary), the texts in
  * English and Romanian, the live alert feed (lines come from the scene) and the result cards. Scenarios are
  * hand-authored (spot-scenarios.ts); the moving scene and the modelled system time live in spot-scene.ts.
  * The visitor's time and the system's time share one basis: from the unknown person's first appearance
- * (rounds 1-2) or from the start of the round (rounds 3-5). Results and the round the player is on go to
+ * (rounds 1-2) or from the start of the round (rounds 3-4). Results and the round the player is on go to
  * sessionStorage (lib/game-result.ts), so the quick survey can show progress and resume with #game-resume.
  */
 
-type Kind = "find" | "harm";
+type Kind = "find" | "harm" | "control";
 const ROUNDS: { kind: Kind; known: number; pool: 0 | 1 | 2 }[] = [
   { kind: "find", known: 3, pool: 0 },
   { kind: "find", known: 14, pool: 1 },
   { kind: "harm", known: 0, pool: 2 },
-  { kind: "harm", known: 0, pool: 2 },
-  { kind: "harm", known: 0, pool: 2 },
+  { kind: "control", known: 30, pool: 2 },
 ];
 const N = ROUNDS.length;
 
@@ -39,23 +41,38 @@ const T = {
   known: ["known + 1 new", "cunoscuți + 1 nou"],
   harmQ: ["Who is about to cause harm?", "Cine e pe cale să facă rău?"],
   harmIntro: [
-    "About 10 people. Watch how they move and what they do. Tap the person about to hurt someone or do damage.",
-    "Cam 10 persoane. Urmărește cum se mișcă și ce fac. Apasă pe persoana care e pe cale să rănească pe cineva sau să facă stricăciuni.",
+    "{n} people. Some frown, some wear a hood, some children play rough: watch what each one does, not how they look. Tap the person about to hurt someone or do damage.",
+    "{n} persoane. Unii se încruntă, unii poartă glugă, unii copii se joacă mai dur: urmărește ce face fiecare, nu cum arată. Apasă pe persoana care e pe cale să rănească pe cineva sau să facă stricăciuni.",
   ],
+  control: ["Control room", "Camera de supraveghere"],
+  controlBrief: [
+    "4 cameras in 4 places, 30 people on today's list. Somewhere there is one intruder (not on the list) and one person on the list who is about to cause harm. Switch between the cameras to find both.",
+    "4 camere în 4 locuri, 30 de persoane pe lista de azi. Undeva e un intrus (nu e pe listă) și o persoană de pe listă care e pe cale să facă rău. Schimbă între camere ca să-i găsești pe amândoi.",
+  ],
+  controlWarn: [
+    "This round needs 2 answers. Tap a person, then lock them in as the intruder or as the one about to cause harm. You can change your answers until you press Submit.",
+    "Runda asta cere 2 răspunsuri. Apasă pe o persoană, apoi confirm-o ca intrus sau ca persoana care e pe cale să facă rău. Poți schimba răspunsurile până apeși Trimite.",
+  ],
+  rosterTitle: ["Today's list · 30 people", "Lista de azi · 30 de persoane"],
+  rosterHint: ["You can open this list again during the round.", "Poți deschide lista din nou în timpul rundei."],
   harmFind: ["Tap the person about to cause harm", "Apasă pe persoana care e pe cale să facă rău"],
   intro: [
     "You against Nau-ino: at the end you see your time next to the system's.",
     "Tu contra Nau-ino: la final îți vezi timpul lângă cel al sistemului.",
   ],
-  how: ["How to play · about 1 minute", "Cum se joacă · cam 1 minut"],
+  how: ["How to play · about 3 minutes", "Cum se joacă · cam 3 minute"],
   step1: [
     "Remember 3 faces. Then find the one new person in the camera feed and tap them.",
     "Reține 3 fețe. Apoi găsește persoana nouă în imaginea camerei și apasă pe ea.",
   ],
   step2: ["The same with 14 faces.", "La fel, cu 14 fețe."],
   step3: [
-    "Three short scenes: tap the person who is about to hurt someone.",
-    "Trei scene scurte: apasă pe persoana care e pe cale să rănească pe cineva.",
+    "A busy scene: tap the person who is about to hurt someone. Frowns and hoods are not clues.",
+    "O scenă aglomerată: apasă pe persoana care e pe cale să rănească pe cineva. Încruntarea și gluga nu sunt indicii.",
+  ],
+  step4: [
+    "Control room: 4 cameras, 30 people on the list. Find the intruder and the person about to cause harm, and lock in both.",
+    "Camera de supraveghere: 4 camere, 30 de persoane pe listă. Găsește intrusul și persoana care e pe cale să facă rău și confirmă-i pe amândoi.",
   ],
   play: ["Play", "Joacă"],
   start: ["Start", "Începe"],
@@ -204,6 +221,9 @@ export function SpotGame() {
   const [feed, setFeed] = useState<FeedLine[]>([]);
   const [info, setInfo] = useState(false);
   const [results, setResults] = useState<GameResult[]>([]);
+  const [mcase, setMcase] = useState<MultiCase | null>(null);
+  const [cres, setCres] = useState<ControlResult | null>(null);
+  const lastMulti = useRef("");
   const canvas = useRef<HTMLCanvasElement>(null);
   const scene = useRef<SpotScene | null>(null);
   const roundRef = useRef(round);
@@ -215,10 +235,30 @@ export function SpotGame() {
 
   const meta = ROUNDS[round];
   const harm = meta.kind === "harm";
+  const control = meta.kind === "control";
   const known = scenario ? scenario.cast.filter((_, i) => i !== scenario.target) : [];
   const target = scenario ? scenario.cast[scenario.target] : null;
 
   const start = useCallback((r: number, asDemo = false) => {
+    if (ROUNDS[r].kind === "control") {
+      const forced = navigator.webdriver ? new URLSearchParams(location.search).get("sgmulti") : null;
+      const mc = (forced && allMultiCases().find((c) => c.id === forced)) || pickMultiCase(lastMulti.current);
+      lastMulti.current = mc.id;
+      roundRef.current = r;
+      scRef.current = null;
+      setRound(r);
+      setScenario(null);
+      setMcase(mc);
+      setCres(null);
+      setResult(null);
+      setLive(false);
+      setFeed([]);
+      setDemo(false);
+      setPhase("remember");
+      setSeed((x) => x + 1);
+      saveProgress(r + 1);
+      return;
+    }
     const pool = ROUNDS[r].pool;
     if (r === 0) usedHarm.current = [];
     const avoid = pool === 2 ? usedHarm.current : lastIds.current[r] ? [lastIds.current[r]] : [];
@@ -247,6 +287,27 @@ export function SpotGame() {
     setSeed((s) => s + 1);
     saveProgress(r + 1);
   }, []);
+
+  /** Round 4 finished (both answers submitted). */
+  const onControl = (r: ControlResult) => {
+    const mc = mcase;
+    if (!mc) return;
+    setCres(r);
+    const rr = roundRef.current;
+    const out: GameResult = {
+      round: (rr + 1) as GameResult["round"],
+      people: mc.cams.reduce((n, c) => n + c.cast.length, 0),
+      human_ms: Math.round(r.human_ms),
+      machine_ms: Math.round(r.machine_ms),
+      correct: r.correct,
+      scenario: mc.id,
+    };
+    if (r.lead_s !== null) out.lead_ms = Math.round(r.lead_s * 1000);
+    if (r.human_lead_s !== null) out.human_lead_ms = Math.round(r.human_lead_s * 1000);
+    saveGameResult(out);
+    saveProgress(r.correct ? rr + 2 : rr + 1);
+    track("game_round_finished", { ...out, intruder_ok: r.intruderOk, harm_ok: r.harmOk });
+  };
 
   const retry = () => {
     // a retry of a harmful round may pick the same scenario again
@@ -352,6 +413,16 @@ export function SpotGame() {
             if (i !== x.target && distance(k, x.cast[x.target]) < 0.6) out.push(`${x.id}: ${k.name} too close to the unknown person`);
           });
         }
+        // control room: the intruder differs from all 30 people on the list, and no name is listed twice
+        for (const c of allMultiCases()) {
+          const intr = c.cams[c.intruder.cam].cast[c.intruder.i];
+          c.roster.forEach((k) => {
+            if (distance(k, intr) < 0.6) out.push(`${c.id}: ${k.name} too close to the intruder`);
+          });
+          const names = c.roster.map((k) => k.name);
+          names.forEach((n, i) => names.indexOf(n) !== i && out.push(`${c.id}: two people called ${n}`));
+          if (c.roster.length !== 30) out.push(`${c.id}: ${c.roster.length} people on the list`);
+        }
         return out;
       };
     }
@@ -381,7 +452,11 @@ export function SpotGame() {
   const clockOf = (r: SceneResult, clock: number) => hhmmss(new Date(r.t0 + clock * 1000));
   const est = (on: boolean) => (on ? ` (${t("estimated")})` : "");
   const label = (r: number) =>
-    ROUNDS[r].kind === "find" ? `${t("round")} ${r + 1}/${N} · ${ROUNDS[r].known} ${t("known")}` : `${t("round")} ${r + 1}/${N} · ${t("harmQ")}`;
+    ROUNDS[r].kind === "find"
+      ? `${t("round")} ${r + 1}/${N} · ${ROUNDS[r].known} ${t("known")}`
+      : ROUNDS[r].kind === "control"
+        ? `${t("round")} ${r + 1}/${N} · ${t("control")}`
+        : `${t("round")} ${r + 1}/${N} · ${t("harmQ")}`;
 
   /** "cu 3,8 s înainte de împingere (11:05:20)" / "3.8 s before the push (11:05:20)", or "after". */
   const relAct = (r: SceneResult, at: number, act: CueEvent) => {
@@ -436,6 +511,10 @@ export function SpotGame() {
                 <b>3</b>
                 <span>{t("step3")}</span>
               </li>
+              <li>
+                <b>4</b>
+                <span>{t("step4")}</span>
+              </li>
             </ol>
           </div>
           <p>{t("intro")}</p>
@@ -450,7 +529,7 @@ export function SpotGame() {
         </div>
       )}
 
-      {phase === "remember" && scenario && !harm && (
+      {phase === "remember" && scenario && meta.kind === "find" && (
         <div className="sg__remember">
           <p className="sg__hint">
             {t("remember")} · <b>{known.length}</b>
@@ -471,7 +550,7 @@ export function SpotGame() {
       {phase === "remember" && scenario && harm && (
         <div className="sg__remember sg__bonus-intro">
           <p className="sg__bonus-title">{label(round)}</p>
-          <p className="sg__hint">{t("harmIntro")}</p>
+          <p className="sg__hint">{t("harmIntro").replace("{n}", String(scenario.cast.length))}</p>
           <div className="sg__actions">
             <button type="button" className="lp-btn" onClick={() => setPhase("scene")}>
               {t("start")} →
@@ -480,7 +559,65 @@ export function SpotGame() {
         </div>
       )}
 
-      {phase === "scene" && scenario && (
+      {phase === "remember" && control && mcase && (
+        <div className="sg__remember sg__bonus-intro sg__brief">
+          <p className="sg__bonus-title">{label(round)}</p>
+          <p className="sg__hint">{mcase.info[L]}</p>
+          <p className="sg__hint">{t("controlBrief")}</p>
+          <p className="sg__warn" role="note">
+            ⚠ {t("controlWarn")}
+          </p>
+          <p className="sg__hint">
+            <b>{t("rosterTitle")}</b> · {t("rosterHint")}
+          </p>
+          <ul className="sg__lineup sg__lineup--many sg__lineup--roster">
+            {mcase.roster.map((p, i) => (
+              <Mug key={`${seed}-${p.id}`} p={p} i={i} L={L} />
+            ))}
+          </ul>
+          <div className="sg__actions">
+            <button type="button" className="lp-btn" onClick={() => setPhase("scene")}>
+              {t("start")} →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {phase === "scene" && control && mcase && (
+        <ControlRoom
+          key={`${seed}-${mcase.id}`}
+          mcase={mcase}
+          lang={lang}
+          reduce={typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches}
+          onResult={onControl}
+          footer={
+            cres && (
+              <>
+                <div className="sg__actions">
+                  <button type="button" className="lp-btn lp-btn--ghost" onClick={() => start(round)}>
+                    {t("retry")}
+                  </button>
+                  <button type="button" className="lp-btn" onClick={showSummary}>
+                    {t("summary")}
+                  </button>
+                </div>
+                <a
+                  className="sg__survey"
+                  href="#survey"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openSurvey("result");
+                  }}
+                >
+                  {t("survey")} →
+                </a>
+              </>
+            )
+          }
+        />
+      )}
+
+      {phase === "scene" && scenario && !control && (
         <div className="sg__stage">
           <div className="sg__feedwrap">
             <canvas
@@ -671,7 +808,7 @@ export function SpotGame() {
               const r = results.find((x) => x.round === i + 1);
               return (
                 <li key={i}>
-                  <span>{m.kind === "find" ? `${i + 1} · ${m.known} ${t("known")}` : `${i + 1} · ${t("harmQ")}`}</span>
+                  <span>{m.kind === "find" ? `${i + 1} · ${m.known} ${t("known")}` : m.kind === "control" ? `${i + 1} · ${t("control")}` : `${i + 1} · ${t("harmQ")}`}</span>
                   {r ? (
                     <b className={r.correct ? "sg__ok" : "sg__bad"}>
                       {r.correct ? t("ok") : t("missed")} · {t("you")} {sec(r.human_ms)} · {t("system")} {sec(r.machine_ms)}
@@ -702,7 +839,7 @@ export function SpotGame() {
       )}
 
       <p className="sg__note">
-        {(harm || phase === "summary") && phase !== "intro" ? `${t("honest")} ` : ""}
+        {(harm || control || phase === "summary") && phase !== "intro" ? `${t("honest")} ` : ""}
         {t("sysNote")}
       </p>
     </div>

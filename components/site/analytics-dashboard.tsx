@@ -798,7 +798,7 @@ function Survey({ s }: { s: Stats }) {
 const sec = (ms: number | null | undefined) => (ms === null || ms === undefined ? "–" : `${(ms / 1000).toFixed(1)} s`);
 
 
-/** Who plays "Spot the stranger" and how well: players, finishers, score 0-5, and each round vs the machine. */
+/** Who plays "Spot the stranger" and how well: players, finishers, score 0-4, and each round vs the machine. */
 function Game({ s }: { s: Stats }) {
   const g = s.game_summary;
   if (!s.game.length) return <p className="text-sm text-neutral-400">Nobody has played yet.</p>;
@@ -808,7 +808,7 @@ function Game({ s }: { s: Stats }) {
   return (
     <div className="flex flex-col gap-3">
       <Takeaway>
-        {g ? `${num(g.players)} people played; ${num(g.finished_all)} finished all rounds, average score ${g.avg_score.toFixed(1)} of 5. ` : ""}
+        {g ? `${num(g.players)} people played; ${num(g.finished_all)} finished all rounds, average score ${g.avg_score.toFixed(1)} of 4. ` : ""}
         {hardest ? `Hardest: round ${hardest.round} (${pct(hardest.correct_pct)} right).` : ""}
       </Takeaway>
       {g ? (
@@ -877,7 +877,7 @@ function Game({ s }: { s: Stats }) {
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-neutral-400">System time is modelled from Nau-ino measurements (43 ms per face, 5 frames/s, 3 frames to confirm); rounds 3-5 count from the round start.</p>
+          <p className="mt-2 text-xs text-neutral-400">System time is modelled from Nau-ino measurements (43 ms per face, 5 frames/s, 3 frames to confirm); rounds 3-4 count from the round start; round 4 (control room) is the later of the two alerts, the system watching all 4 cameras at once.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-3 md:col-span-2">
           {s.game.map((r) => (

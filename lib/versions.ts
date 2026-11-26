@@ -10,6 +10,7 @@
 export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
+  { version: "v1.43", date: "2026-11-26", changes: ["Game in 4 rounds: 3+1, 14+1, one harm scene with decoys (frowns, harmless hoods, children chasing and play-fighting), then a control room: 4 cameras in 4 places, 30 people on the list, find the intruder and the person about to cause harm and lock both in"] },
   { version: "v1.42", date: "2026-11-26", changes: ["Analytics: 5 tabs instead of 11 (Traffic, Pages & behaviour, Conversions, Inbox, Replays & live)", "Replays: star the ones you like (kept past the 30-day clean-up) and a Starred filter"] },
   { version: "v1.41", date: "2026-11-26", changes: ["Wide screens: the project pages scale up (text and width), 112.5% from 1700 px and 125% from 2100 px"] },
   { version: "v1.40", date: "2026-11-26", changes: ["Landing: the newsletter form (Google, or e-mail and/or phone; school and role optional) is the sign-up again after a parallel v1.38 had put back the older \"Get notified\" card"] },

@@ -130,7 +130,7 @@ test("survey free text (comment, *_other, *_note) is only counted, never returne
   assert.deepEqual(Object.fromEntries(s.survey_free_text.map((x) => [x.key, x.count])), { comment: 1, role_other: 1, safe_note: 1 });
 });
 
-test("game: players, finished all rounds, score 0-5 per player (5 rounds), best times, scenarios", () => {
+test("game: players, finished all rounds, score 0-4 per player (4 rounds; an old round 5 is ignored), best times, scenarios", () => {
   const T = Date.UTC(2026, 10, 25);
   let k = 0;
   const g = (anon, round, correct, human_ms, extra = {}) => ({
@@ -138,11 +138,11 @@ test("game: players, finished all rounds, score 0-5 per player (5 rounds), best 
     props: { round, people: [4, 15, 10, 10, 10][round - 1], correct, human_ms, machine_ms: 0.02 * round, ...extra },
   });
   const events = [
-    // P1: all five right (one retry on round 2) → score 5, finished
+    // P1: all four right (one retry on round 2), plus an old round 5 from the 5-round game → score 4, finished
     g("P1", 1, true, 2500, { scenario: "yard-night" }), g("P1", 2, false, 4000), g("P1", 2, true, 3500), g("P1", 3, true, 6000), g("P1", 4, true, 12000), g("P1", 5, true, 9000),
-    // P2: round 1 right, round 2 wrong, never played 3-5 → score 1, not finished
+    // P2: round 1 right, round 2 wrong, never played 3-4 → score 1, not finished
     g("P2", 1, true, 1800, { scenario: "yard-night" }), g("P2", 2, false, 9000),
-    // P3: played all five, all wrong → score 0, finished
+    // P3: played all four (and an old round 5), all wrong → score 0, finished
     g("P3", 1, false, 7000, { scenario: "Corridor" }), g("P3", 2, false, 8000), g("P3", 3, false, 9000, { scenario: "free text, with spaces!" }), g("P3", 4, false, 20000), g("P3", 5, false, 15000),
     // test traffic must not count
     { ...g("T", 1, true, 100), test: true },
@@ -152,8 +152,8 @@ test("game: players, finished all rounds, score 0-5 per player (5 rounds), best 
   const s = out.game_summary;
   assert.equal(s.players, 3);
   assert.equal(s.finished_all, 2);
-  assert.equal(s.avg_score, (5 + 1 + 0) / 3);
-  assert.deepEqual(s.score_distribution, [{ score: 0, players: 1 }, { score: 1, players: 1 }, { score: 2, players: 0 }, { score: 3, players: 0 }, { score: 4, players: 0 }, { score: 5, players: 1 }]);
+  assert.equal(s.avg_score, (4 + 1 + 0) / 3);
+  assert.deepEqual(s.score_distribution, [{ score: 0, players: 1 }, { score: 1, players: 1 }, { score: 2, players: 0 }, { score: 3, players: 0 }, { score: 4, players: 1 }]);
   assert.deepEqual(s.scenarios, [{ key: "yard-night", count: 2 }, { key: "corridor", count: 1 }]);
   const r = Object.fromEntries(out.game.map((x) => [x.round, x]));
   assert.equal(r["1"].plays, 3);

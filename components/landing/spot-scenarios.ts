@@ -6,13 +6,19 @@
  * - Pool 0 (round 1: 3 remembered people) and pool 1 (round 2: 14 remembered people): an ordinary scene
  *   and one ordinary person who is simply not in the remembered list. No tools, no hoods, no suspicious
  *   behaviour: the point is how hard one unknown face gets to spot as the crowd grows.
- * - Pool 2 (rounds 3-5, about 10 people): spot the person about to cause harm from OBSERVABLE BEHAVIOUR
+ * - Pool 2 (round 3, about 15 people with decoys; also the culprit camera of round 4): spot the person about to cause harm from OBSERVABLE BEHAVIOUR
  *   (closing in, fists, a push, a kick, repeated hand-offs, following someone, trying doors, avoiding the
  *   cameras). Each scenario lists the behaviour cues the system can see (`cues`, with a weight) and the
  *   harmful act (`act`); the system alerts when the weights add up to ALERT_SCORE. Decoys show similar
  *   single cues (play-fighting, a parent rushing, a coach shouting, someone pacing on the phone, a teen
  *   dancing, a teen with the hood up), and who the culprit is varies in age and look, so appearance is
  *   never the cue. Expressions are animation only; the readouts describe behaviour, not emotions.
+ * - Round 3 adds DECOYS to every harm scene (decoys()): a frowning teen and a frowning adult who only wait,
+ *   a harmless teen with the hood up, and two children chasing each other, so the culprit's behaviour is the
+ *   only thing that tells them apart.
+ * - Round 4, the control room (MultiCase): four cameras in four places, 30 people on the list spread over
+ *   them (9 / 10 / 6 / 5), one intruder (not on the list) on one camera and one person on the list about
+ *   to cause harm on another. The same person looks the same on the list and on camera.
  * - Positions are world coordinates [x, z] (x across, z from the back 0 to the camera 1).
  */
 
@@ -53,14 +59,15 @@ export type Cue = { line: Line; w: number };
 
 export type Scenario = {
   id: string;
-  /** 0 = round 1 (3 remembered), 1 = round 2 (14 remembered), 2 = harmful-action pool (rounds 3-5). */
+  /** 0 = round 1 (3 remembered), 1 = round 2 (14 remembered), 2 = harmful-action pool (round 3; also the
+   * control-room camera with the culprit). Control-room cameras without a culprit use 1. */
   pool: 0 | 1 | 2;
   setting: string;
   scale?: number;
   clock: [number, number];
   info: Line;
   cast: Member[];
-  /** Index of the person to find: the unknown person (pools 0-1, always the last) or the culprit. */
+  /** Index of the person to find: the unknown person (pools 0-1) or the culprit; -1 = nobody on this camera. */
   target: number;
   /** Harmful rounds: cues the system sees, by event id, and the harmful act (event id + noun). */
   cues?: Record<string, Cue>;
@@ -252,7 +259,7 @@ function r2Fair(): Scenario {
   };
 }
 
-/* ------------------------------------------------------------------ rounds 3-5: about to cause harm */
+/* ------------------------------------------------------------------ round 3: about to cause harm */
 
 const HANDOFF_CUES = (who: Line): Record<string, Cue> => ({
   handoff1: { line: [`Hand-off with ${who[0]}`, `Schimb de obiecte cu ${who[1]}`], w: 1 },
@@ -430,12 +437,239 @@ function hHood(): Scenario {
   };
 }
 
+/* ------------------------------------------------------------------ round 3 decoys */
+
+/**
+ * Harmless look-alikes added to a harm scene: a frowning teen and a frowning adult who just wait, a teen with
+ * the hood up chatting on the phone, and two pupils chasing each other. Pupils already in the scene are
+ * skipped, so nobody appears twice.
+ */
+function decoys(sc: Scenario): Scenario {
+  const used = new Set(sc.cast.map((m) => m.name));
+  const free = KIDS.map((k, i) => [k[0], i] as const).filter(([n]) => !used.has(n)).map(([, i]) => i);
+  const k = (n: number) => free[n % Math.max(1, free.length)] ?? n;
+  const base = sc.cast.length;
+  sc.cast.push(
+    M("Tudor", R_PUPIL, "teen", { skin: S.light, hair: H.black, style: "short", top: "#3a3f4a", bottom: BLACK, outfit: "hoodie", acc: "hood", carry: "phone" }, { k: "wait", at: [0.86, 0.7], act: "phone", roam: 0.02 }, "bored"),
+    M("Cezar", R_PUPIL, "teen", { skin: S.tan, hair: H.dark, style: "buzz", top: "#5a2e2e", bottom: JEANS, outfit: "casual" }, { k: "wait", at: [0.13, 0.42], roam: 0.03 }, "hostile"),
+    M("Paul", R_PARENT, "adult", { skin: S.fair, hair: H.brown, style: "short", top: "#3f4a3a", bottom: GREY, outfit: "coat", beard: "beard" }, { k: "pace", a: [0.62, 0.78], b: [0.78, 0.84], act: "call" }, "hostile"),
+    kid(k(0), { k: "play", area: [0.25, 0.75, 0.72, 0.93] }, "excited"),
+    kid(k(1), { k: "play", area: [0.25, 0.75, 0.72, 0.93] }, "happy"),
+  );
+  sc.cast.slice(base).forEach((m, i) => (m.id = base + i));
+  return sc;
+}
+
+/* ------------------------------------------------------------------ round 4: the control room */
+
+/** One control-room case: four cameras, the people on the list, and where the two answers are. */
+export type MultiCase = {
+  id: string;
+  clock: [number, number];
+  info: Line;
+  /** What the person about to cause harm will do (shown only after the round). */
+  harmAct: Line;
+  cams: Scenario[];
+  /** The people on the list (everyone on camera except the intruder), in the order shown. */
+  roster: Member[];
+  intruder: { cam: number; i: number };
+  harm: { cam: number; i: number };
+};
+
+/** The people of a control-room case: one Member per person, reused on the list and on camera. */
+function people() {
+  const P = {
+    vasile: GUARD("Vasile", S.tan, H.grey, { k: "wait", at: [0.45, 0.15], roam: 0.04 }, "moustache", "senior"),
+    ion: GUARD("Ion", S.light, H.dark, { k: "patrol", pts: [[0.15, 0.3], [0.85, 0.35]], pause: 2 }),
+    maria: M("Maria", R_CLEANER, "adult", { skin: S.fair, hair: H.auburn, style: "bun", top: "#9b6fb0", bottom: "#3a3550", outfit: "cleaner", carry: "mop" }, { k: "work", area: [0.55, 0.9, 0.3, 0.6], act: "mop" }),
+    gheorghe: M("Gheorghe", ["Caretaker", "Administrator"], "senior", { skin: S.light, hair: H.grey, style: "bald", top: "#3d5a6b", bottom: "#3d5a6b", outfit: "worker", acc: "beanie", beard: "moustache" }, { k: "patrol", pts: [[0.2, 0.5], [0.8, 0.55]], pause: 3 }),
+    sorin: M("Sorin", R_TEACHER, "adult", { skin: S.light, hair: H.dark, style: "short", top: "#3e6f5a", bottom: GREY, outfit: "teacher", beard: "beard", carry: "folder" }, { k: "cross", from: "doorL", to: "doorR", gap: [3, 6] }),
+    gabriela: M("Gabriela", R_TEACHER_F, "adult", { skin: S.fair, hair: H.brown, style: "bun", top: "#7a4f8f", bottom: BLACK, outfit: "teacher", acc: "glasses" }, { k: "patrol", pts: [[0.25, 0.4], [0.75, 0.4]], pause: 3 }),
+    mihaela: M("Mihaela", R_TEACHER_F, "adult", { skin: S.tan, hair: H.dark, style: "bun", top: "#3f7f6f", bottom: BLACK, outfit: "teacher", acc: "glasses" }, { k: "wait", at: [0.3, 0.45], roam: 0.04 }),
+    dan: M("Dan", ["Principal", "Director"], "adult", { skin: S.light, hair: H.grey, style: "short", top: "#2b2f3a", bottom: "#2b2f3a", outfit: "suit", acc: "glasses" }, { k: "wait", at: [0.55, 0.35], roam: 0.05 }),
+    radu: M("Radu", ["PE coach", "Antrenor"], "adult", { skin: S.light, hair: H.black, style: "buzz", top: "#2a5fa8", bottom: "#2a5fa8", outfit: "sport" }, { k: "wait", at: [0.3, 0.25], act: "shout", roam: 0.02 }, "loud"),
+    // "Adina", not "Ioana": a pupil on the list is already called Ioana
+    ioana: M("Adina", R_PARENT, "adult", { skin: S.light, hair: H.blond, style: "long", top: "#a8c6df", bottom: JEANS, outfit: "coat", carry: "bag" }, { k: "cross", from: "gate", to: "gate", gap: [1, 2] }),
+    alin: M("Alin", R_PARENT, "adult", { skin: S.light, hair: H.black, style: "short", top: "#7a8a5a", bottom: JEANS, outfit: "coat", beard: "beard" }, { k: "wait", at: [0.7, 0.45], act: "phone", roam: 0.02 }, "focused"),
+    simona: M("Simona", R_PARENT, "adult", { skin: S.tan, hair: H.dark, style: "curly", top: "#c45a8a", bottom: NAVY, outfit: "casual", skirt: true }, { k: "pace", a: [0.7, 0.7], b: [0.88, 0.78], act: "call" }, "anxious"),
+    elisabeta: M("Elisabeta", R_GRANDMA, "senior", { skin: S.fair, hair: H.white, style: "short", top: "#7d3b56", bottom: "#4a4136", outfit: "coat", acc: "headscarf", carry: "shopping" }, { k: "wait", at: [0.25, 0.35], roam: 0.01 }),
+    nicolae: M("Nicolae", R_GRANDPA, "senior", { skin: S.fair, hair: H.white, style: "bald", top: "#6b5a44", bottom: "#4a4136", outfit: "coat", acc: "glasses", carry: "cane", beard: "moustache" }, { k: "wait", at: [0.35, 0.3], roam: 0.02 }),
+    florica: M("Florica", ["Retired teacher, volunteer", "Profesoară pensionară, voluntar"], "senior", { skin: S.fair, hair: H.white, style: "bun", top: "#a85a5a", bottom: "#4a4136", outfit: "coat", acc: "glasses" }, { k: "wait", at: [0.12, 0.6], roam: 0.02 }),
+    larisa: M("Larisa", R_PUPIL_F, "teen", { skin: S.tan, hair: H.black, style: "ponytail", top: "#b0353a", bottom: BLACK, outfit: "casual" }, { k: "wait", at: [0.6, 0.4], roam: 0.03 }, "hostile"),
+  };
+  // pupils 0-13; Stefan (6) and Victor (10) wear the hood up, harmlessly
+  const kids = KIDS.map((_, i) => kid(i, { k: "wait", at: [0.5, 0.5], roam: 0.03 }, "happy", i === 6 || i === 10 ? { acc: "hood" } : {}));
+  return { P, kids };
+}
+
+/** A copy of a person with a behaviour for one camera (the list keeps the person, the camera the copy). */
+function on(m: Member, beh: Beh, mood?: Mood): Member {
+  return { ...m, beh, mood: mood ?? m.mood };
+}
+
+function cam(id: string, setting: string, clock: [number, number], cast: Member[], target: number, extra: Partial<Scenario> = {}): Scenario {
+  cast.forEach((m, i) => (m.id = i));
+  return { id, pool: extra.cues ? 2 : 1, setting, clock, info: ["", ""], cast, target, scale: 1.1, ...extra };
+}
+
+const INTRUDER_A = (): Member =>
+  M("?", UNKNOWN, "adult", { skin: S.fair, hair: H.red, style: "curly", top: "#b8c23a", bottom: GREY, outfit: "casual", carry: "bag" }, { k: "pace", a: [0.6, 0.5], b: [0.8, 0.62], act: "phone" });
+const INTRUDER_B = (): Member =>
+  M("?", UNKNOWN, "adult", { skin: S.fair, hair: H.blond, style: "long", top: "#c45a5a", bottom: NAVY, outfit: "coat", acc: "cap", carry: "bag" }, { k: "wait", at: [0.62, 0.42], act: "phone", roam: 0.05 }, "focused");
+
+const AGGR_CUES: Record<string, Cue> = {
+  restless: { line: ["Paced back and forth near a younger pupil", "Se plimbă agitată lângă o elevă mai mică"], w: 0.8 },
+  close: { line: ["Closed in fast on her", "S-a apropiat repede de ea"], w: 1.3 },
+  square: { line: ["Fists clenched, face to face", "Pumnii strânși, față în față"], w: 1 },
+};
+
+/** Case A: Friday after school. Intruder at the gate (CAM 01); a pupil about to push another behind the gym (CAM 03). */
+function mPickup(): MultiCase {
+  const { P, kids } = people();
+  const clock: [number, number] = [16, 40];
+  const gate = [
+    on(P.vasile, { k: "wait", at: [0.45, 0.15], roam: 0.04 }),
+    on(P.ioana, { k: "cross", from: "gate", to: "gate", gap: [1, 2] }),
+    on(P.alin, { k: "wait", at: [0.72, 0.45], act: "phone", roam: 0.02 }, "focused"),
+    on(P.elisabeta, { k: "wait", at: [0.25, 0.32], roam: 0.01 }),
+    on(P.nicolae, { k: "wait", at: [0.33, 0.3], roam: 0.02 }),
+    on(P.dan, { k: "wait", at: [0.55, 0.35], roam: 0.05 }),
+    on(kids[1], { k: "wait", at: [0.4, 0.6], roam: 0.03 }, "calm"),
+    on(kids[2], { k: "cross", from: "gate", to: "left", gap: [2, 4] }),
+    on(kids[12], { k: "play", area: [0.2, 0.6, 0.6, 0.9] }),
+    INTRUDER_A(),
+  ];
+  const yard = [
+    on(kids[0], { k: "play", area: [0.15, 0.6, 0.5, 0.9] }, "excited"),
+    on(kids[3], { k: "play", area: [0.15, 0.6, 0.5, 0.9] }, "happy"),
+    on(kids[4], { k: "playfight", with: 3, area: [0.55, 0.9, 0.55, 0.9] }, "happy"),
+    on(kids[5], { k: "playfight", with: 2, area: [0.55, 0.9, 0.55, 0.9] }, "happy"),
+    on(kids[6], { k: "wait", at: [0.82, 0.35], act: "phone", roam: 0.02 }, "bored"),
+    on(kids[7], { k: "chat", at: [0.35, 0.28], with: 6 }),
+    on(kids[9], { k: "chat", at: [0.41, 0.3], with: 5 }),
+    on(kids[13], { k: "wait", at: [0.12, 0.4], roam: 0.03 }, "hostile"),
+    on(P.gabriela, { k: "patrol", pts: [[0.25, 0.45], [0.75, 0.45]], pause: 3 }),
+    on(P.florica, { k: "wait", at: [0.6, 0.25], roam: 0.02 }),
+  ];
+  const gym = [
+    on(P.larisa, { k: "aggressor", target: 1, area: [0.4, 0.8, 0.3, 0.7] }, "hostile"),
+    on(kids[11], { k: "wait", at: [0.62, 0.45], act: "phone", roam: 0.01 }, "focused"),
+    on(P.radu, { k: "wait", at: [0.25, 0.25], act: "shout", roam: 0.02 }, "loud"),
+    on(kids[8], { k: "wait", at: [0.15, 0.6], roam: 0.03 }, "hostile"),
+    on(P.ion, { k: "patrol", pts: [[0.15, 0.35], [0.85, 0.3]], pause: 2 }),
+    on(P.simona, { k: "pace", a: [0.72, 0.75], b: [0.9, 0.82], act: "call" }, "anxious"),
+  ];
+  const hall = [
+    on(P.gheorghe, { k: "patrol", pts: [[0.2, 0.5], [0.8, 0.55]], pause: 3 }),
+    on(P.sorin, { k: "cross", from: "doorL", to: "doorR", gap: [3, 6] }),
+    on(P.mihaela, { k: "wait", at: [0.3, 0.45], roam: 0.04 }),
+    on(kids[10], { k: "pace", a: [0.6, 0.7], b: [0.8, 0.75], act: "call" }, "bored"),
+    on(P.maria, { k: "work", area: [0.55, 0.9, 0.3, 0.6], act: "mop" }),
+  ];
+  const cams = [
+    cam("m-pickup-gate", "gate-afternoon", clock, gate, gate.length - 1),
+    cam("m-pickup-yard", "yard-day", clock, yard, -1),
+    cam("m-pickup-gym", "yard-gym", clock, gym, 0, { cues: AGGR_CUES, act: { id: "push", noun: ["the push", "împingere"] } }),
+    cam("m-pickup-hall", "corridor-evening", clock, hall, -1),
+  ];
+  return {
+    id: "m-pickup", clock, cams,
+    roster: [P.dan, P.vasile, P.ion, P.gabriela, P.mihaela, P.sorin, P.radu, P.florica, P.gheorghe, P.maria, P.ioana, P.alin, P.simona, P.elisabeta, P.nicolae, P.larisa, ...kids],
+    intruder: { cam: 0, i: gate.length - 1 },
+    harm: { cam: 2, i: 0 },
+    harmAct: ["pushing a younger pupil", "împingerea unei eleve mai mici"],
+    info: [
+      "Friday 16:40, the after-school club is ending. Parents arrive at the gate, pupils play in the yard, the coach is behind the gym, the corridor is being cleaned. 30 people are on today's list.",
+      "Vineri, 16:40, se termină programul de după-amiază. Părinții vin la poartă, elevii se joacă în curte, antrenorul e în spatele sălii, holul se curăță. Pe lista de azi sunt 30 de persoane.",
+    ],
+  };
+}
+
+/** Case B: Wednesday after practice. A pupil hands things to others in the yard (CAM 02); an intruder in the corridor (CAM 05). */
+function mPractice(): MultiCase {
+  const { P, kids } = people();
+  const clock: [number, number] = [17, 15];
+  const gate = [
+    on(P.vasile, { k: "wait", at: [0.45, 0.15], roam: 0.04 }),
+    on(P.ioana, { k: "wait", at: [0.62, 0.4], act: "phone", roam: 0.02 }, "focused"),
+    on(P.alin, { k: "cross", from: "gate", to: "right", gap: [2, 4] }),
+    on(P.elisabeta, { k: "wait", at: [0.22, 0.35], roam: 0.01 }),
+    on(P.nicolae, { k: "wait", at: [0.3, 0.32], roam: 0.02 }),
+    on(P.dan, { k: "patrol", pts: [[0.3, 0.55], [0.7, 0.55]], pause: 3 }),
+    on(kids[1], { k: "play", area: [0.2, 0.6, 0.6, 0.9] }),
+    on(kids[2], { k: "play", area: [0.2, 0.6, 0.6, 0.9] }),
+    on(kids[12], { k: "wait", at: [0.78, 0.65], roam: 0.03 }, "calm"),
+  ];
+  const yard = [
+    on(kids[8], { k: "dealer", at: [0.74, 0.3] }, "furtive"),
+    on(kids[0], { k: "buyer", dealer: 0, delay: 3, from: "left", to: "left" }, "calm"),
+    on(kids[4], { k: "buyer", dealer: 0, delay: 11, from: "right", to: "left" }, "calm"),
+    on(kids[7], { k: "buyer", dealer: 0, delay: 19, from: "left", to: "right" }, "calm"),
+    on(kids[3], { k: "play", area: [0.15, 0.55, 0.55, 0.9] }, "excited"),
+    on(kids[5], { k: "play", area: [0.15, 0.55, 0.55, 0.9] }, "happy"),
+    on(kids[6], { k: "chat", at: [0.35, 0.3], with: 7 }, "bored"),
+    on(kids[9], { k: "chat", at: [0.41, 0.32], with: 6 }),
+    on(kids[13], { k: "wait", at: [0.12, 0.45], roam: 0.03 }, "hostile"),
+    on(P.gabriela, { k: "patrol", pts: [[0.25, 0.6], [0.75, 0.6]], pause: 3 }),
+  ];
+  const gym = [
+    on(P.radu, { k: "wait", at: [0.3, 0.25], act: "shout", roam: 0.02 }, "loud"),
+    on(P.larisa, { k: "wait", at: [0.6, 0.4], roam: 0.03 }, "hostile"),
+    on(kids[11], { k: "wait", at: [0.72, 0.5], act: "phone", roam: 0.01 }, "focused"),
+    on(kids[10], { k: "dance", at: [0.2, 0.65] }, "excited"),
+    on(P.ion, { k: "patrol", pts: [[0.15, 0.3], [0.85, 0.35]], pause: 2 }),
+    on(P.simona, { k: "pace", a: [0.7, 0.75], b: [0.88, 0.82], act: "call" }, "anxious"),
+  ];
+  const hall = [
+    on(P.gheorghe, { k: "patrol", pts: [[0.2, 0.55], [0.8, 0.5]], pause: 3 }),
+    on(P.sorin, { k: "cross", from: "doorM", to: "right", gap: [3, 6] }),
+    on(P.mihaela, { k: "wait", at: [0.25, 0.4], roam: 0.04 }),
+    on(P.maria, { k: "work", area: [0.55, 0.9, 0.55, 0.85], act: "mop" }),
+    on(P.florica, { k: "wait", at: [0.15, 0.7], roam: 0.02 }),
+    INTRUDER_B(),
+  ];
+  const cams = [
+    cam("m-practice-gate", "gate-afternoon", clock, gate, -1),
+    cam("m-practice-yard", "yard-day", clock, yard, 0, { cues: HANDOFF_CUES(["a pupil", "un elev"]), act: { id: "handoff3", noun: ["the third hand-off", "al treilea schimb"] } }),
+    cam("m-practice-gym", "yard-gym", clock, gym, -1),
+    cam("m-practice-hall", "corridor-evening", clock, hall, hall.length - 1),
+  ];
+  return {
+    id: "m-practice", clock, cams,
+    roster: [P.dan, P.vasile, P.ion, P.gabriela, P.mihaela, P.sorin, P.radu, P.florica, P.gheorghe, P.maria, P.ioana, P.alin, P.simona, P.elisabeta, P.nicolae, P.larisa, ...kids],
+    intruder: { cam: 3, i: hall.length - 1 },
+    harm: { cam: 1, i: 0 },
+    harmAct: ["the third hand-off of something small to another pupil", "al treilea schimb de ceva mic cu un alt elev"],
+    info: [
+      "Wednesday 17:15, after handball practice. Families leave through the gate, pupils hang around the yard and the gym, the corridor is being cleaned. 30 people are on today's list.",
+      "Miercuri, 17:15, după antrenamentul de handbal. Familiile pleacă pe poartă, elevii stau prin curte și la sală, holul se curăță. Pe lista de azi sunt 30 de persoane.",
+    ],
+  };
+}
+
+const MULTI: (() => MultiCase)[] = [mPickup, mPractice];
+
+/** A fresh control-room case, not `avoid` when there is another. */
+export function pickMultiCase(avoid = ""): MultiCase {
+  const all = MULTI.map((b) => b());
+  const options = all.filter((c) => c.id !== avoid);
+  const pool = options.length ? options : all;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/** All control-room cases (tests). */
+export function allMultiCases(): MultiCase[] {
+  return MULTI.map((b) => b());
+}
+
 /* ------------------------------------------------------------------ catalogue */
+
+const withDecoys = (b: () => Scenario) => () => decoys(b());
 
 const POOLS: (() => Scenario)[][] = [
   [r1Yard, r1Corridor, r1Gate],
   [r2Break, r2Arrival, r2Fair],
-  [hGym, hCorridor, hGate, hBus, hPark, hCrowbar, hHood],
+  [hGym, hCorridor, hGate, hBus, hPark, hCrowbar, hHood].map(withDecoys),
 ];
 
 function fresh(b: () => Scenario) {

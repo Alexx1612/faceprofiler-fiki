@@ -1,6 +1,6 @@
 /**
  * Canvas engine for the "Spot the stranger" game: a CCTV view where an authored cast moves, and the
- * visitor taps the unknown person (rounds 1-2) or the person about to cause harm (rounds 3-5).
+ * visitor taps the unknown person (rounds 1-2) or the person about to cause harm (round 3); round 4 runs four of these at once.
  *
  * Methodology:
  * - Scenarios (spot-scenarios.ts) give the place, the time, the cast and each person's behaviour. This
@@ -13,7 +13,7 @@
  *   (0.3.2 self-check: 17.4 s for 405 photos on a laptop CPU), so a crowded view is analysed less often;
  *   a frame starts when the previous one is done. Rounds 1-2: the unknown person is flagged after
  *   CONFIRM consecutive analysed frames in which they are visible; the time runs from their first
- *   appearance. Rounds 3-5: the culprit's behaviour cues add up (weights in the scenario) and the alert
+ *   appearance. Round 3 (and the culprit camera of round 4): the culprit's behaviour cues add up (weights in the scenario) and the alert
  *   is raised when they reach ALERT_SCORE, plus the same CONFIRM-frame latency. When the visitor taps
  *   before the system (or before the harmful act), a copy of the scene is run ahead off-screen to find
  *   when it would have happened; those times are marked as estimated.
@@ -22,6 +22,10 @@
  *   towards the nearest person, closest distance, contacts, hand-offs, pushes, kicks, following the same
  *   person, reciprocity (play-fighting goes both ways). It never reads faces or emotions; expressions are
  *   animation only. Its risk score and readouts are computed from those numbers every frame.
+ * - Control room (round 4, option `multi`): four scenes run side by side, one per camera; only the camera on
+ *   screen is drawn, but all four keep their clocks running (like a real monitor wall). A tap only selects a
+ *   person (onPick); the round's two answers are locked in by the game, which draws them with setMarks().
+ *   estimate() gives the modelled system alert (and the harmful act) for this camera, running ahead when needed.
  * - Look: camera drift, depth of field (far people slightly blurred where the browser supports canvas
  *   filters), per-place lighting and ambience, grain, scanlines, vignette, timestamp. The loop pauses when
  *   the canvas is off-screen or the tab is hidden; the human timer only counts while it runs.
@@ -66,13 +70,13 @@ export type SceneResult = {
   t0: number;
   liveClock: number;
   tapClock: number;
-  /** Rounds 1-2: when the unknown person was first visible; rounds 3-5: liveClock. */
+  /** Rounds 1-2: when the unknown person was first visible; round 3: liveClock. */
   baseClock: number;
   sysClock: number;
   sysProjected: boolean;
   human_ms: number;
   machine_ms: number;
-  /** Rounds 3-5 only. */
+  /** Round 3 only. */
   cues: CueEvent[];
   act: CueEvent | null;
 };
@@ -88,7 +92,12 @@ type Options = {
   onMachine?: (ms: number) => void;
   /** A line for the live alert feed, with its scene-clock time. */
   onFeed?: (line: Line, clock: number, kind: "info" | "cue" | "alert") => void;
+  /** Control room: a tap selects a person (index in the cast) instead of ending the round. */
+  multi?: { onPick: (i: number) => void };
 };
+
+/** A box the game asks the scene to draw on a person (control room: locked answers and the reveal). */
+export type Mark = { i: number; color: string; label: string; dashed?: boolean };
 
 type Stats = {
   seen: number; // visible time (s)
@@ -212,6 +221,8 @@ export class SpotScene {
   private io: IntersectionObserver;
   private blurOk: boolean;
   private lang: Lang;
+  private active = true;
+  private marks: Mark[] = [];
 
   constructor(canvas: HTMLCanvasElement, o: Options) {
     this.canvas = canvas;
@@ -238,7 +249,7 @@ export class SpotScene {
     }
     if (this.bonus) {
       // the culprit's story starts when the round goes live, not during "connecting" and the countdown
-      const off = o.demo ? 0 : o.reduce ? 2.5 : 3.3;
+      const off = o.demo || o.multi ? 0 : o.reduce ? 2.5 : 3.3;
       for (const a of this.actors) {
         const b = a.beh;
         if (b.k === "buyer" || b.k === "prowl") a.timer += off;
@@ -255,7 +266,44 @@ export class SpotScene {
     this.io.observe(canvas);
     document.addEventListener("visibilitychange", this.onVis);
     this.resize();
+    if (o.multi) this.setMode("live");
     this.kick();
+  }
+
+  /** Control room: whether this camera is the one on screen (the others keep running without drawing). */
+  setActive(on: boolean) {
+    this.active = on;
+    if (on) this.resize();
+  }
+
+  /** Control room: boxes to draw on people (locked answers, the reveal). */
+  setMarks(m: Mark[]) {
+    this.marks = m;
+    if (this.o.multi && m.some((x) => x.i === this.sel)) this.sel = -1;
+  }
+
+  /** Control room: clear the white "selected" box. */
+  clearSelection() {
+    this.sel = -1;
+  }
+
+  /** Scene clock now (seconds since the scene started). */
+  now() {
+    return this.clock;
+  }
+
+  /**
+   * Control room: when the modelled system alerts on this camera's person (unknown person or culprit), and the
+   * harmful act if there is one; runs a copy ahead when it has not happened yet (then `projected`).
+   */
+  estimate(): { sys: number; projected: boolean; act: CueEvent | null } | null {
+    if (!this.actors[this.sc.target]) return null;
+    const actId = this.sc.act?.id;
+    const need = this.sysClock < 0 || (this.bonus && !this.events.some((e) => e.id === actId));
+    const ahead = need ? this.runAhead() : null;
+    const sys = this.sysClock >= 0 ? this.sysClock : ahead ? ahead.sys : -1;
+    const events = ahead ? ahead.events : this.events;
+    return { sys, projected: this.sysClock < 0, act: events.find((e) => e.id === actId) ?? null };
   }
 
   /** The CCTV clock (advances only while the scene runs). */
@@ -286,7 +334,8 @@ export class SpotScene {
   };
 
   private kick() {
-    const run = this.onScreen && this.visible;
+    // the control room keeps every camera running while the tab is visible, on screen or not
+    const run = (this.onScreen || !!this.o.multi) && this.visible;
     if (run && !this.raf) {
       this.last = performance.now();
       this.raf = requestAnimationFrame(this.loop);
@@ -300,7 +349,7 @@ export class SpotScene {
     const dt = Math.min(0.05, (now - this.last) / 1000);
     this.last = now;
     this.step(dt);
-    this.draw();
+    if (!this.o.multi || this.active) this.draw();
     this.raf = requestAnimationFrame(this.loop);
   };
 
@@ -1027,11 +1076,12 @@ export class SpotScene {
   /**
    * The modelled system. Rounds 1-2: frames are captured no faster than FRAME_S and each takes
    * faces x FACE_S; CONFIRM consecutive frames with the unknown person in view raise the alert.
-   * Rounds 3-5: the alert time is set in emit() when the cue weights reach ALERT_SCORE.
+   * Round 3: the alert time is set in emit() when the cue weights reach ALERT_SCORE.
    */
   private sysModel() {
     if (this.liveClock < 0) return;
     const s = this.actors[this.sc.target];
+    if (!s) return;
     if (this.firstSeen < 0 && s.visible) this.firstSeen = this.clock;
     if (!this.bonus) {
       while (this.aNext <= this.clock) {
@@ -1159,7 +1209,10 @@ export class SpotScene {
     if (this.mode !== "live") return;
     const p = this.screenToWorld(x, y);
     const a = this.hit(p.x, p.y, touch ? 14 : 4);
-    if (a) this.choose(a);
+    if (a && this.o.multi) {
+      this.sel = this.actors.indexOf(a);
+      this.o.multi.onPick(a.i);
+    } else if (a) this.choose(a);
     else this.miss = { x, y, t: 0 };
   }
 
@@ -1175,7 +1228,8 @@ export class SpotScene {
 
   pickSelected() {
     const a = this.actors[this.sel];
-    if (this.mode === "live" && a?.visible) this.choose(a);
+    if (this.mode === "live" && a?.visible && this.o.multi) this.o.multi.onPick(a.i);
+    else if (this.mode === "live" && a?.visible) this.choose(a);
   }
 
   private choose(a: Actor) {
@@ -1411,6 +1465,10 @@ export class SpotScene {
     this.set.over?.(g, this.P, this.clock);
 
     if (this.mode === "result" || this.mode === "demo") this.overlays(g, list, s, font);
+    for (const mk of this.marks) {
+      const a = this.actors[mk.i];
+      if (a?.visible) this.box(g, a, mk.color, mk.label, font, mk.dashed ?? false, 1, 3);
+    }
     const sel = this.actors[this.sel];
     if (this.mode === "live" && sel?.visible) this.box(g, sel, "#ffffff", "▶", font, true);
     g.restore();
