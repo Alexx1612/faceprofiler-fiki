@@ -119,10 +119,7 @@ export function Hero() {
             props={{ place: "hero" }}
             className="neon-cta group mt-2 flex w-full max-w-xl items-center justify-between gap-4 rounded-2xl px-5 py-4 sm:px-6 sm:py-5"
           >
-            <span className="flex flex-col">
-              <span className="text-[11px] font-semibold tracking-[0.18em] text-cyan-200 uppercase">For schools · free 30-day pilot</span>
-              <span className="text-xl leading-tight font-semibold text-white sm:text-2xl">Book a pilot</span>
-            </span>
+            <span className="text-xl leading-tight font-semibold text-white sm:text-2xl">Book a pilot</span>
             <ArrowRight className="size-7 shrink-0 text-cyan-200 transition-transform group-hover:translate-x-1" aria-hidden />
           </TrackedLink>
           <div className="flex flex-wrap items-center gap-3 pt-2">
