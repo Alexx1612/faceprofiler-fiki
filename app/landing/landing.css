@@ -2000,3 +2000,8 @@
   .lp-survey-btn { padding: 0 10px; }
   .lp-nav__cta { padding: 0 12px; }
 }
+
+/* Book a pilot: "or" divider under the Google button, optional hint in a label */
+.lp-pilotbox__or { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 420px; margin: 6px auto 0; color: var(--color-muted); font-size: 13px; }
+.lp-pilotbox__or::before, .lp-pilotbox__or::after { content: ""; flex: 1; height: 1px; background: color-mix(in oklab, var(--color-ink) 18%, transparent); }
+.lp-form__opt { color: var(--color-muted); font-weight: 400; font-size: 0.9em; }

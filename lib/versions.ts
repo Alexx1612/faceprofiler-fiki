@@ -10,6 +10,7 @@
 export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
+  { version: "v1.34", date: "2026-11-26", changes: ["Landing: one \"Book a pilot\" form replaces the separate \"Get notified\" card: continue with Google, or leave an e-mail and/or a phone number"] },
   { version: "v1.33", date: "2026-11-26", changes: ["New prices in USD: $5-8 per camera per month, and a Whole school plan at $40 a month for schools with more than 10 cameras; business model, pitch, cost and lifetime figures updated"] },
   { version: "v1.32", date: "2026-11-26", changes: ["M2: Mom Test check for the second series", "M5: link to the Reddit account used for the campaign"] },
   { version: "v1.31", date: "2026-11-26", changes: ["M2: second series of interviews (school night guard G1, production-hall owner H1), matching M4"] },

@@ -10,20 +10,22 @@ import { asset, team } from "@/lib/content";
 import { googleClientId, loadGoogleId, type GoogleUser } from "@/lib/google-auth";
 
 /**
- * "Book a free 30-day pilot": sign in with Google, then school, role, an optional phone call and consent.
+ * "Book a pilot": the only sign-up on the landing page. Continue with Google, or leave an e-mail and/or a phone
+ * number (at least one), plus school, role and consent.
  *
  * Methodology: with Google sign-in the e-mail comes from Google, not from a text field; the ID token goes
  * with the request to our collector, which verifies it with Google (collector/Pilot.gs) and e-mails the
- * team. Without a client ID, or when the Google script is blocked, the same form asks for the e-mail
- * instead, so the page never has a dead end. The account is the tab's shared one (lib/account.ts). Without a collector the request goes to Formspree or the
- * visitor's e-mail app (sendLead). Analytics only get `pilot_requested` with non-personal fields: never
- * the e-mail, the phone or the school.
+ * team. Without Google the visitor types an e-mail, a phone number or both; a phone number means "call me"
+ * (with the best time). When the Google script is blocked the form simply has no Google button. Without a
+ * collector the request goes to Formspree or the visitor's e-mail app (sendLead). Analytics only get
+ * `pilot_requested` with non-personal fields: never the e-mail, the phone or the school. The account is the
+ * tab's shared one (lib/account.ts).
  */
 export function PilotForm() {
   const user = useAccount(); // already signed in on this tab (pilot form or analytics) = no button again
   const setUser = (u: GoogleUser | null) => setAccount(u);
   const [google, setGoogle] = useState<"loading" | "off">(googleClientId ? "loading" : "off");
-  const [call, setCall] = useState(false);
+  const [phone, setPhone] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [msg, setMsg] = useState("");
 
@@ -39,14 +41,21 @@ export function PilotForm() {
     const fd = new FormData(form);
     if (fd.get("_gotcha")) return;
     const v = (k: string) => String(fd.get(k) ?? "").trim();
+    const email = user ? user.email : v("email");
+    const tel = v("phone");
+    if (!email && !tel) {
+      setState("error");
+      setMsg("Leave an e-mail or a phone number, so we can reach you.");
+      return;
+    }
     const data: Record<string, string> = {
       school: v("school"),
       role: v("role"),
-      call: call ? "yes" : "no",
-      ...(call ? { phone: v("phone"), call_time: v("call_time") } : {}),
-      email: user ? user.email : v("email"),
+      call: tel ? "yes" : "no",
+      ...(tel ? { phone: tel, call_time: v("call_time") } : {}),
+      email,
       name: user ? user.name : "",
-      signin: user ? "google" : "email",
+      signin: user ? "google" : email ? "email" : "phone",
       consent: "yes",
     };
     setState("sending");
@@ -56,13 +65,13 @@ export function PilotForm() {
       else via = await sendLead("pilot", data);
       track("pilot_requested", { role: data.role || "not given", call: data.call, signin: data.signin, via });
       if (via === "mailto") {
-        const body = [`School: ${data.school}`, `Role: ${data.role}`, `E-mail: ${data.email}`, `Phone call: ${data.call}${call ? ` (${data.phone}, ${data.call_time})` : ""}`].join("\n");
+        const body = [`School: ${data.school}`, `Role: ${data.role}`, `E-mail: ${data.email || "-"}`, `Phone: ${tel ? `${tel} (${data.call_time})` : "-"}`].join("\n");
         window.location.href = `mailto:${team[1].email}?subject=${encodeURIComponent("Nau-ino pilot request")}&body=${encodeURIComponent(body)}`;
         setMsg("Your e-mail app should open now. Press send there to book the pilot.");
       } else {
-        setMsg("Request sent. We'll e-mail you within 2 working days.");
+        setMsg(tel && !email ? "Request sent. We'll call you within 2 working days." : "Request sent. We'll get back to you within 2 working days.");
         form.reset();
-        setCall(false);
+        setPhone("");
       }
       setState("sent");
     } catch (err) {
@@ -82,8 +91,6 @@ export function PilotForm() {
       </div>
     );
 
-  const showForm = Boolean(user) || google === "off";
-
   return (
     <div className="lp-pilotbox">
       {!user && google === "loading" && (
@@ -97,6 +104,9 @@ export function PilotForm() {
             onUnavailable={() => setGoogle("off")}
           />
           <p className="lp-form__note">We only read your name and e-mail. Nothing is posted to your account.</p>
+          <p className="lp-pilotbox__or">
+            <span>or leave your e-mail or phone</span>
+          </p>
         </div>
       )}
 
@@ -115,74 +125,75 @@ export function PilotForm() {
         </p>
       )}
 
-      {showForm && (
-        <form className="lp-form lp-pilotbox__form" onSubmit={submit} aria-label="Book a pilot">
+      <form className="lp-form lp-pilotbox__form" onSubmit={submit} aria-label="Book a pilot">
+        <div className="lp-form__two">
           {!user && (
-            <>
-              {googleClientId && <p className="lp-form__note">Google sign-in is not available here, so tell us your e-mail instead.</p>}
-              <label>
-                Your e-mail
-                <input name="email" type="email" required autoComplete="email" placeholder="name@school.ro" />
-              </label>
-            </>
-          )}
-          <div className="lp-form__two">
             <label>
-              School or organisation
-              <input name="school" required autoComplete="organization" placeholder="School no. 7, Cluj" />
+              E-mail
+              <input name="email" type="email" autoComplete="email" placeholder="name@school.ro" />
             </label>
-            <label>
-              Your role
-              <select name="role" defaultValue="">
-                <option value="">Choose one</option>
-                <option>Principal or director</option>
-                <option>Administrator</option>
-                <option>Teacher</option>
-                <option>Security or IT</option>
-                <option>Other</option>
-              </select>
-            </label>
-          </div>
-          <label className="lp-form__check">
-            <input type="checkbox" name="call" checked={call} onChange={(e) => setCall(e.target.checked)} />
-            <span>I&apos;d like a phone call</span>
-          </label>
-          {call && (
-            <div className="lp-form__two">
-              <label>
-                Phone
-                <input name="phone" type="tel" required autoComplete="tel" placeholder="07xx xxx xxx" pattern="[0-9+ ]{7,20}" />
-              </label>
-              <label>
-                Best time
-                <select name="call_time" defaultValue="Morning">
-                  <option>Morning</option>
-                  <option>Afternoon</option>
-                </select>
-              </label>
-            </div>
           )}
-          <label className="lp-form__check">
-            <input type="checkbox" name="consent" required />
-            <span>
-              I agree that Nau-ino may contact me about this pilot. My details are used only for that and never shared (
-              <a href={asset("/privacy/")} target="_blank" rel="noreferrer">
-                privacy
-              </a>
-              ).
-            </span>
+          <label>
+            Phone {user ? <span className="lp-form__opt">(optional, if you want a call)</span> : null}
+            <input
+              name="phone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="07xx xxx xxx"
+              pattern="[0-9+ ]{7,20}"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
           </label>
-          <input name="_gotcha" tabIndex={-1} autoComplete="off" aria-hidden="true" className="lp-hp" />
-          <button type="submit" className="lp-btn" disabled={state === "sending"}>
-            {state === "sending" ? "Sending…" : "Book my pilot"}
-          </button>
-          {state === "error" && (
-            <p className="lp-form__note lp-form__note--error" role="alert">
-              {msg}
-            </p>
-          )}
-        </form>
-      )}
+        </div>
+        {!user && <p className="lp-form__note">One of the two is enough. With a phone number we call you.</p>}
+        {phone.trim() && (
+          <label>
+            Best time to call
+            <select name="call_time" defaultValue="Morning">
+              <option>Morning</option>
+              <option>Afternoon</option>
+            </select>
+          </label>
+        )}
+        <div className="lp-form__two">
+          <label>
+            School or organisation
+            <input name="school" required autoComplete="organization" placeholder="School no. 7, Cluj" />
+          </label>
+          <label>
+            Your role
+            <select name="role" defaultValue="">
+              <option value="">Choose one</option>
+              <option>Principal or director</option>
+              <option>Administrator</option>
+              <option>Teacher</option>
+              <option>Parent</option>
+              <option>Security or IT</option>
+              <option>Other</option>
+            </select>
+          </label>
+        </div>
+        <label className="lp-form__check">
+          <input type="checkbox" name="consent" required />
+          <span>
+            I agree that Nau-ino may contact me about this pilot. My details are used only for that and never shared (
+            <a href={asset("/privacy/")} target="_blank" rel="noreferrer">
+              privacy
+            </a>
+            ).
+          </span>
+        </label>
+        <input name="_gotcha" tabIndex={-1} autoComplete="off" aria-hidden="true" className="lp-hp" />
+        <button type="submit" className="lp-btn" disabled={state === "sending"}>
+          {state === "sending" ? "Sending…" : "Book my pilot"}
+        </button>
+        {state === "error" && (
+          <p className="lp-form__note lp-form__note--error" role="alert">
+            {msg}
+          </p>
+        )}
+      </form>
     </div>
   );
 }

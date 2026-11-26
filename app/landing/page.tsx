@@ -10,7 +10,6 @@ import { PilotForm } from "@/components/landing/pilot-form";
 import { SpotGame } from "@/components/landing/spot-game";
 import { Tour } from "@/components/landing/tour";
 import { SurveyButton } from "@/components/landing/survey";
-import { UpdatesForm } from "@/components/landing/updates-form";
 import { AccountPill } from "@/components/analytics/account-pill";
 import { TrackedLink } from "@/components/analytics/tracked-link";
 import { Logo } from "@/components/site/nav";
@@ -56,7 +55,6 @@ export default function Landing() {
             <a href="#modes">Day and night</a>
             <a href="#privacy">Privacy</a>
             <a href="#pilot">Pilot</a>
-            <a href="#updates">Updates</a>
           </nav>
           <AccountPill className="lp-account" />
           <SurveyButton />
@@ -86,9 +84,6 @@ export default function Landing() {
               <div className="lp-actions">
                 <TrackedLink href="#pilot" event="cta_book_pilot_click" props={{ place: "hero" }} className="lp-btn">
                   Book a pilot
-                </TrackedLink>
-                <TrackedLink href="#updates" event="cta_get_notified_click" props={{ place: "hero" }} className="lp-btn lp-btn--ghost">
-                  Get notified
                 </TrackedLink>
               </div>
               <p className="lp-hero__note">Free for 30 days, on your own cameras.</p>
@@ -168,23 +163,14 @@ export default function Landing() {
         </section>
 
         <section id="pilot" className="lp-section">
+          {/* old links to #updates (the former "Get notified" card) land here */}
+          <span id="updates" aria-hidden="true" />
           <div className="lp-wrap">
             <div className="lp-glass lp-signup">
               <span className="lp-chip">Free · 30 days</span>
               <h2 className="lp-h2">Book a pilot.</h2>
-              <p className="lp-sub">Sign in with Google, tell us about your school, and we set it up with you on your own cameras within 2 working days.</p>
+              <p className="lp-sub">Continue with Google, or leave your e-mail or phone. We set it up with you on your own cameras within 2 working days.</p>
               <PilotForm />
-            </div>
-          </div>
-        </section>
-
-        <section id="updates" className="lp-section">
-          <div className="lp-wrap">
-            <div className="lp-glass lp-signup">
-              <span className="lp-chip">Coming soon</span>
-              <h2 className="lp-h2">Hear first when <span style={{ whiteSpace: "nowrap" }}>Nau-ino</span> opens.</h2>
-              <p className="lp-sub">One e-mail when the free pilot starts near you.</p>
-              <UpdatesForm />
               <ul className="lp-signup__facts">
                 <li>
                   <CheckIcon />
@@ -198,6 +184,7 @@ export default function Landing() {
             </div>
           </div>
         </section>
+
       </main>
 
       <footer className="lp-footer">
