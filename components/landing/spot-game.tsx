@@ -44,12 +44,22 @@ const T = {
   ],
   harmFind: ["Tap the person about to cause harm", "Apasă pe persoana care e pe cale să facă rău"],
   intro: [
-    "Remember the people, then tap the one you have not seen in the camera feed. Then three scenes: who is about to cause harm?",
-    "Reține persoanele, apoi apasă pe cea pe care n-ai mai văzut-o în imaginea camerei. Apoi trei scene: cine e pe cale să facă rău?",
+    "You against Nau-ino: at the end you see your time next to the system's.",
+    "Tu contra Nau-ino: la final îți vezi timpul lângă cel al sistemului.",
+  ],
+  how: ["How to play · about 1 minute", "Cum se joacă · cam 1 minut"],
+  step1: [
+    "Remember 3 faces. Then find the one new person in the camera feed and tap them.",
+    "Reține 3 fețe. Apoi găsește persoana nouă în imaginea camerei și apasă pe ea.",
+  ],
+  step2: ["The same with 14 faces.", "La fel, cu 14 fețe."],
+  step3: [
+    "Three short scenes: tap the person who is about to hurt someone.",
+    "Trei scene scurte: apasă pe persoana care e pe cale să rănească pe cineva.",
   ],
   play: ["Play", "Joacă"],
   start: ["Start", "Începe"],
-  watch: ["Watch the system", "Vezi cum lucrează sistemul"],
+  watch: ["Watch Nau-ino do it", "Vezi cum o face Nau-ino"],
   remember: ["Remember them", "Reține-i"],
   ready: ["Ready", "Gata"],
   find: ["Tap the person you have not seen", "Apasă pe persoana pe care n-ai mai văzut-o"],
@@ -408,11 +418,25 @@ export function SpotGame() {
 
       {phase === "intro" && (
         <div className="sg__intro">
-          <div className="sg__teaser" aria-hidden>
-            <span className="sg__rec">● REC · CAM 02</span>
-            <span className="sg__steps">
-              <b>3</b> → <b>14</b> → <b>⚠ ⚠ ⚠</b>
+          <div className="sg__teaser sg__teaser--how">
+            <span className="sg__rec" aria-hidden>
+              ● REC · CAM 02
             </span>
+            <p className="sg__how-title">{t("how")}</p>
+            <ol className="sg__how">
+              <li>
+                <b>1</b>
+                <span>{t("step1")}</span>
+              </li>
+              <li>
+                <b>2</b>
+                <span>{t("step2")}</span>
+              </li>
+              <li>
+                <b>3</b>
+                <span>{t("step3")}</span>
+              </li>
+            </ol>
           </div>
           <p>{t("intro")}</p>
           <div className="sg__actions">

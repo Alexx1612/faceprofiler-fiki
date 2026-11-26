@@ -35,7 +35,7 @@ type InboxPayload = { ok: true; total: number; counts: Record<string, number>; i
 
 const box = "rounded-2xl border border-white/10 bg-white/[0.03] p-4";
 const field = "min-h-11 rounded-xl border border-white/15 bg-[#0a1529] px-3 text-sm text-white";
-const FORMS: Record<string, string> = { pilot: "Pilot request", updates: "Newsletter", survey: "Survey" };
+const FORMS: Record<string, string> = { pilot: "Newsletter / pilot invite", updates: "Newsletter", survey: "Survey" };
 const STATUSES = ["new", "handled", "spam", "archived"] as const;
 const when = (ms: number) => new Date(ms).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 

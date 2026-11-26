@@ -2,6 +2,7 @@
 
 import { LogOut, UserRound } from "lucide-react";
 
+import { RecordButton } from "@/components/analytics/showcase-recorder";
 import { setAccount, useAccount } from "@/lib/account";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +15,7 @@ export function AccountPill({ className }: { className?: string }) {
   if (!user)
     return (
       <span
-        title="Guest: the whole site is open. Sign in with Google only to book a pilot."
+        title="Guest: the whole site is open. Sign in with Google only to subscribe."
         className={cn("inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-white/15 px-2.5 text-xs text-neutral-300", className)}
       >
         <UserRound className="size-3.5" aria-hidden />
@@ -25,7 +26,7 @@ export function AccountPill({ className }: { className?: string }) {
   return (
     <span
       title={`Signed in as ${user.email}`}
-      className={cn("inline-flex min-h-9 max-w-[14rem] shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 pl-1 pr-1 text-xs text-emerald-100", className)}
+      className={cn("inline-flex min-h-9 max-w-[16rem] shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 pl-1 pr-1 text-xs text-emerald-100", className)}
     >
       {user.picture ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -35,6 +36,7 @@ export function AccountPill({ className }: { className?: string }) {
       )}
       <span className="sr-only">Signed in as </span>
       <span className="hidden truncate sm:inline">{user.email}</span>
+      <RecordButton />
       <button
         type="button"
         onClick={() => setAccount(null)}

@@ -637,3 +637,52 @@
   text-align: right;
   font-size: 13px;
 }
+
+/* intro: "How to play" as three numbered steps instead of a symbol teaser */
+.sg__teaser--how {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 10px;
+  aspect-ratio: auto;
+  min-height: 0;
+  padding: 44px 18px 18px;
+}
+.sg__how-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+}
+.sg__how {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sg__how li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--color-ink);
+}
+.sg__how b {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--color-accent-hi) 22%, transparent);
+  color: var(--color-accent-hi);
+  font-size: 14px;
+}
+.sg__how-title,
+.sg__how li {
+  font-family: var(--font-body);
+}

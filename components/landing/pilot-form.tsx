@@ -10,7 +10,7 @@ import { asset, team } from "@/lib/content";
 import { googleClientId, loadGoogleId, type GoogleUser } from "@/lib/google-auth";
 
 /**
- * "Book a pilot": the only sign-up on the landing page. Continue with Google, or leave an e-mail and/or a phone
+ * "Subscribe to the newsletter (to be invited for a pilot)": the only sign-up on the landing page. Continue with Google, or leave an e-mail and/or a phone
  * number (at least one), plus school, role and consent.
  *
  * Methodology: with Google sign-in the e-mail comes from Google, not from a text field; the ID token goes
@@ -66,10 +66,10 @@ export function PilotForm() {
       track("pilot_requested", { role: data.role || "not given", call: data.call, signin: data.signin, via });
       if (via === "mailto") {
         const body = [`School: ${data.school}`, `Role: ${data.role}`, `E-mail: ${data.email || "-"}`, `Phone: ${tel ? `${tel} (${data.call_time})` : "-"}`].join("\n");
-        window.location.href = `mailto:${team[1].email}?subject=${encodeURIComponent("Nau-ino pilot request")}&body=${encodeURIComponent(body)}`;
-        setMsg("Your e-mail app should open now. Press send there to book the pilot.");
+        window.location.href = `mailto:${team[1].email}?subject=${encodeURIComponent("Nau-ino newsletter and pilot invitation")}&body=${encodeURIComponent(body)}`;
+        setMsg("Your e-mail app should open now. Press send there to subscribe.");
       } else {
-        setMsg(tel && !email ? "Request sent. We'll call you within 2 working days." : "Request sent. We'll get back to you within 2 working days.");
+        setMsg(tel && !email ? "You're subscribed. We'll call you when a pilot opens near you." : "You're subscribed. We'll invite you when a pilot opens near you.");
         form.reset();
         setPhone("");
       }
@@ -125,7 +125,7 @@ export function PilotForm() {
         </p>
       )}
 
-      <form className="lp-form lp-pilotbox__form" onSubmit={submit} aria-label="Book a pilot">
+      <form className="lp-form lp-pilotbox__form" onSubmit={submit} aria-label="Subscribe to the newsletter">
         <div className="lp-form__two">
           {!user && (
             <label>
@@ -177,7 +177,7 @@ export function PilotForm() {
         <label className="lp-form__check">
           <input type="checkbox" name="consent" required />
           <span>
-            I agree that Nau-ino may contact me about this pilot. My details are used only for that and never shared (
+            I agree that Nau-ino may e-mail or call me with news and a pilot invitation. My details are used only for that and never shared (
             <a href={asset("/privacy/")} target="_blank" rel="noreferrer">
               privacy
             </a>
@@ -186,7 +186,7 @@ export function PilotForm() {
         </label>
         <input name="_gotcha" tabIndex={-1} autoComplete="off" aria-hidden="true" className="lp-hp" />
         <button type="submit" className="lp-btn" disabled={state === "sending"}>
-          {state === "sending" ? "Sending…" : "Book my pilot"}
+          {state === "sending" ? "Sending…" : "Subscribe"}
         </button>
         {state === "error" && (
           <p className="lp-form__note lp-form__note--error" role="alert">

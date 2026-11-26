@@ -5,8 +5,8 @@
       "id": "capture",
       "file": "lib/collect.ts",
       "fn": "referrerHost",
-      "from": 245,
-      "to": 317
+      "from": 250,
+      "to": 322
     },
     {
       "id": "classify",

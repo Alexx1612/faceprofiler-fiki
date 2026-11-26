@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Wix_Madefor_Display, Wix_Madefor_Text } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@/components/analytics/analytics";
+import { ShowcaseRecorder } from "@/components/analytics/showcase-recorder";
 import { TestPill } from "@/components/analytics/test-pill";
 import { siteName, siteUrl } from "@/lib/seo";
 
@@ -46,6 +47,7 @@ export default function RootLayout({
         {children}
         <Analytics />
         <TestPill />
+        <ShowcaseRecorder />
       </body>
     </html>
   );

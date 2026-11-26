@@ -9,7 +9,7 @@
  * it trusts the e-mail. A window event tells every mounted component when the account changes, so signing
  * in on the pilot form also updates the pill and the analytics page, and signing out anywhere signs out
  * everywhere. No account = guest: guests see the whole site except the owner's analytics, and need a
- * Google sign-in (or an e-mail) only to book a pilot.
+ * Google sign-in (or an e-mail) only to subscribe to the newsletter.
  */
 import { useEffect, useState } from "react";
 

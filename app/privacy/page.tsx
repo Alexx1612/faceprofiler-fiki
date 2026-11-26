@@ -23,7 +23,7 @@ export default function PrivacyPage() {
   const contact = team[0].email;
   const rows: [string, string, string, string][] = [
     ["Updates sign-up", "E-mail, optional role", "Your consent", "Until you unsubscribe, at most 12 months after the project ends"],
-    ["Book a pilot", "Name and e-mail from Google sign-in, school, role, optional phone and preferred call time", "Steps you asked for before an agreement; your consent", "12 months after the last contact"],
+    ["Newsletter and pilot invitation", "Name and e-mail from Google sign-in, school, role, optional phone and preferred call time", "Steps you asked for before an agreement; your consent", "12 months after the last contact"],
     ["Quick survey", "Your answers (no name, no e-mail)", "Your consent", "Until the end of the project"],
     ["Visit statistics", "Anonymous visitor id, pages, clicks, where you came from, device type, browser; country and region only if you click Accept (no IP address is stored)", "Our legitimate interest in knowing which channels work; consent for the id kept between visits", "Totals kept; detailed rows at most 12 months"],
     ["Session recordings", "Mouse moves, clicks and scrolling on our pages, with every typed field hidden; only if you click Accept", "Your consent", "30 days"],

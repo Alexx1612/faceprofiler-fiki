@@ -118,7 +118,9 @@ export function Hero() {
             props={{ place: "hero" }}
             className="neon-cta group mt-2 flex w-full max-w-xl items-center justify-between gap-4 rounded-2xl px-5 py-4 sm:px-6 sm:py-5"
           >
-            <span className="text-xl leading-tight font-semibold text-white sm:text-2xl">Book a pilot</span>
+            <span className="text-xl leading-tight font-semibold text-white sm:text-2xl">
+              Subscribe to newsletter <span className="block text-sm font-normal text-cyan-100/80 sm:text-base">(to be invited for a pilot)</span>
+            </span>
             <ArrowRight className="size-7 shrink-0 text-cyan-200 transition-transform group-hover:translate-x-1" aria-hidden />
           </TrackedLink>
           <div className="flex flex-wrap items-center gap-3 pt-2">

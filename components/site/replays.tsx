@@ -144,7 +144,7 @@ function LiveNow({ token }: { token: string }) {
 }
 
 function ReplayList({ token }: { token: string }) {
-  const [which, setWhich] = useState<"real" | "test" | "all">("real");
+  const [which, setWhich] = useState<"real" | "test" | "all" | "showcase">("real");
   const [days, setDays] = useState("7");
   const [minS, setMinS] = useState("0");
   const [path, setPath] = useState("");
@@ -153,10 +153,11 @@ function ReplayList({ token }: { token: string }) {
   const [open, setOpen] = useState<ReplayRow | null>(null);
   const load = useCallback(async () => {
     setRows(null);
-    const r = await ownerFetch<{ ok: true; sessions: ReplayRow[] }>(token, { route: "replays", op: "list", test: which, days, min_s: minS, path });
+    const r = await ownerFetch<{ ok: true; sessions: ReplayRow[] }>(token, { route: "replays", op: "list", test: which === "showcase" ? "all" : which, days, min_s: minS, path });
     if (failed(r)) return setError(explain(r.error));
     setError("");
-    setRows(r.sessions ?? []);
+    // showcases are the team's own recordings (lib/replay.ts): session ids start with "show_"
+    setRows((r.sessions ?? []).filter((x) => (which === "showcase" ? x.session.startsWith("show_") : which === "real" || !x.session.startsWith("show_") || which === "all")));
   }, [token, which, days, minS, path]);
   useEffect(() => {
     void load();
@@ -166,9 +167,9 @@ function ReplayList({ token }: { token: string }) {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        {(["real", "test", "all"] as const).map((w) => (
+        {(["real", "test", "showcase", "all"] as const).map((w) => (
           <button key={w} type="button" onClick={() => setWhich(w)} className={`${chip} ${which === w ? chipOn : chipOff}`} aria-pressed={which === w}>
-            {w === "real" ? "Real" : w === "test" ? "Test" : "All"}
+            {w === "real" ? "Real" : w === "test" ? "Test" : w === "showcase" ? "Showcase" : "All"}
           </button>
         ))}
         <label className="text-xs text-neutral-400">
@@ -207,7 +208,7 @@ function ReplayList({ token }: { token: string }) {
       ) : !rows ? (
         <p className="text-sm text-neutral-400">Loading…</p>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-neutral-400">No recordings match. Visitors are recorded only after they accept cookies.</p>
+        <p className="text-sm text-neutral-400">{which === "showcase" ? "No showcases yet. Sign in with the team account and press the red record button next to your e-mail at the top." : "No recordings match. Visitors are recorded only after they accept cookies."}</p>
       ) : (
         <ul className="divide-y divide-white/10">
           {rows.map((r) => (
@@ -220,7 +221,11 @@ function ReplayList({ token }: { token: string }) {
                 <span className="text-xs text-neutral-400">
                   {r.pages} {r.pages === 1 ? "page" : "pages"} · {r.clicks} clicks{r.rage_clicks ? ` · ${r.rage_clicks} rage` : ""} · {r.device} {flag(r.country)} · {r.source}
                 </span>
-                {r.test && <span className="rounded bg-amber-400/20 px-1.5 text-[10px] font-bold text-amber-200">TEST</span>}
+                {r.session.startsWith("show_") ? (
+                  <span className="rounded bg-red-500/20 px-1.5 text-[10px] font-bold text-red-200">SHOWCASE</span>
+                ) : (
+                  r.test && <span className="rounded bg-amber-400/20 px-1.5 text-[10px] font-bold text-amber-200">TEST</span>
+                )}
               </button>
             </li>
           ))}
@@ -278,7 +283,7 @@ function ReplayPlayer({ token, row, onBack }: { token: string; row: ReplayRow; o
       target.innerHTML = "";
       player.current = new RrwebPlayer({
         target,
-        props: { events: events as never, width: w, height: h, autoPlay: false, skipInactive: true, speedOption: [1, 2, 4, 8], showController: true, mouseTail: false },
+        props: { events: events as never, width: w, height: h, autoPlay: false, skipInactive: true, speedOption: [1, 2, 4, 8], showController: true, mouseTail: false, UNSAFE_replayCanvas: true },
       }) as unknown as PlayerApi;
     })();
     return () => {

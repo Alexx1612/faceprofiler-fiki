@@ -29,7 +29,7 @@ const text = Wix_Madefor_Text({ subsets: ["latin", "latin-ext"], weight: ["400",
 export const metadata: Metadata = pageMetadata({
   path: "/landing/",
   title: "Nau-ino · Know who walks into your school tonight",
-  description: "Nau-ino watches the cameras your school already has and flags every stranger. Free 30-day pilot on your own cameras.",
+  description: "Nau-ino watches the cameras your school already has and flags every stranger. Subscribe to the newsletter to be invited to a free pilot.",
   image: { url: `${siteUrl}/landing/campus-dusk-1080.jpg`, width: 1080, height: 720, alt: "A school campus at dusk" },
 });
 
@@ -54,12 +54,12 @@ export default function Landing() {
             <a href="#game">Game</a>
             <a href="#modes">Day and night</a>
             <a href="#privacy">Privacy</a>
-            <a href="#pilot">Pilot</a>
+            <a href="#pilot">Newsletter</a>
           </nav>
           <AccountPill className="lp-account" />
           <SurveyButton />
           <TrackedLink href="#pilot" event="cta_book_pilot_click" props={{ place: "nav" }} className="lp-btn lp-btn--sm lp-nav__cta">
-            Book a pilot
+            Subscribe
           </TrackedLink>
         </div>
       </header>
@@ -83,10 +83,10 @@ export default function Landing() {
               <HeroCopy />
               <div className="lp-actions">
                 <TrackedLink href="#pilot" event="cta_book_pilot_click" props={{ place: "hero" }} className="lp-btn">
-                  Book a pilot
+                  Subscribe to newsletter
                 </TrackedLink>
               </div>
-              <p className="lp-hero__note">Free for 30 days, on your own cameras.</p>
+              <p className="lp-hero__note">Subscribers are invited to a free 30-day pilot.</p>
             </div>
 
             <NightLive />
@@ -167,9 +167,9 @@ export default function Landing() {
           <span id="updates" aria-hidden="true" />
           <div className="lp-wrap">
             <div className="lp-glass lp-signup">
-              <span className="lp-chip">Free · 30 days</span>
-              <h2 className="lp-h2">Book a pilot.</h2>
-              <p className="lp-sub">Continue with Google, or leave your e-mail or phone. We set it up with you on your own cameras within 2 working days.</p>
+              <span className="lp-chip">Free pilot invitations</span>
+              <h2 className="lp-h2">Subscribe to the newsletter.</h2>
+              <p className="lp-sub">To be invited for a free 30-day pilot on your own cameras. Continue with Google, or leave your e-mail or phone.</p>
               <PilotForm />
               <ul className="lp-signup__facts">
                 <li>

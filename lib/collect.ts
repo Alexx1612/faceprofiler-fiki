@@ -97,12 +97,17 @@ export function sameMailbox(email: string): string {
 
 /** After a Google sign-in: if it is one of the team's accounts, switch this browser to test mode. */
 export async function markTestAccount(email: string): Promise<boolean> {
+  if (!(await isTeamEmail(email))) return false;
+  setTestMode(true);
+  return true;
+}
+
+/** Whether an e-mail is one of the team's own accounts (compared by SHA-256 hash; only hashes ship). */
+export async function isTeamEmail(email: string): Promise<boolean> {
   if (!testEmailHashes.length || typeof crypto === "undefined" || !crypto.subtle) return false;
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sameMailbox(email)));
   const hex = Array.from(new Uint8Array(digest), (x) => x.toString(16).padStart(2, "0")).join("");
-  if (!testEmailHashes.includes(hex)) return false;
-  setTestMode(true);
-  return true;
+  return testEmailHashes.includes(hex);
 }
 
 let memoryAnon = "";
