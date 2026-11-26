@@ -25,13 +25,6 @@ export const m5Lead = {
       goal: "Newsletter: one e-mail when the pilot opens. One required field, so signing up takes seconds; the optional role tells us which leads are schools.",
     },
     {
-      name: "Ask for a pilot",
-      tool: "E-mail link",
-      where: "Under the sign-up: “Run a school? Ask for a free 30-day pilot”",
-      fields: "Opens an e-mail to the team",
-      goal: "School directors who want the free 30-day pilot write to us directly.",
-    },
-    {
       name: "Quick survey",
       tool: "Own collector (Google Sheet)",
       where: "Landing page, “Quick survey · 1 min” button (EN/RO)",

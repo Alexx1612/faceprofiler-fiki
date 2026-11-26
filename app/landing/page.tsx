@@ -6,7 +6,6 @@ import Link from "next/link";
 import { DemoReel } from "@/components/landing/demo-reel";
 import { HeroCopy } from "@/components/landing/hero-copy";
 import { NightLive } from "@/components/landing/night-live";
-import { PilotForm } from "@/components/landing/pilot-form";
 import { SpotGame } from "@/components/landing/spot-game";
 import { Tour } from "@/components/landing/tour";
 import { SurveyButton } from "@/components/landing/survey";
@@ -29,7 +28,7 @@ const text = Wix_Madefor_Text({ subsets: ["latin", "latin-ext"], weight: ["400",
 export const metadata: Metadata = pageMetadata({
   path: "/landing/",
   title: "Nau-ino · Know who walks into your school tonight",
-  description: "Nau-ino watches the cameras your school already has and flags every stranger. Free 30-day pilot on your own cameras.",
+  description: "Nau-ino watches the cameras your school already has and flags every stranger. Get notified when the pilot opens.",
   image: { url: `${siteUrl}/landing/campus-dusk-1080.jpg`, width: 1080, height: 720, alt: "A school campus at dusk" },
 });
 
@@ -54,11 +53,11 @@ export default function Landing() {
             <a href="#game">Game</a>
             <a href="#modes">Day and night</a>
             <a href="#privacy">Privacy</a>
-            <a href="#pilot">Pilot</a>
+            <a href="#updates">Updates</a>
           </nav>
           <SurveyButton />
-          <TrackedLink href="#pilot" event="cta_book_pilot_click" props={{ place: "nav" }} className="lp-btn lp-btn--sm lp-nav__cta">
-            Book a pilot
+          <TrackedLink href="#updates" event="cta_book_pilot_click" props={{ place: "nav" }} className="lp-btn lp-btn--sm lp-nav__cta">
+            Get notified
           </TrackedLink>
         </div>
       </header>
@@ -81,11 +80,11 @@ export default function Landing() {
             <div>
               <HeroCopy />
               <div className="lp-actions">
-                <TrackedLink href="#pilot" event="cta_book_pilot_click" props={{ place: "hero" }} className="lp-btn">
-                  Book a pilot
+                <TrackedLink href="#updates" event="cta_book_pilot_click" props={{ place: "hero" }} className="lp-btn">
+                  Get notified
                 </TrackedLink>
               </div>
-              <p className="lp-hero__note">Free for 30 days, on your own cameras.</p>
+              <p className="lp-hero__note">One e-mail when the free pilot opens.</p>
             </div>
 
             <NightLive />
@@ -161,13 +160,15 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="pilot" className="lp-section">
+        <section id="updates" className="lp-section">
+          {/* old links to #pilot still land here */}
+          <span id="pilot" aria-hidden="true" />
           <div className="lp-wrap">
             <div className="lp-glass lp-signup">
-              <span className="lp-chip">Free · 30 days</span>
-              <h2 className="lp-h2">Book a pilot.</h2>
-              <p className="lp-sub">Sign in with Google, tell us about your school, and we set it up with you on your own cameras within 2 working days.</p>
-              <PilotForm />
+              <span className="lp-chip">Coming soon</span>
+              <h2 className="lp-h2">Hear first when <span style={{ whiteSpace: "nowrap" }}>Nau-ino</span> opens.</h2>
+              <p className="lp-sub">One e-mail when the free pilot starts near you.</p>
+              <UpdatesForm />
               <ul className="lp-signup__facts">
                 <li>
                   <CheckIcon />
@@ -178,10 +179,6 @@ export default function Landing() {
                   No spam, no sharing
                 </li>
               </ul>
-              <div id="updates" className="lp-signup__updates">
-                <p>Just want updates?</p>
-                <UpdatesForm />
-              </div>
             </div>
           </div>
         </section>
