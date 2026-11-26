@@ -10,7 +10,9 @@
 export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
+  { version: "v1.40", date: "2026-11-26", changes: ["Landing: the newsletter form (Google, or e-mail and/or phone; school and role optional) is the sign-up again after a parallel v1.38 had put back the older \"Get notified\" card"] },
   { version: "v1.39", date: "2026-11-26", changes: ["Newsletter form accepts phone numbers with dashes, dots or brackets; collector e-mails (Pilot.gs) use the newsletter wording"] },
+  { version: "v1.38 (Petrec)", date: "2026-11-26", changes: ["Landing: the \"Get notified\" card (e-mail, optional role) is the only sign-up again; hero, nav and home buttons say \"Get notified\"; no pilot form or 30-day pilot link"] },
   { version: "v1.38", date: "2026-11-26", changes: ["Newsletter form as one panel: \"How we reach you\" and \"About you · optional\" groups, consent box, wide centred Subscribe button"] },
   { version: "v1.37", date: "2026-11-26", changes: ["Newsletter form: school and role are optional; only an e-mail or a phone number (or Google) and consent are needed"] },
   { version: "v1.36", date: "2026-11-26", changes: ["Newsletter wording everywhere: M3 landing description, M5 event notes, analytics funnel step \"Subscribe or survey opened\""] },
