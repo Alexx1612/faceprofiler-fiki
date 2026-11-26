@@ -11,6 +11,11 @@ export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
   {
+    version: "v1.28",
+    date: "2026-11-26",
+    changes: ["M5: the campaign as it ran (WhatsApp, Discord, Reddit) with permalinks and screenshots, results from PostHog and our collector, channel comparison and verdict"],
+  },
+  {
     version: "v1.27",
     date: "2026-11-26",
     changes: ["Landing: the \"Get notified\" sign-up (e-mail, optional role) is the only form again; hero, nav and home buttons say \"Get notified\"; the pilot form and the 30-day pilot link are removed"],

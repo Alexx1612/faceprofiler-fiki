@@ -9,12 +9,13 @@ import { asset } from "@/lib/content";
 import {
   m5Analytics,
   m5Channels,
-  m5GoogleForms,
   m5Lead,
   m5Log,
   m5Method,
   m5Numbers,
   m5PosthogShots,
+  m5Results,
+  m5Survey,
   m5Posts,
   m5Verdict,
   type ChannelId,
@@ -71,17 +72,13 @@ function Leads() {
         </Link>
       </div>
       <div className={box}>
-        <p className={h4}>Google Forms survey</p>
-        {m5GoogleForms.screenshot ? (
-          <Shot s={m5GoogleForms.screenshot} caption={`Google Forms responses${m5GoogleForms.responses ? `: ${m5GoogleForms.responses}` : ""}`} />
-        ) : (
-          <Waiting>Waiting for the Google Forms results: the team adds a screenshot of the Responses summary.</Waiting>
-        )}
-        {m5GoogleForms.link && (
-          <a href={m5GoogleForms.link} className="mt-2 inline-flex items-center gap-1 text-sm text-sky-300 underline">
-            Open the survey <ExternalLink className="size-3.5" />
-          </a>
-        )}
+        <p className={h4}>Quick survey</p>
+        <p className="text-sm text-neutral-300">{m5Survey.note}</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Link href="/M4/" className="rounded-full border border-white/15 px-3.5 py-1.5 text-sm text-neutral-200 hover:bg-white/10">
+            See the answers on the M4 page
+          </Link>
+        </div>
       </div>
       <div className={box}>
         <p className={h4}>Privacy</p>
@@ -137,9 +134,57 @@ function AnalyticsTab() {
             <Shot key={s.src} s={s} caption={s.caption} />
           ))}
         </div>
-      ) : (
-        <Waiting>Waiting for PostHog screenshots: web analytics overview, the funnel and one session replay, once the campaign has run.</Waiting>
-      )}
+      ) : null}
+      <Results />
+    </div>
+  );
+}
+
+function Results() {
+  const top = Math.max(...m5Results.funnel.map((f) => f.n));
+  return (
+    <div className={box}>
+      <p className={h4}>Results, {m5Results.period}</p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {m5Results.posthog.map((k) => (
+          <div key={k.label} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-2xl font-semibold text-white">{k.value}</p>
+            <p className="text-xs text-neutral-400">{k.label}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-neutral-400">PostHog, test visits excluded. {m5Results.collector}</p>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div>
+          <p className="mb-2 text-sm font-medium text-white">Funnel on the landing page</p>
+          <ul className="space-y-2">
+            {m5Results.funnel.map((f) => (
+              <li key={f.step}>
+                <div className="flex justify-between text-xs text-neutral-300">
+                  <span>{f.step}</span>
+                  <span className="text-white">{f.n}</span>
+                </div>
+                <div className="mt-1 h-2 rounded-full bg-white/10">
+                  <div className="h-2 rounded-full bg-sky-400" style={{ width: `${(100 * f.n) / top}%` }} />
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-neutral-400">{m5Results.funnelNote}</p>
+        </div>
+        <div>
+          <p className="mb-2 text-sm font-medium text-white">Who signed up (optional “I am…”)</p>
+          <ul className="space-y-1 text-sm text-neutral-300">
+            {m5Results.roles.map(([r, n]) => (
+              <li key={r} className="flex justify-between border-b border-white/5 py-1">
+                <span>{r}</span>
+                <span className="text-white">{n}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-neutral-400">{m5Results.devices}</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -217,6 +262,7 @@ function Log() {
                 Permalink <ExternalLink className="size-3.5 shrink-0" />
               </a>
             )}
+            {l.note && <p className="mt-2 text-sm text-neutral-300">{l.note}</p>}
             {(l.reactions != null || l.comments != null) && (
               <p className="mt-1 text-xs text-neutral-400">
                 {l.reactions ?? 0} reactions · {l.comments ?? 0} comments
@@ -237,7 +283,8 @@ function Compare() {
     const conv = n.visitors && n.leads != null ? (100 * n.leads) / n.visitors : null;
     return { id, posts, ...n, conv };
   });
-  const measured = rows.filter((r) => r.leads != null);
+  const used = rows.filter((r) => r.posts > 0).sort((a, b) => (b.visitors ?? 0) - (a.visitors ?? 0));
+  const measured = used.filter((r) => r.leads != null);
   const best = measured.length ? measured.reduce((a, b) => ((b.leads ?? 0) > (a.leads ?? 0) ? b : a)).id : null;
   const show = (v: number | null, suffix = "") => (v == null ? <span className="text-neutral-500">—</span> : `${Math.round(v * 10) / 10}${suffix}`);
   return (
@@ -254,7 +301,7 @@ function Compare() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {used.map((r) => (
               <tr key={r.id} className={cn("border-t border-white/10", r.id === best && "bg-emerald-400/10")}>
                 <td className="px-3 py-2 text-white">
                   {m5Channels[r.id].name}
@@ -271,7 +318,7 @@ function Compare() {
         </table>
       </div>
       <p className="text-xs text-neutral-400">
-        Visitors: PostHog unique visitors by <code>utm_source</code>. Leads: Formspree sign-ups and pilot requests from that source. Conversion = leads ÷ visitors.
+        Visitors: PostHog unique visitors whose first visit carried that channel&apos;s <code>utm_source</code>, test visits excluded. Leads: &ldquo;Get notified&rdquo; sign-ups by those visitors. Conversion = leads ÷ visitors. Visitors without a tagged link (14) and from the course site (5) are not in a channel.
       </p>
       {m5Verdict ? (
         <div className={box}>

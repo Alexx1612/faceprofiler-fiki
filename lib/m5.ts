@@ -8,7 +8,7 @@
  */
 import { siteUrl } from "./seo";
 
-export type ChannelId = "facebook" | "reddit" | "linkedin" | "instagram" | "whatsapp" | "email";
+export type ChannelId = "facebook" | "reddit" | "linkedin" | "instagram" | "whatsapp" | "discord" | "email";
 
 /** Landing page link with UTM tags, so PostHog can split visits by channel (`utm_source`). */
 export const utm = (source: ChannelId, medium: string, content?: string) =>
@@ -43,14 +43,13 @@ export const m5Analytics = {
   tool: "PostHog (EU cloud)",
   parts: [
     { name: "Web analytics", what: "Visitors, pages, referrers and UTM sources for every page of the site." },
-    { name: "Product analytics: funnel", what: "Landing page viewed → “Book a pilot” clicked → form sent. Shows where people drop off." },
+    { name: "Product analytics: funnel", what: "Landing page viewed → “Get notified” clicked → sign-up sent. Shows where people drop off." },
     { name: "Session replay", what: "Recordings of real visits to see where people scroll, hesitate or rage-click. Every input is masked." },
   ],
   events: [
     ["$pageview", "Any page opened (automatic)"],
     ["cta_book_pilot_click", "“Get notified” clicked (nav or hero); the name is kept from v1.15 so older data still counts"],
     ["updates_form_submitted", "“Get notified” sign-up sent"],
-    ["pilot_email_click", "“Ask for a free 30-day pilot” e-mail link clicked"],
     ["manual_downloaded", "A user manual PDF downloaded"],
   ] as [string, string][],
   consent: "A small bar asks for cookie consent. Until the visitor accepts, or after Decline, PostHog counts the visit without cookies (cookieless mode), so the numbers stay complete without tracking anyone who said no.",
@@ -70,7 +69,8 @@ export const m5Channels: Record<ChannelId, { name: string; effort: "low" | "medi
   reddit: { name: "Reddit", effort: "medium" },
   linkedin: { name: "LinkedIn", effort: "low" },
   instagram: { name: "Instagram story", effort: "low" },
-  whatsapp: { name: "WhatsApp / Discord", effort: "low" },
+  whatsapp: { name: "WhatsApp", effort: "low" },
+  discord: { name: "Discord", effort: "low" },
   email: { name: "E-mail to schools", effort: "high" },
 };
 
@@ -95,23 +95,29 @@ Orice părere ne ajută, chiar și „la noi n-ar merge niciodată”.`,
   },
   {
     channel: "reddit",
-    where: "r/SideProject (self-promotion allowed), r/Romania or a city subreddit (read the sidebar: some only allow it in a weekly thread)",
+    where: "r/SideProject and r/ShowYourProduct. Text post without the link (posts with a github.io link are often removed); the link goes in a comment",
     medium: "social",
-    en: `Title: We built face checks for the CCTV cameras schools already have. Would your school use this?
+    en: `Title: Nau-ino - Night alerts on the CCTV cameras a school already has
 
-We're a student team. Schools here already have cameras, but at night nobody watches them. Nau-ino runs on a computer in the building, knows the staff who are allowed in at night, and flags anyone else in real time. No cloud, no emotion analysis (the EU AI Act bans it in schools anyway).
+We're two students building Nau-ino. Most schools already record 24/7, but at night nobody watches the footage and the guard is usually on a round.
 
-Landing page with a demo: ${utm("reddit", "social", "post")}
+Nau-ino runs on a computer inside the school, knows the staff who are allowed in at night, and alerts the guard's phone the moment anyone else walks in. Faces never leave the building, and pupils are never identified.
 
-Honest feedback welcome: privacy worries, "schools will never pay for this", anything.`,
-    ro: `Titlu: Am făcut un sistem care recunoaște fețe pe camerele pe care școlile le au deja. L-ar folosi școala voastră?
+The idea came from an interview with a night guard: someone walked into the building at night, and the guard only found out afterwards, even though the cameras had recorded everything.
 
-Suntem o echipă de studenți. Școlile au deja camere, dar noaptea nu le urmărește nimeni. Nau-ino rulează pe un calculator din clădire, știe cine are voie înăuntru noaptea și semnalează imediat pe oricine altcineva. Fără cloud, fără analiza emoțiilor (AI Act o interzice oricum în școli).
+We'd love your feedback:
+1. Would a school (or a parent) trust a system like this? What would worry you?
+2. Who should get the alert first: the guard, a security company, or the principal?
 
-Pagina cu demo: ${utm("reddit", "social", "post")}
+Demo link in the comments. Thanks!
 
-Vrem păreri sincere: grija pentru date, „școlile n-o să plătească niciodată”, orice.`,
-    note: "Reply to every comment in the first two hours; Reddit ranks active threads higher.",
+Comment: Demo page with a 30-second "Faster than a guard?" game: ${utm("reddit", "social")}`,
+    ro: `Titlu: Am făcut un sistem care anunță paznicul când intră noaptea un străin în școală. L-ar folosi școala voastră?
+
+Suntem doi studenți la master și construim Nau-ino. Școlile au deja camere, dar noaptea nu se uită nimeni la ele. Nau-ino rulează pe un calculator din școală, știe cine are voie înăuntru și anunță paznicul imediat ce intră altcineva. Fețele nu pleacă din clădire. Vrem păreri sincere, pun linkul cu demo-ul în comentarii.
+
+Comentariu: ${utm("reddit", "social")}`,
+    note: "Use one account and never a second one if it is filtered. Check each subreddit's rules first; r/SideProject asks for titles as “Name - short description”.",
   },
   {
     channel: "linkedin",
@@ -136,10 +142,37 @@ ${utm("linkedin", "social", "profile_post")}`,
   },
   {
     channel: "whatsapp",
-    where: "Class, family and student groups; the course Discord",
+    where: "Personal messages and groups of family, friends and colleagues",
     medium: "chat",
-    en: `Hi! Our student project, Nau-ino, flags strangers on a school's own cameras at night. If you know a teacher or a school director, could you send them this? Free 30-day pilot: ${utm("whatsapp", "chat", "share")}`,
-    ro: `Salut! Proiectul nostru de la facultate, Nau-ino, semnalează noaptea străinii pe camerele pe care școala le are deja. Dacă știi un profesor sau un director de școală, i-ai putea trimite asta? Pilot gratuit de 30 de zile: ${utm("whatsapp", "chat", "share")}`,
+    en: `Hi! I'm working on a startup project for my master's: Nau-ino, a system that uses the cameras a school already has and alerts the guard when a stranger walks in at night. Faces never leave the building.
+
+Could you help me with 1 minute? Open the page, try the game and leave your e-mail at “Get notified”. If you are a teacher or know a teacher or a school principal, please send them the link too 🙏
+
+${utm("whatsapp", "chat")}`,
+    ro: `Salut! Lucrez la un proiect de startup pentru master: Nau-ino, un sistem care folosește camerele pe care o școală le are deja și anunță paznicul când intră noaptea cineva străin. Fețele nu pleacă din clădire.
+
+Mă ajuți cu 1 minut? Intră pe pagină, încearcă jocul și lasă-ți e-mailul la „Get notified”. Dacă ești profesor sau știi un profesor ori director de școală, trimite-i și lui linkul 🙏
+
+${utm("whatsapp", "chat")}`,
+  },
+  {
+    channel: "discord",
+    where: "A private Discord server of about 20 members",
+    medium: "chat",
+    en: `Hi! A classmate and I are building a startup Nau-ino, a system that uses the cameras a school already has and alerts the guard when a stranger walks in at night.
+
+It would really help us if you could spare a minute: open the page, try the "Faster than a guard?" game and, if you're interested, leave your e-mail at "Get notified". Any feedback is welcome, criticism too 🙏
+
+If you have a parent who's a teacher, or know a teacher or school principal, please send them the link as well, since they're exactly who we're building this for!
+
+${utm("discord", "chat")}`,
+    ro: `Salut! Cu un coleg construim un startup, Nau-ino: un sistem care folosește camerele pe care o școală le are deja și anunță paznicul când intră noaptea un străin.
+
+Ne-ar ajuta mult un minut: intrați pe pagină, încercați jocul „Faster than a guard?” și, dacă vă interesează, lăsați-vă e-mailul la „Get notified”. Orice părere e binevenită, și criticile 🙏
+
+Dacă aveți un părinte profesor sau știți un profesor ori director de școală, trimiteți-i și lui linkul: pentru ei construim asta!
+
+${utm("discord", "chat")}`,
   },
   {
     channel: "email",
@@ -177,26 +210,72 @@ export type LogEntry = {
   screenshot?: { src: string; width: number; height: number; alt: string };
   reactions?: number;
   comments?: number;
+  /** What happened to the post (removed, still public, views). */
+  note?: string;
 };
 
 export const m5Log: LogEntry[] = [
-  { channel: "facebook", where: "Parents' group of the town", status: "planned" },
-  { channel: "facebook", where: "Teachers' group", status: "planned" },
-  { channel: "reddit", where: "r/SideProject", status: "planned" },
-  { channel: "reddit", where: "r/Romania or a city subreddit", status: "planned" },
-  { channel: "linkedin", where: "Team members' profiles", status: "planned" },
-  { channel: "instagram", where: "Stories", status: "planned" },
-  { channel: "whatsapp", where: "Class and family groups", status: "planned" },
-  { channel: "email", where: "School secretariats", status: "planned" },
+  {
+    channel: "whatsapp",
+    where: "Personal messages and groups",
+    status: "posted",
+    date: "25 Nov",
+    screenshot: { src: "/campaign/whatsapp-mesaj.png", width: 553, height: 429, alt: "Our WhatsApp message with the landing page link and its preview card" },
+    note: "Private chats, so there is no public permalink. 34 visitors and 12 sign-ups came through this link.",
+  },
+  {
+    channel: "discord",
+    where: "Private server, about 20 members",
+    status: "posted",
+    date: "26 Nov, 05:50",
+    permalink: "https://discord.com/channels/1186272398404759603/1186277152962924636/1575358147755909164",
+    screenshot: { src: "/campaign/discord-1.png", width: 900, height: 309, alt: "Our message with the landing page link on a private Discord server (name and picture blurred)" },
+    note: "Private server: the permalink opens only for its members. 2 visitors in the first minutes, no sign-up.",
+  },
+  {
+    channel: "reddit",
+    where: "r/SideProject (new account)",
+    status: "posted",
+    date: "26 Nov, morning",
+    permalink: "https://www.reddit.com/r/SideProject/comments/1y5rjxk/nauino_night_alerts_on_the_cctv_cameras_a_school/",
+    screenshot: { src: "/campaign/reddit-sideproject-sters-de-filtru.png", width: 901, height: 945, alt: "Our r/SideProject post, removed by Reddit's filters although it had no link" },
+    note: "Removed by Reddit's filters within minutes, although the post had no link: the account was new. We asked the moderators to review it.",
+  },
+  {
+    channel: "reddit",
+    where: "r/ShowYourProduct (same account)",
+    status: "posted",
+    date: "26 Nov, morning",
+    permalink: "https://www.reddit.com/r/ShowYourProduct/comments/1y5rpup/nauino_night_alerts_on_the_cctv_cameras_a_school/",
+    screenshot: { src: "/campaign/reddit-showyourproduct-public.png", width: 890, height: 1157, alt: "Our r/ShowYourProduct post, still public, with the landing page link in a comment" },
+    note: "Stayed public with the link in a comment (checked from a logged-out window). 57 views, but no visit to the landing page.",
+  },
+  {
+    channel: "reddit",
+    where: "r/alphaandbetausers (crosspost)",
+    status: "posted",
+    date: "26 Nov, morning",
+    screenshot: { src: "/campaign/reddit-alphaandbetausers-crosspost-public.png", width: 823, height: 475, alt: "Our crosspost on r/alphaandbetausers, still public" },
+    note: "The crosspost stayed public (22 views), but our comment with the landing page link was removed by Reddit within minutes: the link was the trigger, as EasyFits also found.",
+  },
+  {
+    channel: "reddit",
+    where: "r/IMadeThis, r/Startup_Ideas, r/WeirdStartups, r/ProductHunters, r/EntrepreneurRideAlong, r/roastmystartup, r/Business_Ideas",
+    status: "posted",
+    date: "26 Nov, morning",
+    screenshot: { src: "/campaign/reddit-profil-sterse-content-policy-1.png", width: 882, height: 1180, alt: "Our Reddit profile: posts removed by Reddit for the content policy" },
+    note: "Four removed by Reddit itself (“content policy”: a new account posting in several places looks like spam), one by the subreddit's filter, two still awaiting moderator approval. r/indiehackers, r/edtech and r/AppIdeas did not let a new account post at all (r/AppIdeas: accounts under a month and 50 karma). We stopped there to avoid an account suspension.",
+  },
 ];
 
-/** Measured per channel: visitors = PostHog unique visitors with that utm_source; leads = Formspree submissions from that source. */
+/** Measured per channel (PostHog, 25-26 Nov, test traffic excluded): visitors = unique visitors whose first visit carried that utm_source; leads = "Get notified" sign-ups from those visitors. */
 export const m5Numbers: Record<ChannelId, { visitors: number | null; leads: number | null }> = {
   facebook: { visitors: null, leads: null },
-  reddit: { visitors: null, leads: null },
+  reddit: { visitors: 0, leads: 0 },
   linkedin: { visitors: null, leads: null },
   instagram: { visitors: null, leads: null },
-  whatsapp: { visitors: null, leads: null },
+  whatsapp: { visitors: 34, leads: 12 },
+  discord: { visitors: 2, leads: 0 },
   email: { visitors: null, leads: null },
 };
 
@@ -207,19 +286,52 @@ export const m5GoogleForms: { link?: string; responses?: number; screenshot?: { 
 export const m5PosthogShots: { src: string; width: number; height: number; alt: string; caption: string }[] = [];
 
 /** Written once the numbers are in; empty until then. */
-export const m5Verdict = "";
+export const m5Verdict =
+  "WhatsApp, by a wide margin: 34 of the 55 visitors and all 12 attributed sign-ups (35% of its visitors signed up). Personal messages to people who know us, many of them parents and teachers, work far better than public posts at this stage. Discord brought 2 visitors and no sign-up from a small private server. Reddit brought none: we tried 13 subreddits from a new account; most posts were removed by the filters or by Reddit itself (one even without a link), the two that stayed public got about 80 views but no click, and a comment with our link was removed within minutes. Our own collector, counted independently, gives the same picture (WhatsApp 25 visitors and 12 sign-ups, Discord 2, Reddit 0). Next we would ask the people who signed up to share the link with a teacher or principal they know, since parents and teachers are the people who can bring Nau-ino into a school.";
+
+/** Campaign results, 25-26 Nov 2026 (test traffic excluded in both sources). */
+export const m5Results = {
+  period: "25 Nov, 15:45 to 26 Nov, 06:30",
+  posthog: [
+    { value: "55", label: "visitors" },
+    { value: "13", label: "“Get notified” sign-ups" },
+    { value: "9", label: "surveys sent" },
+    { value: "54", label: "game rounds played" },
+  ],
+  collector:
+    "Our own collector (independent of PostHog, hash-chain verified): 46 visitors, 12 sign-ups (26%), 15 surveys. PostHog counts a few more visitors because a visitor who accepts cookies after a cookieless visit gets a new id; ad blockers hide some visits from PostHog.",
+  funnel: [
+    { step: "Saw the landing page", n: 30 },
+    { step: "Clicked “Get notified”", n: 10 },
+    { step: "Signed up", n: 13 },
+  ],
+  funnelNote: "More sign-ups than clicks: some visitors scrolled to the form without using the button.",
+  roles: [
+    ["Parent", 4],
+    ["Teacher", 3],
+    ["Security or IT", 2],
+    ["Other or not given", 4],
+  ] as [string, number][],
+  devices: "21 visitors on a phone, 19 on a computer.",
+};
+
+/** Quick survey on the landing page (replaces the planned Google Form). */
+export const m5Survey = {
+  responses: 15,
+  note: "15 answers so far through the “Quick survey · 1 min” button on the landing page (EN/RO, anonymous). The answers are summarised on the M4 page, in the Online survey tab.",
+};
 
 export const m5Method = {
   timeline: [
-    ["Day 1", "Lead forms and analytics added to the landing page; posts written in English and Romanian."],
-    ["Days 2-3", "Posts published channel by channel, each with its own UTM link."],
-    ["Days 4-10", "Replies to every comment; e-mails to schools followed up once."],
-    ["Day 11", "Numbers collected from PostHog, Formspree and Google Forms; channels compared."],
+    ["25 Nov, afternoon", "PostHog (web analytics, funnel, session replay) and the “Get notified” sign-up live on the landing page; one tagged link per channel."],
+    ["25 Nov, evening", "Personal WhatsApp messages and groups."],
+    ["26 Nov, morning", "Reddit (r/SideProject, r/ShowYourProduct) and a Discord server."],
+    ["26 Nov, 06:30", "Numbers taken from PostHog and our own collector; channels compared."],
   ] as [string, string][],
   tools: [
-    ["Formspree", "Form back end for a static site: no server of our own."],
+    ["Own collector", "A Google Apps Script on a Google Sheet stores sign-ups, survey answers and visits; a hash chain shows the numbers were not edited."],
     ["PostHog", "Web analytics, funnel and session replay, EU cloud, cookieless until consent."],
-    ["Google Forms", "Survey for people who will not open a landing page."],
+    ["Quick survey", "A 1-minute anonymous survey on the landing page itself, in English and Romanian."],
     ["UTM links", "One per channel, so every visit and lead can be traced back to the post."],
   ] as [string, string][],
 };
