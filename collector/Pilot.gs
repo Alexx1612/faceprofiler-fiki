@@ -1,8 +1,9 @@
 /**
- * Nau-ino collector, pilot requests (a second file next to Code.gs in the same Apps Script project).
+ * Nau-ino collector, newsletter sign-ups (form "pilot"; a second file next to Code.gs in the same Apps Script project).
  *
- * Methodology: the landing page's "Book a free 30-day pilot" form sends the Google ID token of the signed-in
- * visitor with the request (field `id_token`). Code.gs calls handlePilot_(form) before it stores the row:
+ * Methodology: the landing page's "Subscribe to the newsletter (to be invited for a pilot)" form sends an e-mail
+ * and/or a phone number (school and role optional), or the Google ID token of the signed-in visitor (field
+ * `id_token`). Code.gs calls handlePilot_(form) before it stores the row:
  *   1. the token is removed from the row at once (tokens are never written to the sheet);
  *   2. it is checked with Google's tokeninfo endpoint: audience = our OAuth client ID (Script Property
  *      GOOGLE_CLIENT_ID), issuer = accounts.google.com, e-mail verified, not expired; only then the name
@@ -97,21 +98,22 @@ function pilotMail(f, when) {
   var school = d.school || "(no school given)";
   var call = d.call === "yes" ? "Yes, " + (d.phone || "(no number)") + (d.call_time ? ", " + d.call_time : "") : "No";
   var lines = [
-    "New pilot request from the Nau-ino landing page.",
+    "New newsletter sign-up (pilot invitation) from the Nau-ino landing page.",
     "",
     "Name:        " + (d.name || "-"),
     "E-mail:      " + (d.email || "-") + (d.verified === "true" ? "  (verified by Google)" : "  (not verified)"),
     "School:      " + school,
     "Role:        " + (d.role || "-"),
     "Phone call:  " + call,
-    "Signed in:   " + (d.signin === "google" ? "Google" : "e-mail field"),
+    "Signed up:   " + (d.signin === "google" ? "Google" : d.signin === "phone" ? "phone number only" : "e-mail field"),
     "Page:        " + (f.path || "-"),
     "Site:        " + (f.version || "-"),
     "Time:        " + when.toISOString().replace("T", " ").slice(0, 16) + " UTC",
   ];
   if (d.verify_error) lines.push("Check:       " + d.verify_error);
   lines.push("", "Reply to this e-mail to answer the requester (only when the e-mail was verified).");
-  return { subject: (f.test ? "[TEST] " : "") + "Nau-ino: new pilot request — " + school, body: lines.join("\n") };
+  var who = d.school || d.email || d.phone || "(no contact)";
+  return { subject: (f.test ? "[TEST] " : "") + "Nau-ino: new newsletter sign-up — " + who, body: lines.join("\n") };
 }
 
 /** Short confirmation for the requester (only sent when SEND_CONFIRMATION is "true" and the e-mail is verified). */
@@ -119,12 +121,14 @@ function confirmationMail(f) {
   var d = f.data || {};
   var hi = d.name ? "Hello " + d.name.split(" ")[0] + "," : "Hello,";
   return {
-    subject: "Your Nau-ino pilot request",
+    subject: "You're subscribed to Nau-ino",
     body: [
       hi,
       "",
-      "Thank you for asking for a free 30-day Nau-ino pilot" + (d.school ? " for " + d.school : "") + ".",
-      d.call === "yes" ? "We will call you" + (d.call_time ? " in the " + d.call_time.toLowerCase() : "") + " and e-mail you within 2 working days." : "We will e-mail you within 2 working days.",
+      "Thank you for subscribing to the Nau-ino newsletter" + (d.school ? " for " + d.school : "") + ".",
+      "We will invite you to a free 30-day pilot when one opens near you" +
+        (d.call === "yes" ? ", and call you" + (d.call_time ? " in the " + d.call_time.toLowerCase() : "") + " to set it up." : "."),
+      "To unsubscribe, reply to this e-mail.",
       "",
       "Nau-ino team",
     ].join("\n"),

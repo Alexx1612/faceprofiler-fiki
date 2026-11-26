@@ -143,7 +143,7 @@ export function PilotForm() {
               type="tel"
               autoComplete="tel"
               placeholder="07xx xxx xxx"
-              pattern="[0-9+ ]{7,20}"
+              pattern="[0-9+()\-. ]{7,20}"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
