@@ -2005,3 +2005,48 @@
 .lp-pilotbox__or { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 420px; margin: 6px auto 0; color: var(--color-muted); font-size: 13px; }
 .lp-pilotbox__or::before, .lp-pilotbox__or::after { content: ""; flex: 1; height: 1px; background: color-mix(in oklab, var(--color-ink) 18%, transparent); }
 .lp-form__opt { color: var(--color-muted); font-weight: 400; font-size: 0.9em; }
+
+/* Newsletter form as one panel: two small groups, a tidy consent box, a wide centred button */
+.lp-pilotbox__form {
+  max-width: 600px;
+  margin-inline: auto;
+  padding: clamp(18px, 4vw, 28px);
+  border-radius: var(--radius-card, 20px);
+  background: color-mix(in oklab, var(--color-light) 4%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-light) 10%, transparent);
+  gap: 14px;
+}
+.lp-form__group {
+  margin: 6px 0 -4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+}
+.lp-form__group:first-child { margin-top: 0; }
+.lp-form__group .lp-form__opt { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.lp-pilotbox__form .lp-form__note { margin: -4px 0 0; }
+.lp-pilotbox__form .lp-form__check {
+  margin-top: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-inner);
+  background: color-mix(in oklab, var(--color-light) 4%, transparent);
+}
+.lp-pilotbox__form .lp-form__check input {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin-top: 1px;
+  padding: 0;
+  accent-color: var(--color-accent);
+}
+.lp-pilotbox__form .lp-btn {
+  justify-self: center;
+  min-width: 240px;
+  margin-top: 4px;
+}
+@media (max-width: 480px) {
+  .lp-pilotbox__form .lp-btn { justify-self: stretch; min-width: 0; }
+}
+.lp-pilotbox__form .lp-form__note--error { text-align: center; }

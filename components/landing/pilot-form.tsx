@@ -126,6 +126,7 @@ export function PilotForm() {
       )}
 
       <form className="lp-form lp-pilotbox__form" onSubmit={submit} aria-label="Subscribe to the newsletter">
+        <p className="lp-form__group">{user ? "Phone, if you want a call" : "How we reach you"}</p>
         <div className="lp-form__two">
           {!user && (
             <label>
@@ -135,7 +136,7 @@ export function PilotForm() {
           )}
           <label>
             <span>
-              Phone {user ? <span className="lp-form__opt">(optional, if you want a call)</span> : null}
+              Phone {user ? <span className="lp-form__opt">(optional)</span> : null}
             </span>
             <input
               name="phone"
@@ -158,17 +159,16 @@ export function PilotForm() {
             </select>
           </label>
         )}
+        <p className="lp-form__group">
+          About you <span className="lp-form__opt">· optional</span>
+        </p>
         <div className="lp-form__two">
           <label>
-            <span>
-              School or organisation <span className="lp-form__opt">(optional)</span>
-            </span>
+            <span>School or organisation</span>
             <input name="school" autoComplete="organization" placeholder="School no. 7, Cluj" />
           </label>
           <label>
-            <span>
-              Your role <span className="lp-form__opt">(optional)</span>
-            </span>
+            <span>Your role</span>
             <select name="role" defaultValue="">
               <option value="">Prefer not to say</option>
               <option>Principal or director</option>
