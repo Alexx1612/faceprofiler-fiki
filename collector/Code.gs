@@ -67,7 +67,7 @@ function isFreeText(k) {
 var FUNNEL = [
   // path may carry the GitHub Pages base path ("/faceprofiler-fiki/landing/"), so match the segment anywhere
   { name: "Landing page", match: function (e) { return e.event === "$pageview" && /(^|\/)landing(\/|$)/.test(String(e.path)); } },
-  { name: "Book a pilot or survey opened", match: function (e) { return e.event === "cta_book_pilot_click" || e.event === "survey_opened"; } },
+  { name: "Subscribe or survey opened", match: function (e) { return e.event === "cta_book_pilot_click" || e.event === "survey_opened"; } },
   { name: "Form or survey sent", match: function (e) { return e.event === "pilot_form_submitted" || e.event === "pilot_requested" || e.event === "updates_form_submitted" || e.event === "survey_submitted"; } },
 ];
 

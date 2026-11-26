@@ -48,7 +48,7 @@ export const m5Analytics = {
   ],
   events: [
     ["$pageview", "Any page opened (automatic)"],
-    ["cta_book_pilot_click", "“Book a pilot” clicked (nav or hero); in v1.27-v1.28 the same event was the “Get notified” button"], ["cta_get_notified_click", "“Get notified” clicked in the hero (from v1.29)"],
+    ["cta_book_pilot_click", "“Subscribe” clicked (nav or hero); the name is kept from v1.15, when the button said “Book a pilot”, then “Get notified”"], ["cta_get_notified_click", "“Get notified” clicked in the hero (from v1.29)"],
     ["updates_form_submitted", "“Get notified” sign-up sent"],
     ["manual_downloaded", "A user manual PDF downloaded"],
   ] as [string, string][],

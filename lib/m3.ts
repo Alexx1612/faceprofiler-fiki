@@ -312,8 +312,8 @@ export const m3Landing = {
   path: "/landing/",
   url: "https://alexx1612.github.io/faceprofiler-fiki/landing/",
   summary:
-    "A one-page site for school directors and administrators: what Nau-ino does at night and during the day, how faces are kept, and one action, booking a free 30-day pilot on the school's own cameras.",
-  sections: ["Hero: the night, in the product's own words", "How it works: enrol, watch, flag, report", "Day and night: the two problems we heard in M2", "Privacy: faces stay in the building", "Book a pilot: a form that opens an e-mail"],
+    "A one-page site for school directors and administrators: what Nau-ino does at night and during the day, how faces are kept, and one action: subscribe to the newsletter to be invited to a free 30-day pilot on the school's own cameras.",
+  sections: ["Hero: the night, in the product's own words", "How it works: enrol, watch, flag, report", "Day and night: the two problems we heard in M2", "Privacy: faces stay in the building", "Newsletter: subscribe to be invited to a pilot"],
 };
 
 export const m3Method = [

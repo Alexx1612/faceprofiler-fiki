@@ -685,6 +685,9 @@ function Daily({ s }: { s: Stats }) {
   );
 }
 
+/** Step names from the collector, in today's wording (the button is now "Subscribe"). */
+const stepName = (step: string) => step.replace("Book a pilot or survey opened", "Subscribe or survey opened");
+
 /** Funnel: one bar per step (share of step 1) and, between steps, how many dropped off. */
 function Funnel({ s }: { s: Stats }) {
   const top = s.funnel[0]?.visitors ?? 0;
@@ -700,7 +703,7 @@ function Funnel({ s }: { s: Stats }) {
     <div>
       <Takeaway>
         {top
-          ? `${pct(last.conversion)} of landing-page visitors sent a form or the survey; the biggest drop is before “${s.funnel[worst]?.step}” (${pct(worstDrop)} left).`
+          ? `${pct(last.conversion)} of landing-page visitors sent a form or the survey; the biggest drop is before “${stepName(s.funnel[worst]?.step ?? "")}” (${pct(worstDrop)} left).`
           : "Nobody has reached the landing page yet."}
       </Takeaway>
       <ol className="space-y-1">
@@ -715,7 +718,7 @@ function Funnel({ s }: { s: Stats }) {
               )}
               <div className="mb-1 flex justify-between gap-3">
                 <span className="text-neutral-200">
-                  {i + 1}. {f.step}
+                  {i + 1}. {stepName(f.step)}
                 </span>
                 <span className="tabular-nums text-white">
                   {num(f.visitors)} <span className="text-neutral-400">· {top ? pct(f.visitors / top) : "0%"}</span>
