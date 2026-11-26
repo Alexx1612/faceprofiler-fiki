@@ -31,6 +31,26 @@ export const m2Interviews = {
   why: "A school is a closed building where everybody should be known, it has both daytime and night-time risks, and we could reach the decision makers directly.",
 };
 
+/** Second series: the people on site at night and a private building. Full notes on the M4 page (G1, H1). */
+export const m2Interviews2 = {
+  title: "Second series: the night shift and a private building",
+  why: "The first series heard about night risks only second-hand. We talked to the person who is actually there at night, and to a small owner outside schools, to test whether the problem goes beyond one segment.",
+  people: [
+    {
+      code: "G1",
+      who: "Night guard at a school",
+      heard: "During a 24-hour shift a man with a knife got in at night and threatened girls in their room. The guard found out only when the girls came to him, after the man had left; the police were called afterwards.",
+    },
+    {
+      code: "H1",
+      who: "Owner of a small production hall",
+      heard: "Three employees, and he is almost always away on jobs. In the daytime he calls them to check on the work; at night nobody is there and he wants to know if anything happens.",
+    },
+  ],
+  how: "Same method: face-to-face, one person at a time, about real past events first, notes taken during the conversation. Full notes on the M4 page.",
+  learned: "Confirmed the night problem from the person on duty: cameras and a guard on site were not enough, the alert has to reach someone at once. H1 shows the same need outside schools, plus daytime remote supervision.",
+};
+
 /** First draft (closed, yes/no, easy to answer "fine") vs improved version (open, about real past events). */
 export const m2Questions: { time: "Day" | "Night"; draft: string; improved: string; isNew?: boolean }[] = [
   { time: "Day", draft: "What's a normal day like?", improved: "Can you walk me through a typical school day?" },
@@ -74,13 +94,13 @@ export const m2Insights = [
 export const m2Ready = {
   verdict: "Not yet, but we have a start.",
   forReasons: [
-    "The problem was recognised by the staff we interviewed at both schools, for both day and night.",
+    "The problem was recognised by the staff we interviewed at both schools, for both day and night, and confirmed by a school night guard and the owner of a private production hall.",
     "We have a working demo and a clearer, two-mode idea of the product.",
     "Our questions are now open and about real events, ready to be used at scale through the form.",
   ],
   againstReasons: [
     "Two schools are not enough to say the problem is common or urgent everywhere.",
-    "We still have to interview the other segments: student dorms, elderly care homes, military buildings, office buildings, malls and other public areas.",
+    "Beyond schools we have one private building (a small production hall); we still have to interview student dorms, elderly care homes, military buildings, office buildings, malls and other public areas.",
     "Nobody has been asked yet whether they would pay, how much, or who signs the purchase.",
   ],
   next: "Run the same interviews in at least three more segments, collect form answers, then move to Customer Validation with a paid pilot offer in the segment where the pain is strongest.",
@@ -88,6 +108,7 @@ export const m2Ready = {
 
 export const m2Evidence = [
   { item: "Interview notes from the two schools (teachers, deputy headmistress)", status: "To be attached (scans or typed notes, names removed)" },
+  { item: "Second series: school night guard and production-hall owner", status: "Notes on the M4 page (G1, H1)" },
   { item: "First draft vs improved question list", status: "On this page" },
   { item: "Online form with the improved questions", status: "On this page" },
   { item: "Working demo used later to test the solution", status: "Home page, Proof and Technology sections" },

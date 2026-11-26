@@ -1,7 +1,7 @@
 "use client";
 
 import { DirectionAwareTabs } from "@/components/ui/direction-aware-tabs";
-import { m2Insights, m2Interviews, m2Plan, m2Problem, m2Questions, m2Ready, m2Solution } from "@/lib/m2";
+import { m2Insights, m2Interviews, m2Interviews2, m2Plan, m2Problem, m2Questions, m2Ready, m2Solution } from "@/lib/m2";
 import { M2Form } from "./m2-form";
 import { NextArrow, TabHint, TabLabel } from "./tab-hint";
 
@@ -61,6 +61,24 @@ function Interviews() {
         <p className="text-sm text-neutral-400">{m2Interviews.how}</p>
       </div>
       <p className="text-sm text-neutral-400 md:col-span-3">{m2Interviews.why}</p>
+
+      <div className={`${box} md:col-span-3`}>
+        <p className={h4}>{m2Interviews2.title}</p>
+        <p className="text-sm text-neutral-400">{m2Interviews2.why}</p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          {m2Interviews2.people.map((p) => (
+            <div key={p.code} className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+              <p className="flex items-center gap-2 text-sm">
+                <span className="jet rounded-md bg-sky-500/20 px-2 py-0.5 text-xs font-bold text-sky-200">{p.code}</span>
+                <b className="text-white">{p.who}</b>
+              </p>
+              <p className="mt-2 text-sm text-neutral-300">{p.heard}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-sm text-neutral-400">{m2Interviews2.how}</p>
+        <p className="mt-2 rounded-xl border border-sky-300/15 bg-sky-400/[0.07] p-3 text-sm text-white">{m2Interviews2.learned}</p>
+      </div>
     </div>
   );
 }
