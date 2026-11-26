@@ -4,60 +4,27 @@
  * Owner sign-in for private analytics views (session replays, the form inbox).
  *
  * Methodology: reuses the Google sign-in client of the pilot form (lib/google-auth.ts). The ID token is kept
- * in memory and sessionStorage for this tab only (it expires after about an hour) and is sent to the
+ * for this tab only by lib/account.ts (it expires after about an hour) and is sent to the
  * collector as `token=` on private requests; the collector (collector/Owner.gs) decides who is an owner, so
  * nothing private is ever in the page itself. `ownerFetch(params)` calls the collector's GET endpoint with
  * the token and returns its JSON, or `{ ok: false, error }`.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 
+import { setAccount, useAccount } from "@/lib/account";
 import { collectUrl, markTestAccount, setTestMode } from "@/lib/collect";
-import { readIdToken, type GoogleUser } from "@/lib/google-auth";
+import { type GoogleUser } from "@/lib/google-auth";
 
-const KEY = "nauino:owner";
-
-function load(): GoogleUser | null {
-  try {
-    const raw = sessionStorage.getItem(KEY);
-    const u = raw ? readIdToken(raw) : null;
-    return u && !expired(raw!) ? u : null;
-  } catch {
-    return null;
-  }
-}
-
-function expired(credential: string): boolean {
-  try {
-    const payload = JSON.parse(atob(credential.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-    return !payload.exp || payload.exp * 1000 < Date.now() + 60_000;
-  } catch {
-    return true;
-  }
-}
-
-/** Signed-in owner candidate (the collector still decides), with sign-in / sign-out. */
+/** Signed-in owner candidate (the collector still decides), with sign-in / sign-out. Shares the tab's account (lib/account.ts). */
 export function useOwner() {
-  const [user, setUser] = useState<GoogleUser | null>(null);
-  useEffect(() => setUser(load()), []);
+  const user = useAccount();
   const signIn = useCallback((u: GoogleUser) => {
-    try {
-      sessionStorage.setItem(KEY, u.credential);
-    } catch {
-      /* memory only */
-    }
-    setUser(u);
+    setAccount(u);
     // the owner's own visits are always test traffic, whichever browser they sign in from
     setTestMode(true);
     void markTestAccount(u.email);
   }, []);
-  const signOut = useCallback(() => {
-    try {
-      sessionStorage.removeItem(KEY);
-    } catch {
-      /* nothing stored */
-    }
-    setUser(null);
-  }, []);
+  const signOut = useCallback(() => setAccount(null), []);
   return { user, token: user?.credential ?? "", signIn, signOut };
 }
 

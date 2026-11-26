@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { AccountPill } from "@/components/analytics/account-pill";
 import { nav, project } from "@/lib/content";
 import { cn } from "@/lib/utils";
 
@@ -121,7 +122,7 @@ export function Nav({ home = true }: { home?: boolean }) {
         scrolled ? "border-b border-white/[0.06] bg-[#070f1f]/75 backdrop-blur-xl" : "bg-transparent"
       )}
     >
-      <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-2 px-3 sm:gap-4 sm:px-6">
         <Link href={home ? "#top" : "/"} className="flex min-h-11 shrink-0 items-center gap-2 font-semibold tracking-tight text-white">
           <Logo className="size-6 text-sky-400" />
           {project.name}
@@ -140,9 +141,10 @@ export function Nav({ home = true }: { home?: boolean }) {
             </Link>
           ))}
         </nav>
+        <AccountPill className="ml-auto lg:ml-0" />
         <Link
           href="/pitch/"
-          className="ml-auto flex min-h-11 shrink-0 items-center rounded-full bg-sky-400 px-3 lg:ml-0 text-sm font-semibold text-[#070f1f] transition-colors hover:bg-sky-300 sm:min-h-9"
+          className="flex min-h-11 shrink-0 items-center rounded-full bg-sky-400 px-3 text-sm font-semibold text-[#070f1f] transition-colors hover:bg-sky-300 sm:min-h-9"
         >
           Pitch
         </Link>

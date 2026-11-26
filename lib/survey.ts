@@ -34,6 +34,7 @@ export type Question = {
 
 export const ui = {
   button: ["Quick survey", "Chestionar rapid"],
+  buttonShort: ["Survey", "Chestionar"],
   time: ["1 min", "1 min"],
   title: ["Nau-ino · quick survey", "Nau-ino · chestionar scurt"],
   intro: ["School safety after hours. About 1 minute, anonymous: no name, no e-mail.", "Despre siguranța școlii în afara orelor. Durează cam un minut și e anonim: nu îți cerem numele sau e-mailul."],

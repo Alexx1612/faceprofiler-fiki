@@ -22,11 +22,11 @@ export function TestPill() {
       type="button"
       onClick={() => setTestMode(false)}
       title="Your visits are marked as test and left out of the analytics. Tap to turn off."
-      className="fixed bottom-2 left-2 z-[70] flex min-h-7 items-center gap-1 rounded-full border border-amber-300/60 bg-amber-400/80 px-2 text-[10px] font-bold tracking-wide text-amber-950 shadow-lg hover:bg-amber-300"
+      className="fixed bottom-2 left-2 z-[70] flex min-h-6 items-center gap-1 rounded-full border border-amber-300/60 bg-amber-400/70 px-2 sm:min-h-7 text-[10px] font-bold tracking-wide text-amber-950 shadow-lg hover:bg-amber-300"
     >
       <span aria-hidden className="size-1.5 rounded-full bg-amber-950" />
-      TEST MODE ON
-      <span aria-hidden className="font-normal opacity-70">· tap to turn off</span>
+      TEST<span className="hidden sm:inline"> MODE ON</span>
+      <span aria-hidden className="hidden font-normal opacity-70 sm:inline">· tap to turn off</span>
     </button>
   );
 }

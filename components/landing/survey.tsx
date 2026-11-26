@@ -135,7 +135,8 @@ export function SurveyButton() {
     <>
       <button type="button" className="lp-survey-btn" onClick={open} aria-haspopup="dialog" data-track="survey-open">
         <span className="lp-survey-btn__dot" aria-hidden />
-        {ui.button[L]} <span className="lp-survey-btn__time">· {ui.time[L]}</span>
+        <span className="lp-survey-btn__long">{ui.button[L]}</span>
+        <span className="lp-survey-btn__short">{ui.buttonShort[L]}</span> <span className="lp-survey-btn__time">· {ui.time[L]}</span>
       </button>
       <dialog ref={dialog} className="gf" aria-label={ui.title[L]} onClose={onClose} lang={lang}>
         <div className="gf__sheet">

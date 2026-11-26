@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { setAccount, useAccount } from "@/lib/account";
 import { GoogleSignIn } from "@/components/landing/google-signin";
 import { sendLead, track } from "@/lib/analytics";
 import { collectForm, collectUrl, markTestAccount } from "@/lib/collect";
@@ -14,12 +15,13 @@ import { googleClientId, loadGoogleId, type GoogleUser } from "@/lib/google-auth
  * Methodology: with Google sign-in the e-mail comes from Google, not from a text field; the ID token goes
  * with the request to our collector, which verifies it with Google (collector/Pilot.gs) and e-mails the
  * team. Without a client ID, or when the Google script is blocked, the same form asks for the e-mail
- * instead, so the page never has a dead end. Without a collector the request goes to Formspree or the
+ * instead, so the page never has a dead end. The account is the tab's shared one (lib/account.ts). Without a collector the request goes to Formspree or the
  * visitor's e-mail app (sendLead). Analytics only get `pilot_requested` with non-personal fields: never
  * the e-mail, the phone or the school.
  */
 export function PilotForm() {
-  const [user, setUser] = useState<GoogleUser | null>(null);
+  const user = useAccount(); // already signed in on this tab (pilot form or analytics) = no button again
+  const setUser = (u: GoogleUser | null) => setAccount(u);
   const [google, setGoogle] = useState<"loading" | "off">(googleClientId ? "loading" : "off");
   const [call, setCall] = useState(false);
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");

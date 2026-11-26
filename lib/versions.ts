@@ -11,6 +11,14 @@ export type SiteVersion = { version: string; date: string; changes: string[] };
 
 export const versions: SiteVersion[] = [
   {
+    version: "v1.29",
+    date: "2026-11-26",
+    changes: [
+      "Landing: \"Book a pilot\" with Google sign-in is back above the \"Get notified\" card; hero and nav say \"Book a pilot\", hero also has \"Get notified\"",
+      "Top bars show who is signed in (Google account, sign out) or \"Guest\"; one sign-in per tab is shared by the pilot form and analytics",
+    ],
+  },
+  {
     version: "v1.28",
     date: "2026-11-26",
     changes: ["M5: the campaign as it ran (WhatsApp, Discord, Reddit) with permalinks and screenshots, results from PostHog and our collector, channel comparison and verdict"],

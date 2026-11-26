@@ -1979,3 +1979,24 @@
   min-height: 44px;
   font-size: 15px;
 }
+
+/* account pill (components/analytics/account-pill.tsx): guest or the signed-in Google account */
+.lp-account { margin-left: auto; font-family: var(--font-text, inherit); }
+.lp-account + .lp-survey-btn { margin-left: 0; }
+@media (min-width: 860px) { .lp-account { margin-left: 0; } }
+@media (max-width: 389px) { .lp-account { padding: 0 8px; } .lp-account .lp-account__word { display: none; } }
+
+/* phone top bar: brand, account, survey and Book a pilot on one line */
+.lp-brand, .lp-nav__cta, .lp-survey-btn { white-space: nowrap; }
+.lp-survey-btn__short { display: none; }
+@media (max-width: 430px) {
+  .lp-survey-btn__long { display: none; }
+  .lp-survey-btn__short { display: inline; }
+}
+@media (max-width: 430px) {
+  .lp-nav .lp-wrap { padding-inline: 12px; }
+  .lp-nav__bar { gap: 6px; }
+  .lp-brand { gap: 6px; }
+  .lp-survey-btn { padding: 0 10px; }
+  .lp-nav__cta { padding: 0 12px; }
+}

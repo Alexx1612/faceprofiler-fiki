@@ -6,7 +6,7 @@
  * JWT). The page decodes it only to show "Signed in as …"; it is never trusted here. The token goes with
  * the pilot request to the collector (collector/Pilot.gs), which verifies it with Google before it uses the
  * e-mail. One Tap and auto-select are off: nobody is signed in without pressing the button. The token stays
- * in memory; nothing is stored in the browser.
+ * in this tab only (sessionStorage, lib/account.ts) until it expires or the visitor signs out.
  */
 
 export const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
