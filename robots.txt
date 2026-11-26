@@ -1,0 +1,4 @@
+User-Agent: *
+Allow: /
+
+Sitemap: https://alexx1612.github.io/faceprofiler-fiki/sitemap.xml
